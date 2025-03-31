@@ -20,7 +20,7 @@ public class ForgotPasswordService {
 
     private final UserRepository userRepository;
     private final EmailVerificationRepository verificationRepository;
-    private final EmailService emailService;
+    private final EmailSenderService emailService;
 
     PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 

@@ -10,12 +10,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.devEra.ws.core.error.ApiError;
 import com.devEra.ws.core.message.GenericMessage;
+import com.devEra.ws.dto.request.UpdatePasswordRequest;
+import com.devEra.ws.dto.request.UpdateProfileRequest;
 import com.devEra.ws.entity.User;
 import com.devEra.ws.exception.NotUniqueEmailException;
 import com.devEra.ws.service.UserService;
@@ -32,6 +36,36 @@ public class UserController {
         userService.save(user);
         return new GenericMessage("User is created!");
     };
+
+    @PutMapping("/api/v1/users/{id}")
+    public ResponseEntity<?> updateUserProfile(@PathVariable int id, @RequestBody UpdateProfileRequest request) {
+        try {
+            userService.updateProfile(id, request);
+            return ResponseEntity.ok(new GenericMessage("Profile updated successfully."));
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage("User not found");
+            error.setPath("/api/v1/users/" + id);
+            return ResponseEntity.status(404).body(error);
+        }
+    }
+
+    @PutMapping("/api/v1/users/{id}/password")
+    public ResponseEntity<?> updatePassword(@PathVariable int id, @RequestBody UpdatePasswordRequest request) {
+
+        boolean success = userService.updatePassword(id, request);
+
+        if (!success) {
+            ApiError error = new ApiError();
+            error.setStatus(400);
+            error.setPath("/api/v1/users/" + id + "/password");
+            error.setMessage("Old password is incorrect.");
+            return ResponseEntity.badRequest().body(error);
+        }
+
+        return ResponseEntity.ok(new GenericMessage("Password updated successfully."));
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleMethodArgNotValidEx(MethodArgumentNotValidException exception) {

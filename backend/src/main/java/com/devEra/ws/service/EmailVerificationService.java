@@ -16,7 +16,7 @@ import java.util.Random;
 public class EmailVerificationService {
 
     private final EmailVerificationRepository verificationRepository;
-    private final EmailService emailService;
+    private final EmailSenderService emailService;
 
     public void sendVerificationCode(User user) {
         // 6 haneli doğrulama kodu üret
