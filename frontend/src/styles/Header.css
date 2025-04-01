@@ -1,0 +1,189 @@
+.header {
+  background-color: white;
+  padding: 0.5rem 2rem 0.7rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Logo Section */
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.main-logo {
+  display: flex;
+  align-items: center;
+}
+
+.main-logo-img {
+  height: 75px;
+  width: auto;
+}
+
+.eu-logo {
+  display: flex;
+  align-items: center;
+  border-left: 1px solid #e0e0e0;
+  padding-left: 1.5rem;
+}
+
+.eu-logo-full {
+  height: auto;
+  width: 180px;
+}
+
+/* Navigation */
+.main-nav {
+  flex-grow: 1;
+  margin-left: 2rem;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 1.5rem;
+  padding: 0;
+  margin: 0;
+  justify-content: flex-start;
+  padding-left: 3rem;
+  position: relative;
+}
+
+.nav-links li a {
+  color: #333;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.5rem 0;
+  display: block;
+  transition: color 0.2s;
+}
+
+.nav-links li a:hover {
+  color: #0056b3;
+}
+
+.nav-links li a.active {
+  color: #0056b3;
+}
+
+.nav-indicator {
+  position: absolute;
+  height: 3px;
+  background-color: #0056b3;
+  bottom: -3px;
+  transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Right Section */
+.right-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.language-selector {
+  margin-bottom: 0.5rem;
+}
+
+.language-btn {
+  background: none;
+  border: 2px solid #aaa;
+  border-radius: 6px;
+  padding: 0.3rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: #333;
+  font-size: 0.9rem;
+  transition: border-color 0.3s, color 0.3s;
+}
+
+.language-btn:hover {
+  border-color: #777;
+  color: #666;
+}
+
+.language-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.contact-btn {
+  background: linear-gradient(to right, #1e3c7a, #2a4b8d, #3a5ca0);
+  color: white;
+  padding: 0.4rem 1.2rem;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.3s;
+}
+
+.contact-btn:hover {
+  background: linear-gradient(to right, #18325e, #1a3a7d, #2a4c8f);
+}
+
+.login-btn {
+  color: #333;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.login-btn:hover {
+  color: #0056b3;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+  .eu-logo-full {
+    width: 150px;
+  }
+}
+
+@media (max-width: 992px) {
+  .header-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .right-section {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-nav {
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+  }
+  
+  .nav-links {
+    width: max-content;
+  }
+} 
