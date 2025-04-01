@@ -1,0 +1,137 @@
+.footer {
+  background-color: #e6e6e6;
+  padding: 2rem 2rem 1rem;
+  color: #333;
+}
+
+.footer-content {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 2rem;
+}
+
+/* Logo Section */
+.footer-section.logo-section {
+  flex: 1;
+  min-width: 300px;
+  max-width: 350px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.footer-logo-img {
+  height: 60px;
+  width: auto;
+  margin-bottom: 1rem;
+}
+
+.footer-logo-text {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #000;
+}
+
+.footer-description {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #555;
+}
+
+/* Links Section */
+.footer-section.links-section {
+  flex: 1.5;
+  display: flex;
+  gap: 3rem;
+  min-width: 300px;
+  justify-content: center;
+}
+
+.footer-links-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.footer-links-column a {
+  color: #333;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.footer-links-column a:hover {
+  color: #0056b3;
+}
+
+/* EU Section */
+.footer-section.eu-section {
+  flex: 1;
+  min-width: 300px;
+  max-width: 350px;
+}
+
+.eu-content {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.eu-flag {
+  flex-shrink: 0;
+}
+
+.eu-flag-img {
+  height: auto;
+  width: 100px;
+}
+
+.eu-disclaimer {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #555;
+  margin: 0;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+  max-width: 1400px;
+  margin: 2rem auto 0;
+  padding-top: 1rem;
+  border-top: 1px solid #ccc;
+  text-align: center;
+}
+
+.copyright {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+  .footer-content {
+    justify-content: space-between;
+  }
+  
+  .footer-section.logo-section,
+  .footer-section.eu-section {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .footer-section.links-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+} 

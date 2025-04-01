@@ -1,5 +1,23 @@
 .App {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: white;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  background-color: white;
+}
+
+.page {
+  padding: 2rem;
+  background-color: white;
+  border-radius: 8px;
 }
 
 .App-logo {
@@ -8,7 +26,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .App-logo {
+  .it-isqs-logo {
     animation: App-logo-spin infinite 20s linear;
   }
 }
