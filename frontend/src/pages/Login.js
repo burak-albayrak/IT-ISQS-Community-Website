@@ -3,12 +3,30 @@ import { Link } from 'react-router-dom';
 import * as S from '../styles/AuthStyles';
 import logo from '../logo.svg'; // Şimdilik React logosu kullanıyoruz
 import styled from 'styled-components';
+import mailIcon from '../assets/mail.png'; // Mail ikonunu import ediyoruz
+import tikIcon from '../assets/tik.png'; // Tik ikonunu import ediyoruz
+import personIcon from '../assets/person.png'; // Person ikonunu import ediyoruz
+import lockIcon from '../assets/lock.png'; // Lock ikonunu import ediyoruz
 
 // Formda yan yana koyacağımız girdi alanları için stil ekleyelim
 const FormRow = styled.div`
     display: flex;
     gap: 10px;
     width: 100%;
+`;
+
+// Login form input'ları için özel stil
+const LoginInput = styled(S.Input)`
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+`;
+
+// Google butonları için özel stil
+const LoginGoogleButton = styled(S.GoogleButton)`
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
 `;
 
 const Login = () => {
@@ -86,7 +104,11 @@ const Login = () => {
     };
 
     return (
-        <div className="page login-page">
+        <div className="page login-page" style={{ position: 'relative' }}>
+            <S.TopLeftImage src={mailIcon} />
+            <S.BottomRightImage src={tikIcon} />
+            <S.BottomLeftImage src={personIcon} />
+            <S.TopRightImage src={lockIcon} />
             <S.Container>
                 <S.SignUpContainer isLogin={isLogin}>
                     <S.Form onSubmit={handleRegisterSubmit}>
@@ -156,19 +178,6 @@ const Login = () => {
                                 <option value="france">France</option>
                                 <option value="uk">United Kingdom</option>
                             </S.Select>
-                            
-                            <S.Select 
-                                name="role"
-                                value={registerData.role}
-                                onChange={handleRegisterChange}
-                                required
-                            >
-                                <option value="" disabled selected>Role</option>
-                                <option value="student">Student</option>
-                                <option value="teacher">Teacher</option>
-                                <option value="researcher">Researcher</option>
-                                <option value="other">Other</option>
-                            </S.Select>
                         </FormRow>
                         
                         <S.Input
@@ -178,6 +187,19 @@ const Login = () => {
                             value={registerData.institution}
                             onChange={handleRegisterChange}
                         />
+                        
+                        <S.Select 
+                            name="role"
+                            value={registerData.role}
+                            onChange={handleRegisterChange}
+                            required
+                        >
+                            <option value="" disabled selected>Role</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="researcher">Researcher</option>
+                            <option value="other">Other</option>
+                        </S.Select>
                         
                         <S.CheckboxContainer>
                             <S.Checkbox
@@ -209,7 +231,7 @@ const Login = () => {
                     <S.Form onSubmit={handleLoginSubmit}>
                         <S.Title2>Log In</S.Title2>
                         
-                        <S.Input
+                        <LoginInput
                             type="email"
                             name="email"
                             placeholder="Email Address"
@@ -218,7 +240,7 @@ const Login = () => {
                             required
                         />
                         
-                        <S.Input
+                        <LoginInput
                             type="password"
                             name="password"
                             placeholder="Password"
@@ -237,26 +259,16 @@ const Login = () => {
                         
                         <S.Divider>or</S.Divider>
                         
-                        <S.GoogleButton type="button">
+                        <LoginGoogleButton type="button">
                             <img src="https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google logo" width="20" />
                             Sign in with your Google Account
-                        </S.GoogleButton>
+                        </LoginGoogleButton>
                     </S.Form>
                 </S.SignInContainer>
                 
                 <S.OverlayContainer isLogin={isLogin}>
                     <S.Overlay isLogin={isLogin}>
                         <S.LeftOverlayPanel isLogin={isLogin}>
-                            <S.Title>Welcome!</S.Title>
-                            <S.Text>
-                                You already have an account?
-                            </S.Text>
-                            <S.GhostButton onClick={() => setIsLogin(true)}>
-                                Sign In
-                            </S.GhostButton>
-                        </S.LeftOverlayPanel>
-
-                        <S.RightOverlayPanel isLogin={isLogin}>
                             <S.Title>Hello!</S.Title>
                             <S.Text>
                                 Don't you have an account?<br />
@@ -264,6 +276,17 @@ const Login = () => {
                             </S.Text>
                             <S.GhostButton onClick={() => setIsLogin(false)}>
                                 Sign Up
+                            </S.GhostButton>
+                        </S.LeftOverlayPanel>
+
+                        <S.RightOverlayPanel isLogin={isLogin}>
+                            <S.Title>Welcome!</S.Title>
+                            <S.Text>
+                                You already have an account?<br />
+                                Sign In!
+                            </S.Text>
+                            <S.GhostButton onClick={() => setIsLogin(true)}>
+                                Sign In
                             </S.GhostButton>
                         </S.RightOverlayPanel>
                     </S.Overlay>

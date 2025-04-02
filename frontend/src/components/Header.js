@@ -30,16 +30,27 @@ const Header = () => {
   useEffect(() => {
     if (navRef.current && indicatorRef.current) {
       const navItems = navRef.current.querySelectorAll('li');
-      if (navItems.length > 0 && activeIndex < navItems.length) {
-        const activeItem = navItems[activeIndex];
-        const itemRect = activeItem.getBoundingClientRect();
-        const navRect = navRef.current.getBoundingClientRect();
+      
+      // Login sayfasında gösterge çizgisini gizle
+      if (location.pathname === '/login') {
+        indicatorRef.current.style.opacity = '0';
+      } else {
+        indicatorRef.current.style.opacity = '1';
         
-        indicatorRef.current.style.width = `${itemRect.width}px`;
-        indicatorRef.current.style.left = `${itemRect.left - navRect.left}px`;
+        if (navItems.length > 0 && activeIndex < navItems.length) {
+          const activeItem = navItems[activeIndex];
+          const itemRect = activeItem.getBoundingClientRect();
+          const navRect = navRef.current.getBoundingClientRect();
+          
+          indicatorRef.current.style.width = `${itemRect.width}px`;
+          indicatorRef.current.style.left = `${itemRect.left - navRect.left}px`;
+        }
       }
     }
-  }, [activeIndex]);
+  }, [activeIndex, location.pathname]);
+
+  // Login butonunun stilini belirle
+  const isLoginPage = location.pathname === '/login';
 
   return (
     <header className="header">
@@ -83,7 +94,7 @@ const Header = () => {
             {isLoggedIn ? (
               <Link to="/profile" className="login-btn">PROFILE</Link>
             ) : (
-              <Link to="/login" className="login-btn">LOG IN</Link>
+              <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>LOG IN</Link>
             )}
           </div>
         </div>

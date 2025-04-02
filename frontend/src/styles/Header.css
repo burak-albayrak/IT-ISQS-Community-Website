@@ -149,10 +149,42 @@
   padding: 0.4rem 0;
   font-size: 0.9rem;
   transition: color 0.3s;
+  position: relative;
 }
 
 .login-btn:hover {
   color: #0056b3;
+}
+
+.login-btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background-color: #0056b3;
+  bottom: 3px;
+  left: 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-btn-active {
+  color: #0056b3;
+  font-weight: 700;
+}
+
+.login-btn-active::after {
+  transform: scaleX(1);
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px rgba(0, 86, 179, 0.5);
+  }
+  to {
+    box-shadow: 0 0 10px rgba(0, 86, 179, 0.8);
+  }
 }
 
 /* Responsive Adjustments */
