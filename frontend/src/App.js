@@ -7,6 +7,9 @@ import Login from './pages/Login';
 import About from './pages/About';
 import ProjectResults from './pages/ProjectResults';
 import EmailVerification from './pages/EmailVerification';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import ContactUs from './pages/ContactUs';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -23,9 +26,11 @@ function App() {
               <Route path="/blog" element={<div className="page">Blog Page</div>} />
               <Route path="/forum" element={<div className="page">Forum Page</div>} />
               <Route path="/project-results" element={<ProjectResults />} />
-              <Route path="/contact" element={<div className="page">Contact Us Page</div>} />
+              <Route path="/contact" element={<ContactUs />} />
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<EmailVerification />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/profile" element={<div className="page">Profile Page</div>} />
               <Route path="/privacy-policy" element={<div className="page">Privacy & Policy Page</div>} />
               <Route path="/terms" element={<div className="page">Terms of Service Page</div>} />

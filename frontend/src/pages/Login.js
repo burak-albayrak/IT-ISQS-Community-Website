@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as S from '../styles/AuthStyles';
-import logo from '../logo.svg'; // Şimdilik React logosu kullanıyoruz
 import styled from 'styled-components';
 import mailIcon from '../assets/mail.png'; // Mail ikonunu import ediyoruz
 import tikIcon from '../assets/tik.png'; // Tik ikonunu import ediyoruz
@@ -52,6 +51,11 @@ const Login = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const { login: authLogin } = useAuth();
+
+    // Add useEffect to scroll to top when component mounts
+    useEffect(() => {
+        window.scrollTo(0, 85);
+    }, []);
 
     const handleLoginChange = (e) => {
         setLoginData({
@@ -142,7 +146,14 @@ const Login = () => {
     };
 
     return (
-        <div className="page login-page" style={{ position: 'relative' }}>
+        <div className="page login-page" style={{ 
+            position: 'relative',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            padding: '40px 20px'
+        }}>
             <S.TopLeftImage src={mailIcon} />
             <S.BottomRightImage src={tikIcon} />
             <S.BottomLeftImage src={personIcon} />
@@ -208,7 +219,7 @@ const Login = () => {
                                 onChange={handleRegisterChange}
                                 required
                             >
-                                <option value="" disabled selected>Country</option>
+                                <option value="" disabled selected style={{color: '#666', fontWeight: 'normal'}}>Country</option>
                                 <option value="turkey">Turkey</option>
                                 <option value="germany">Germany</option>
                                 <option value="italy">Italy</option>
@@ -232,7 +243,7 @@ const Login = () => {
                             onChange={handleRegisterChange}
                             required
                         >
-                            <option value="" disabled selected>Role</option>
+                            <option value="" disabled selected style={{color: '#666', fontWeight: 'normal'}}>Role</option>
                             <option value="STUDENT">Student</option>
                             <option value="TEACHER">Teacher</option>
                             <option value="RESEARCHER">Researcher</option>
