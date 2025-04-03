@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import contactUsImg from '../assets/contactus.png';
+import locationIcon from '../assets/location.png';
+import phoneIcon from '../assets/phone.png';
+import emailIcon from '../assets/email.png';
 
 // Basitleştirilmiş stil bileşenleri
 const PageWrapper = styled.div`
@@ -80,6 +83,13 @@ const Subtitle = styled.p`
 
 const ContactInfoSection = styled.div`
   margin-top: -0.5rem;
+`;
+
+const ContactIcon = styled.img`
+  width: 18px;
+  height: 18px;
+  margin-right: 5px;
+  object-fit: contain;
 `;
 
 const ContactItem = styled.div`
@@ -282,7 +292,9 @@ const ContactUs = () => {
             <ContactInfoSection>
               <ContactItem>
                 <div>
-                  <ContactText>📍 Location</ContactText>
+                  <ContactText>
+                    <ContactIcon src={locationIcon} alt="Location" /> Location
+                  </ContactText>
                   <ContactDivider />
                   <ContactText>6391 Elgin St. Celina, Delaware 10299</ContactText>
                 </div>
@@ -290,7 +302,9 @@ const ContactUs = () => {
               
               <ContactItem>
                 <div>
-                  <ContactText>📞 Phone</ContactText>
+                  <ContactText>
+                    <ContactIcon src={phoneIcon} alt="Phone" /> Phone
+                  </ContactText>
                   <ContactDivider />
                   <ContactText>(603) 555-0123</ContactText>
                 </div>
@@ -298,7 +312,9 @@ const ContactUs = () => {
               
               <ContactItem>
                 <div>
-                  <ContactText>✉️ E-mail</ContactText>
+                  <ContactText>
+                    <ContactIcon src={emailIcon} alt="Email" /> E-mail
+                  </ContactText>
                   <ContactDivider />
                   <ContactText>blabla@edu</ContactText>
                 </div>
