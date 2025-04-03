@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import * as S from '../styles/AuthStyles';
 import logo from '../logo.svg'; // Şimdilik React logosu kullanıyoruz
 import styled from 'styled-components';
@@ -7,6 +7,8 @@ import mailIcon from '../assets/mail.png'; // Mail ikonunu import ediyoruz
 import tikIcon from '../assets/tik.png'; // Tik ikonunu import ediyoruz
 import personIcon from '../assets/person.png'; // Person ikonunu import ediyoruz
 import lockIcon from '../assets/lock.png'; // Lock ikonunu import ediyoruz
+import { login, register } from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
 
 // Formda yan yana koyacağımız girdi alanları için stil ekleyelim
 const FormRow = styled.div`
@@ -36,8 +38,8 @@ const Login = () => {
         password: ''
     });
     const [registerData, setRegisterData] = useState({
-        name: '',
-        surname: '',
+        firstName: '',
+        lastName: '',
         email: '',
         password: '',
         confirmPassword: '',
@@ -48,6 +50,8 @@ const Login = () => {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const navigate = useNavigate();
+    const { login: authLogin } = useAuth();
 
     const handleLoginChange = (e) => {
         setLoginData({
@@ -70,11 +74,24 @@ const Login = () => {
         setError('');
 
         try {
-            // API isteği burada yapılacak
-            console.log('Login attempt with:', loginData);
-            // Başarılı giriş sonrası yönlendirme işlemi
+            // Login API isteği
+            const response = await login(loginData);
+            console.log('Login successful:', response);
+            
+            // AuthContext'i güncelleme
+            authLogin(response.user);
+            
+            // Başarılı giriş sonrası yönlendirme
+            navigate('/');
         } catch (err) {
-            setError('Login failed. Please check your credentials.');
+            console.error('Login error:', err);
+            if (err.message) {
+                setError(err.message);
+            } else if (typeof err === 'string') {
+                setError(err);
+            } else {
+                setError('Login failed. Please check your credentials.');
+            }
         } finally {
             setLoading(false);
         }
@@ -91,14 +108,35 @@ const Login = () => {
             return;
         }
 
+        // Backend'e gönderilecek verileri hazırla
+        const userData = {
+            firstName: registerData.firstName,
+            lastName: registerData.lastName,
+            email: registerData.email,
+            password: registerData.password,
+            country: registerData.country,
+            institution: registerData.institution,
+            role: registerData.role
+        };
+
         try {
-            // API isteği burada yapılacak
-            console.log('Registration attempt with:', registerData);
-            // Başarılı kayıt sonrası giriş sayfasına yönlendirme
-            setIsLogin(true);
+            // Register API isteği
+            const response = await register(userData);
+            console.log('Registration successful:', response);
+            
+            // Başarılı kayıt sonrası email doğrulama sayfasına yönlendir
+            navigate('/verify-email', { state: { email: registerData.email } });
         } catch (err) {
-            setError('Registration failed. Please try again.');
-        } finally {
+            console.error('Registration error:', err);
+            if (err.validationErrors) {
+                // Validasyon hataları varsa bunları göster
+                const errorMessages = Object.values(err.validationErrors).join('\n');
+                setError(errorMessages || 'Registration failed. Please check your information.');
+            } else if (err.message) {
+                setError(err.message);
+            } else {
+                setError('Registration failed. Please try again.');
+            }
             setLoading(false);
         }
     };
@@ -117,18 +155,18 @@ const Login = () => {
                         <FormRow>
                             <S.Input
                                 type="text"
-                                name="name"
-                                placeholder="Name"
-                                value={registerData.name}
+                                name="firstName"
+                                placeholder="First Name"
+                                value={registerData.firstName}
                                 onChange={handleRegisterChange}
                                 required
                             />
                             
                             <S.Input
                                 type="text"
-                                name="surname"
-                                placeholder="Surname"
-                                value={registerData.surname}
+                                name="lastName"
+                                placeholder="Last Name"
+                                value={registerData.lastName}
                                 onChange={handleRegisterChange}
                                 required
                             />
@@ -195,10 +233,10 @@ const Login = () => {
                             required
                         >
                             <option value="" disabled selected>Role</option>
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="researcher">Researcher</option>
-                            <option value="other">Other</option>
+                            <option value="STUDENT">Student</option>
+                            <option value="TEACHER">Teacher</option>
+                            <option value="RESEARCHER">Researcher</option>
+                            <option value="OTHER">Other</option>
                         </S.Select>
                         
                         <S.CheckboxContainer>

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import newLogo from '../assets/logo.png'; // New main logo
 import euLogo from '../assets/eu-logo.png'; // EU logo with text
 import languageIcon from '../assets/language.png'; // Language icon
+import { useAuth } from '../contexts/AuthContext';
 
 import '../styles/Header.css';
 
 const Header = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
   const navRef = useRef(null);
   const indicatorRef = useRef(null);
@@ -31,8 +33,8 @@ const Header = () => {
     if (navRef.current && indicatorRef.current) {
       const navItems = navRef.current.querySelectorAll('li');
       
-      // Login sayfasında gösterge çizgisini gizle
-      if (location.pathname === '/login') {
+      // Login sayfasında ve verify-email sayfasında gösterge çizgisini gizle
+      if (location.pathname === '/login' || location.pathname === '/verify-email') {
         indicatorRef.current.style.opacity = '0';
       } else {
         indicatorRef.current.style.opacity = '1';
@@ -49,8 +51,14 @@ const Header = () => {
     }
   }, [activeIndex, location.pathname]);
 
+  // Çıkış işlemi
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   // Login butonunun stilini belirle
-  const isLoginPage = location.pathname === '/login';
+  const isLoginPage = location.pathname === '/login' || location.pathname === '/verify-email';
 
   return (
     <header className="header">
@@ -91,8 +99,11 @@ const Header = () => {
           
           <div className="auth-buttons">
             <Link to="/contact" className="contact-btn">CONTACT US</Link>
-            {isLoggedIn ? (
-              <Link to="/profile" className="login-btn">PROFILE</Link>
+            {isAuthenticated ? (
+              <div className="auth-logged-in">
+                <Link to="/profile" className="login-btn">PROFILE</Link>
+                <button onClick={handleLogout} className="logout-btn">LOG OUT</button>
+              </div>
             ) : (
               <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>LOG IN</Link>
             )}
