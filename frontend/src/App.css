@@ -54,3 +54,20 @@
     transform: rotate(360deg);
   }
 }
+
+.main-content.no-padding {
+  padding: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body.contact-page {
+  overflow-x: hidden;
+}
+
+/* Update footer visibility with higher z-index */
+.contact-page footer {
+  position: relative;
+  z-index: 20; /* Increased from 10 to 20 */
+  background-color: white; /* Ensure footer has a background */
+}

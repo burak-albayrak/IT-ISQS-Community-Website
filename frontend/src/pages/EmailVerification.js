@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import mailman from '../assets/mailman.png';
-import { verifyEmail, resendVerificationCode, verifyResetCode } from '../services/authService';
+import { verifyEmail, resendVerificationCode } from '../services/authService';
 
 const Container = styled.div`
   display: flex;
@@ -172,7 +172,6 @@ const EmailVerification = () => {
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
-  const [isForgotPasswordFlow, setIsForgotPasswordFlow] = useState(false);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
   const location = useLocation();
@@ -181,11 +180,6 @@ const EmailVerification = () => {
     // Eğer bir state ile email bilgisi geldiyse kullanabiliriz
     if (location.state && location.state.email) {
       setEmail(location.state.email);
-      
-      // Check if we're coming from forgot password flow
-      if (location.state.fromForgotPassword) {
-        setIsForgotPasswordFlow(true);
-      }
     } else {
       // Email olmadan doğrudan bu sayfaya gelinirse login'e yönlendir
       navigate('/login');
@@ -236,51 +230,22 @@ const EmailVerification = () => {
       const code = verificationCode.join('');
       console.log('Verifying code:', code);
       
-      let response;
+      // API isteği
+      const response = await verifyEmail(code);
+      console.log('Verification successful:', response);
       
-      // Check if this is for password reset or normal email verification
-      if (isForgotPasswordFlow) {
-        // For password reset, use verifyResetCode
-        response = await verifyResetCode(code);
-        console.log('Reset code verification successful:', response);
-        
-        // Başarılı doğrulama sonrası
-        setIsLoading(false);
-        
-        // Navigate to reset password page
-        navigate('/reset-password', { 
-          state: { 
-            token: response.token || code, // Use token from response or fallback to code
-            email: email
-          } 
-        });
-      } else {
-        // For normal email verification, use verifyEmail
-        response = await verifyEmail(code);
-        console.log('Verification successful:', response);
-        
-        // Başarılı doğrulama sonrası
-        setIsLoading(false);
-        
-        // Navigate to login page
-        navigate('/login', { state: { verificationSuccess: true } });
-      }
+      // Başarılı doğrulama sonrası
+      setIsLoading(false);
+      navigate('/login', { state: { verificationSuccess: true } });
     } catch (err) {
       console.error('Verification error:', err);
-      
-      // Improved error handling
-      if (err) {
-        if (err.message) {
-          setError(err.message);
-        } else if (typeof err === 'string') {
-          setError(err);
-        } else {
-          setError('Invalid verification code. Please try again.');
-        }
+      if (err.message) {
+        setError(err.message);
+      } else if (typeof err === 'string') {
+        setError(err);
       } else {
         setError('Invalid verification code. Please try again.');
       }
-      
       setIsLoading(false);
     }
   };
