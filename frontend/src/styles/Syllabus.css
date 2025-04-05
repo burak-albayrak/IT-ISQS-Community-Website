@@ -1,0 +1,229 @@
+/* Syllabus sayfası stilleri */
+.syllabus-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0 !important;
+  background-color: #fff;
+}
+
+.syllabus-banner {
+  width: 90%;
+  height: 350px;
+  overflow: hidden;
+  position: relative;
+  border-radius: 20px;
+  margin: 0 auto 40px;
+}
+
+.syllabus-banner .banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  filter: brightness(0.9);
+}
+
+/* İçerik bölümü stilleri */
+.syllabus-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 50px;
+  width: 100%;
+}
+
+.syllabus-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.syllabus-heading {
+  color: #2a4b8d;
+  font-size: 2.5rem;
+  font-weight: 700;
+  position: relative;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.syllabus-text {
+  margin-bottom: 40px;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #444;
+}
+
+/* Haftalık içerik stil ve animasyonları */
+.syllabus-weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.syllabus-week {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.syllabus-week:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.week-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: #f8f9fa;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  color: #333;
+  border-left: 4px solid #ddd;
+}
+
+.week-header:hover {
+  background-color: #eef2ff;
+  border-left-color: #6495ed;
+}
+
+.week-open {
+  background-color: #2a4b8d;
+  color: white;
+  border-left-color: #6495ed;
+}
+
+.week-open:hover {
+  background-color: #1e3a75;
+}
+
+.week-title {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.week-arrow {
+  font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+.week-content {
+  padding: 20px;
+  background-color: white;
+  animation: fadeIn 0.3s ease;
+  border-top: 1px solid #eee;
+}
+
+.week-content h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #2a4b8d;
+  font-size: 1.2rem;
+}
+
+.week-content ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.week-content li {
+  margin-bottom: 10px;
+  line-height: 1.5;
+  position: relative;
+  padding-left: 5px;
+}
+
+.week-content li::before {
+  content: "";
+  position: absolute;
+  left: -15px;
+  top: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #2a4b8d;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* İndirme butonu stilleri */
+.syllabus-download {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #2a4b8d;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.download-btn:hover {
+  background-color: #1e3a75;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.download-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Mobil cihazlar için responsive tasarım */
+@media (max-width: 768px) {
+  .syllabus-banner {
+    height: 200px;
+    width: 85%;
+  }
+  
+  .syllabus-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .syllabus-heading {
+    font-size: 2rem;
+  }
+  
+  .week-header {
+    padding: 12px 15px;
+    font-size: 1rem;
+  }
+  
+  .week-content {
+    padding: 15px;
+  }
+  
+  .download-btn {
+    padding: 8px 16px;
+  }
+} 
