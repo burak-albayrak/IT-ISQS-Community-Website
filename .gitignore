@@ -15,6 +15,7 @@
 /out-tsc/
 
 # Dependencies
+/frontend/node_modules/
 /node_modules/
 
 # Logs
