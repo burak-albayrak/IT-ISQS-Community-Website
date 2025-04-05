@@ -1,51 +1,53 @@
 import styled, { css } from 'styled-components';
 
 const colors = {
-    primary: '#2a4b8d',    // Mavi - Contact Us butonuyla aynı renk
-    light: '#4a6cad',      // Açık mavi
-    dark: '#1a3a7d',       // Koyu mavi
-    background: '#f1f1f1',  // Açık gri arka plan
-    text: '#333',          // Metin rengi
-    white: '#FFFFFF'
+    primary: '#223A70',           // Ana mavi renk
+    light: '#4059A9',             // Açık mavi
+    dark: '#192C54',              // Koyu mavi
+    background: '#f1f1f1',        // Arka plan rengi
+    text: '#333',                 // Metin rengi
+    white: '#FFFFFF'              // Beyaz
 };
 
 export const Container = styled.div`
-    background-color: ${colors.white};
-    border-radius: 20px;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+    background-color: #FFF;
+    border-radius: 30px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.08);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     width: 1000px;
     max-width: 100%;
     min-height: 680px;
-    margin: 50px auto;
+    margin: 1px auto;
 `;
 
 export const Form = styled.form`
-    background-color: ${colors.white};
+    background-color: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    padding: 40px;
+    padding: 0 50px;
     height: 100%;
+    overflow: hidden;
+    max-height: 100%;
     text-align: center;
-    overflow-y: auto;
-    max-height: 680px;
 `;
 
 export const Title = styled.h1`
     font-weight: bold;
     margin: 0;
     font-size: 2rem;
-    color: ${colors.white};
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 `;
 
 export const Title2 = styled.h1`
     font-weight: bold;
     margin: 0 0 20px;
     font-size: 2rem;
-    color: ${colors.text};
+    color: #333;
+    text-shadow: none;
 `;
 
 export const Text = styled.p`
@@ -53,12 +55,12 @@ export const Text = styled.p`
     font-weight: 400;
     line-height: 20px;
     letter-spacing: 0.5px;
-    margin: 30px 0 15px;
-    color: ${colors.white};
+    margin: 20px 0 15px;
+    color: #666;
 `;
 
 export const Input = styled.input`
-    background-color: #eee;
+    background-color: rgba(255, 255, 255, 0.8);
     border: none;
     border-radius: 30px;
     padding: 12px 15px;
@@ -68,7 +70,7 @@ export const Input = styled.input`
 `;
 
 export const Select = styled.select`
-    background-color: #eee;
+    background-color: rgba(255, 255, 255, 0.8);
     border: none;
     border-radius: 30px;
     padding: 12px 15px;
@@ -84,9 +86,9 @@ export const Select = styled.select`
 
 export const Button = styled.button`
     border-radius: 30px;
-    border: 1px solid ${colors.primary};
-    background-color: ${colors.primary};
-    color: ${colors.white};
+    border: 1px solid #fff;
+    background-color: #fff;
+    color: #333;
     font-size: 14px;
     font-weight: bold;
     padding: 12px 45px;
@@ -98,6 +100,7 @@ export const Button = styled.button`
 
     &:hover {
         transform: scale(1.05);
+        background-color: #f8f8f8;
     }
 
     &:active {
@@ -116,21 +119,23 @@ export const Button = styled.button`
 `;
 
 export const GhostButton = styled.button`
-    background-color: transparent;
-    border: 2px solid ${colors.white};
+    background: linear-gradient(90deg, ${colors.primary}, ${colors.light});
+    border: none;
     border-radius: 30px;
-    color: ${colors.white};
+    color: white;
     font-size: 14px;
     font-weight: bold;
-    padding: 12px 45px;
+    padding: 10px 35px;
     letter-spacing: 1px;
     text-transform: uppercase;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s;
     margin-top: 15px;
     cursor: pointer;
+    box-shadow: 0 2px 10px rgba(34, 58, 112, 0.2);
 
     &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        transform: scale(1.03);
+        box-shadow: 0 4px 15px rgba(34, 58, 112, 0.3);
     }
 `;
 
@@ -183,7 +188,7 @@ export const GoogleButton = styled.button`
     transition: background-color 0.3s;
 
     &:hover {
-        background-color: #f8f8f8;
+        background-color: rgba(255, 255, 255, 0.9);
     }
 `;
 
@@ -232,7 +237,7 @@ export const Checkbox = styled.input`
 
 export const CheckboxLabel = styled.label`
     font-size: 14px;
-    color: ${colors.text};
+    color: #666;
     text-align: left;
 `;
 
@@ -249,22 +254,80 @@ export const InputIcon = styled.div`
     color: #999;
 `;
 
-// Animasyon için kritik olan bileşenler:
+// Dekoratif illüstrasyonlar için bileşenler
+export const TopLeftImage = styled.img`
+    position: absolute;
+    top: 50px;
+    left: 30px;
+    width: 230px;
+    height: 230px;
+    z-index: 125;
+    opacity: 0.9;
+    pointer-events: none;
+    object-fit: contain;
+    transform: rotate(-5deg);
+`;
+
+export const BottomLeftImage = styled.img`
+    position: absolute;
+    bottom: 5px;
+    left: 1050px;
+    width: 250px;
+    height: 250px;
+    z-index: 160;
+    opacity: 0.9;
+    pointer-events: none;
+    object-fit: contain;
+    transform: rotate(-8deg);
+`;
+
+export const TopRightImage = styled.img`
+    position: absolute;
+    top: -35px;
+    right: 120px;
+    width: 200px;
+    height: 200px;
+    z-index: 160;
+    opacity: 0.9;
+    pointer-events: none;
+    object-fit: contain;
+    transform: rotate(5deg);
+`;
+
+export const BottomRightImage = styled.img`
+    position: absolute;
+    bottom: -100px;
+    right: 900px;
+    width: 350px;
+    height: 350px;
+    z-index: 125;
+    opacity: 0.9;
+    pointer-events: none;
+    object-fit: contain;
+    transform: rotate(8deg);
+`;
+
+// Form alanları içi arkaplan rengini ayarlayan bileşenler
 export const SignUpContainer = styled.div.attrs(props => ({
     'data-islogin': props.isLogin
 }))`
     position: absolute;
     top: 0;
     height: 100%;
-    transition: all 0.6s ease-in-out;
+    transition: all 0.8s cubic-bezier(0.86, 0, 0.07, 1);
     left: 0;
-    width: 50%;
+    width: 65%;
     opacity: 0;
-    z-index: 1;
+    z-index: 300;
+    border-radius: 30px;
+    background-color: rgba(140, 158, 193, 0.5);
+    visibility: hidden;
+    overflow: hidden;
     ${props => !props.isLogin && css`
-        transform: translateX(100%);
+        transform: translateX(53.8%);
         opacity: 1;
-        z-index: 5;
+        z-index: 300;
+        visibility: visible;
     `}
 `;
 
@@ -274,12 +337,19 @@ export const SignInContainer = styled.div.attrs(props => ({
     position: absolute;
     top: 0;
     height: 100%;
-    transition: all 0.6s ease-in-out;
+    transition: all 0.8s cubic-bezier(0.86, 0, 0.07, 1);
     left: 0;
-    width: 50%;
-    z-index: 2;
+    width: 65%;
+    z-index: 300;
+    opacity: 1;
+    visibility: visible;
+    border-radius: 30px;
+    background-color: rgba(140, 158, 193, 0.5);
+    overflow: hidden;
     ${props => !props.isLogin && css`
-        transform: translateX(100%);
+        transform: translateX(53.8%);
+        opacity: 0;
+        visibility: hidden;
     `}
 `;
 
@@ -288,31 +358,36 @@ export const OverlayContainer = styled.div.attrs(props => ({
 }))`
     position: absolute;
     top: 0;
-    left: 50%;
-    width: 50%;
+    left: 65%;
+    width: 35%;
     height: 100%;
     overflow: hidden;
-    transition: transform 0.6s ease-in-out;
-    z-index: 100;
+    transition: transform 0.8s cubic-bezier(0.86, 0, 0.07, 1);
+    z-index: 150;
+    border-radius: 50px 0 0 50px;
     ${props => !props.isLogin && css`
-        transform: translateX(-100%);
+        transform: translateX(-185.7%);
+        border-radius: 30px 30px 30px 30px;
+        z-index: 150;
     `}
 `;
 
 export const Overlay = styled.div.attrs(props => ({
     'data-islogin': props.isLogin
 }))`
-    background: ${colors.primary};
-    background: linear-gradient(to right, ${colors.primary}, ${colors.light});
-    color: ${colors.white};
+    background: rgba(255, 255, 255, 0.98);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7));
+    color: #333;
     position: relative;
     left: -100%;
     height: 100%;
-    width: 200%;
-    transform: translateX(0);
-    transition: transform 0.6s ease-in-out;
+    width: 185%;
+    transform: translateX(54%);
+    transition: transform 0.8s cubic-bezier(0.86, 0, 0.07, 1);
+    border-radius: 50px 0 0 50px;
     ${props => !props.isLogin && css`
-        transform: translateX(50%);
+        transform: translateX(0);
+        border-radius: 0 50px 50px 0;
     `}
 `;
 
@@ -322,37 +397,63 @@ export const OverlayPanel = styled.div`
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    padding: 0 40px;
+    padding: 0 30px;
     text-align: center;
     top: 0;
     height: 100%;
-    width: 50%;
+    width: 45%;
     transform: translateX(0);
-    transition: transform 0.6s ease-in-out;
+    transition: transform 0.8s cubic-bezier(0.86, 0, 0.07, 1);
 `;
 
 export const LeftOverlayPanel = styled(OverlayPanel).attrs(props => ({
     'data-islogin': props.isLogin
 }))`
-    transform: translateX(-20%);
+    transform: translateX(10%);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 
     ${props => !props.isLogin && css`
-        transform: translateX(0);
+        transform: translateX(-10%);
     `}
+
+    ${Title} {
+        color: #333;
+    }
+
+    ${Text} {
+        color: #666;
+    }
+
+    ${GhostButton} {
+        background: linear-gradient(90deg, ${colors.primary}, ${colors.light});
+        color: white;
+    }
 `;
 
 export const RightOverlayPanel = styled(OverlayPanel).attrs(props => ({
     'data-islogin': props.isLogin
 }))`
     right: 0;
-    transform: translateX(0);
+    transform: translateX(35%);
     ${props => !props.isLogin && css`
-        transform: translateX(20%);
+        transform: translateX(10%);
     `}
+
+    ${Title} {
+        color: #333;
+    }
+
+    ${Text} {
+        color: #666;
+    }
+
+    ${GhostButton} {
+        background: linear-gradient(90deg, ${colors.primary}, ${colors.light});
+        color: white;
+    }
 `;
 
 export const ErrorText = styled.p`

@@ -1,7 +1,7 @@
 .header {
   background-color: white;
-  padding: 0.5rem 2rem 0.7rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0.9rem 2rem 0.8rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -28,7 +28,7 @@
 }
 
 .main-logo-img {
-  height: 75px;
+  height: 100px;
   width: auto;
 }
 
@@ -65,9 +65,10 @@
   color: #333;
   text-decoration: none;
   font-weight: 600;
-  padding: 0.5rem 0;
+  padding: 0.7rem 0;
   display: block;
   transition: color 0.2s;
+  font-size: 1rem;
 }
 
 .nav-links li a:hover {
@@ -82,59 +83,54 @@
   position: absolute;
   height: 3px;
   background-color: #0056b3;
-  bottom: -3px;
+  bottom: 3px;
   transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Right Section */
 .right-section {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
+  align-items: center;
 }
 
-.language-selector {
-  margin-bottom: 0.5rem;
+.auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .language-btn {
   background: none;
   border: 2px solid #aaa;
   border-radius: 6px;
-  padding: 0.3rem 1rem;
+  padding: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
   cursor: pointer;
-  color: #333;
-  font-size: 0.9rem;
-  transition: border-color 0.3s, color 0.3s;
+  transition: border-color 0.3s, transform 0.2s;
+  width: 45px;
+  height: 45px;
 }
 
 .language-btn:hover {
   border-color: #777;
-  color: #666;
+  transform: scale(1.05);
 }
 
 .language-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.auth-buttons {
-  display: flex;
-  gap: 1rem;
+  width: 26px;
+  height: 26px;
 }
 
 .contact-btn {
   background: linear-gradient(to right, #1e3c7a, #2a4b8d, #3a5ca0);
   color: white;
-  padding: 0.4rem 1.2rem;
+  padding: 0.6rem 1.4rem;
   border-radius: 30px;
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1rem;
   transition: background 0.3s;
 }
 
@@ -146,13 +142,45 @@
   color: #333;
   text-decoration: none;
   font-weight: 600;
-  padding: 0.4rem 0;
-  font-size: 0.9rem;
+  padding: 0.6rem 0;
+  font-size: 1rem;
   transition: color 0.3s;
+  position: relative;
 }
 
 .login-btn:hover {
   color: #0056b3;
+}
+
+.login-btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background-color: #0056b3;
+  bottom: 3px;
+  left: 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-btn-active {
+  color: #0056b3;
+  font-weight: 700;
+}
+
+.login-btn-active::after {
+  transform: scaleX(1);
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px rgba(0, 86, 179, 0.5);
+  }
+  to {
+    box-shadow: 0 0 10px rgba(0, 86, 179, 0.8);
+  }
 }
 
 /* Responsive Adjustments */
@@ -170,9 +198,7 @@
   
   .right-section {
     width: 100%;
-    flex-direction: row;
     justify-content: space-between;
-    align-items: center;
   }
 }
 

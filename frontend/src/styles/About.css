@@ -5,11 +5,11 @@
 
 .about-banner {
   height: 350px;
-  width: 100%;
+  width: 90%;
   overflow: hidden;
   position: relative;
-  border-radius: 10px;
-  margin-bottom: 40px;
+  border-radius: 20px;
+  margin: 0 auto 40px;
 }
 
 .banner-image {
@@ -54,6 +54,11 @@
 @media (max-width: 768px) {
   .about-banner {
     height: 200px;
+    width: 85%;
+  }
+  
+  .banner-image {
+    width: 90%;
   }
 
   .about-heading {
