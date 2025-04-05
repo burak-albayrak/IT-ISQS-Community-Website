@@ -462,6 +462,81 @@ export const ErrorText = styled.p`
     margin: 5px 0;
 `;
 
+export const InputError = styled.div`
+    color: #e74c3c;
+    font-size: 12px;
+    margin: 2px 0 8px 15px;
+    text-align: left;
+    width: 100%;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    animation: errorAppear 0.3s ease-in-out;
+    
+    @keyframes errorAppear {
+        0% {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    &::before {
+        content: "!";
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        background-color: #e74c3c;
+        color: white;
+        border-radius: 50%;
+        margin-right: 6px;
+        font-size: 10px;
+        font-weight: bold;
+    }
+`;
+
+export const PasswordStrengthContainer = styled.div`
+    width: 100%;
+    margin: 0 0 10px 0;
+`;
+
+export const PasswordStrengthBar = styled.div`
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    margin-top: 5px;
+    overflow: hidden;
+    position: relative;
+`;
+
+export const PasswordStrengthIndicator = styled.div`
+    height: 100%;
+    width: ${props => props.strength}%;
+    background-color: ${props => {
+        if (props.strength < 33) return '#e74c3c';
+        if (props.strength < 66) return '#f39c12';
+        return '#27ae60';
+    }};
+    border-radius: 2px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+`;
+
+export const PasswordStrengthText = styled.div`
+    font-size: 12px;
+    margin-top: 4px;
+    text-align: right;
+    color: ${props => {
+        if (props.strength < 33) return '#e74c3c';
+        if (props.strength < 66) return '#f39c12';
+        return '#27ae60';
+    }};
+`;
+
 export const FormIllustration = styled.div`
     position: absolute;
     bottom: 0;

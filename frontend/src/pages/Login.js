@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as S from '../styles/AuthStyles';
 import logo from '../logo.svg'; // Şimdilik React logosu kullanıyoruz
@@ -50,6 +50,7 @@ const Login = () => {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const navigate = useNavigate();
     const { login: authLogin } = useAuth();
 
@@ -58,6 +59,14 @@ const Login = () => {
             ...loginData,
             [e.target.name]: e.target.value
         });
+        
+        // Clear field-specific error when user starts typing
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors({
+                ...fieldErrors,
+                [e.target.name]: ''
+            });
+        }
     };
 
     const handleRegisterChange = (e) => {
@@ -66,12 +75,50 @@ const Login = () => {
             ...registerData,
             [e.target.name]: value
         });
+        
+        // Clear field-specific error when user starts typing
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors({
+                ...fieldErrors,
+                [e.target.name]: ''
+            });
+        }
+    };
+
+    const validateLoginForm = () => {
+        const errors = {};
+        let isValid = true;
+
+        // Email validation
+        if (!loginData.email) {
+            errors.loginEmail = 'Email is required';
+            isValid = false;
+        } else if (!/\S+@\S+\.\S+/.test(loginData.email)) {
+            errors.loginEmail = 'Email address is invalid';
+            isValid = false;
+        }
+
+        // Password validation
+        if (!loginData.password) {
+            errors.loginPassword = 'Password is required';
+            isValid = false;
+        }
+
+        setFieldErrors(errors);
+        return isValid;
     };
 
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
+        setFieldErrors({});
+
+        // Validate form
+        if (!validateLoginForm()) {
+            setLoading(false);
+            return;
+        }
 
         try {
             // Login API isteği
@@ -97,13 +144,91 @@ const Login = () => {
         }
     };
 
+    const validateForm = () => {
+        const errors = {};
+        let isValid = true;
+
+        // First Name validation
+        if (!registerData.firstName.trim()) {
+            errors.firstName = 'First name is required';
+            isValid = false;
+        } else if (registerData.firstName.length < 2) {
+            errors.firstName = 'First name must be at least 2 characters';
+            isValid = false;
+        }
+
+        // Last Name validation
+        if (!registerData.lastName.trim()) {
+            errors.lastName = 'Last name is required';
+            isValid = false;
+        } else if (registerData.lastName.length < 2) {
+            errors.lastName = 'Last name must be at least 2 characters';
+            isValid = false;
+        }
+
+        // Email validation
+        if (!registerData.email) {
+            errors.email = 'Email is required';
+            isValid = false;
+        } else if (!/\S+@\S+\.\S+/.test(registerData.email)) {
+            errors.email = 'Email address is invalid';
+            isValid = false;
+        }
+
+        // Password validation
+        if (!registerData.password) {
+            errors.password = 'Password is required';
+            isValid = false;
+        } else if (registerData.password.length < 8) {
+            errors.password = 'Password must be at least 8 characters';
+            isValid = false;
+        } else if (!/(?=.*[0-9])/.test(registerData.password)) {
+            errors.password = 'Password must contain at least one number';
+            isValid = false;
+        } else if (!/(?=.*[A-Z])/.test(registerData.password)) {
+            errors.password = 'Password must contain at least one uppercase letter';
+            isValid = false;
+        }
+
+        // Confirm Password validation
+        if (!registerData.confirmPassword) {
+            errors.confirmPassword = 'Please confirm your password';
+            isValid = false;
+        } else if (registerData.password !== registerData.confirmPassword) {
+            errors.confirmPassword = 'Passwords do not match';
+            isValid = false;
+        }
+
+        // Country validation
+        if (!registerData.country) {
+            errors.country = 'Please select your country';
+            isValid = false;
+        }
+
+        // Role validation
+        if (!registerData.role) {
+            errors.role = 'Please select your role';
+            isValid = false;
+        }
+
+        // Terms validation
+        if (!registerData.termsAccepted) {
+            errors.termsAccepted = 'You must accept the terms and conditions';
+            isValid = false;
+        }
+
+        setFieldErrors(errors);
+        return isValid;
+    };
+
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
+        setFieldErrors({});
 
-        if (registerData.password !== registerData.confirmPassword) {
-            setError('Passwords do not match.');
+        // Validate form
+        if (!validateForm()) {
             setLoading(false);
             return;
         }
@@ -129,9 +254,12 @@ const Login = () => {
         } catch (err) {
             console.error('Registration error:', err);
             if (err.validationErrors) {
-                // Validasyon hataları varsa bunları göster
-                const errorMessages = Object.values(err.validationErrors).join('\n');
-                setError(errorMessages || 'Registration failed. Please check your information.');
+                // Process server-side validation errors
+                const serverErrors = {};
+                Object.entries(err.validationErrors).forEach(([key, value]) => {
+                    serverErrors[key] = value;
+                });
+                setFieldErrors(serverErrors);
             } else if (err.message) {
                 setError(err.message);
             } else {
@@ -140,6 +268,9 @@ const Login = () => {
             setLoading(false);
         }
     };
+
+    // Helper function to determine if an input field has an error
+    const hasError = (fieldName) => Boolean(fieldErrors[fieldName]);
 
     return (
         <div className="page login-page" style={{ position: 'relative' }}>
@@ -153,93 +284,125 @@ const Login = () => {
                         <S.Title2>Sign Up</S.Title2>
                         
                         <FormRow>
-                            <S.Input
-                                type="text"
-                                name="firstName"
-                                placeholder="First Name"
-                                value={registerData.firstName}
-                                onChange={handleRegisterChange}
-                                required
-                            />
+                            <div style={{ width: '100%' }}>
+                                <S.Input
+                                    type="text"
+                                    name="firstName"
+                                    placeholder="First Name"
+                                    value={registerData.firstName}
+                                    onChange={handleRegisterChange}
+                                    required
+                                    style={hasError('firstName') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                />
+                                {fieldErrors.firstName && <S.InputError>{fieldErrors.firstName}</S.InputError>}
+                            </div>
                             
-                            <S.Input
-                                type="text"
-                                name="lastName"
-                                placeholder="Last Name"
-                                value={registerData.lastName}
-                                onChange={handleRegisterChange}
-                                required
-                            />
+                            <div style={{ width: '100%' }}>
+                                <S.Input
+                                    type="text"
+                                    name="lastName"
+                                    placeholder="Last Name"
+                                    value={registerData.lastName}
+                                    onChange={handleRegisterChange}
+                                    required
+                                    style={hasError('lastName') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                />
+                                {fieldErrors.lastName && <S.InputError>{fieldErrors.lastName}</S.InputError>}
+                            </div>
                         </FormRow>
                         
-                        <S.Input
-                            type="email"
-                            name="email"
-                            placeholder="Email Address"
-                            value={registerData.email}
-                            onChange={handleRegisterChange}
-                            required
-                        />
+                        <div style={{ width: '100%' }}>
+                            <S.Input
+                                type="email"
+                                name="email"
+                                placeholder="Email Address"
+                                value={registerData.email}
+                                onChange={handleRegisterChange}
+                                required
+                                style={hasError('email') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.email && <S.InputError>{fieldErrors.email}</S.InputError>}
+                        </div>
                         
                         <FormRow>
-                            <S.Input
-                                type="password"
-                                name="password"
-                                placeholder="Password"
-                                value={registerData.password}
-                                onChange={handleRegisterChange}
-                                required
-                            />
+                            <div style={{ width: '100%' }}>
+                                <S.Input
+                                    type="password"
+                                    name="password"
+                                    placeholder="Password"
+                                    value={registerData.password}
+                                    onChange={handleRegisterChange}
+                                    required
+                                    style={hasError('password') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                />
+                                {fieldErrors.password && <S.InputError>{fieldErrors.password}</S.InputError>}
+                            </div>
                             
-                            <S.Input
-                                type="password"
-                                name="confirmPassword"
-                                placeholder="Confirm Password"
-                                value={registerData.confirmPassword}
-                                onChange={handleRegisterChange}
-                                required
-                            />
+                            <div style={{ width: '100%' }}>
+                                <S.Input
+                                    type="password"
+                                    name="confirmPassword"
+                                    placeholder="Confirm Password"
+                                    value={registerData.confirmPassword}
+                                    onChange={handleRegisterChange}
+                                    required
+                                    style={hasError('confirmPassword') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                />
+                                {fieldErrors.confirmPassword && <S.InputError>{fieldErrors.confirmPassword}</S.InputError>}
+                            </div>
                         </FormRow>
                         
                         <FormRow>
+                            <div style={{ width: '100%' }}>
+                                <S.Select 
+                                    name="country"
+                                    value={registerData.country}
+                                    onChange={handleRegisterChange}
+                                    required
+                                    style={hasError('country') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                >
+                                    <option value="" disabled selected>Country</option>
+                                    <option value="turkey">Turkey</option>
+                                    <option value="germany">Germany</option>
+                                    <option value="italy">Italy</option>
+                                    <option value="spain">Spain</option>
+                                    <option value="france">France</option>
+                                    <option value="uk">United Kingdom</option>
+                                </S.Select>
+                                {fieldErrors.country && <S.InputError>{fieldErrors.country}</S.InputError>}
+                            </div>
+                        </FormRow>
+                        
+                        <div style={{ width: '100%' }}>
+                            <S.Input
+                                type="text"
+                                name="institution"
+                                placeholder="Institution"
+                                value={registerData.institution}
+                                onChange={handleRegisterChange}
+                                style={hasError('institution') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.institution && <S.InputError>{fieldErrors.institution}</S.InputError>}
+                        </div>
+                        
+                        <div style={{ width: '100%' }}>
                             <S.Select 
-                                name="country"
-                                value={registerData.country}
+                                name="role"
+                                value={registerData.role}
                                 onChange={handleRegisterChange}
                                 required
+                                style={hasError('role') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
                             >
-                                <option value="" disabled selected>Country</option>
-                                <option value="turkey">Turkey</option>
-                                <option value="germany">Germany</option>
-                                <option value="italy">Italy</option>
-                                <option value="spain">Spain</option>
-                                <option value="france">France</option>
-                                <option value="uk">United Kingdom</option>
+                                <option value="" disabled selected>Role</option>
+                                <option value="STUDENT">Student</option>
+                                <option value="TEACHER">Teacher</option>
+                                <option value="RESEARCHER">Researcher</option>
+                                <option value="OTHER">Other</option>
                             </S.Select>
-                        </FormRow>
+                            {fieldErrors.role && <S.InputError>{fieldErrors.role}</S.InputError>}
+                        </div>
                         
-                        <S.Input
-                            type="text"
-                            name="institution"
-                            placeholder="Institution"
-                            value={registerData.institution}
-                            onChange={handleRegisterChange}
-                        />
-                        
-                        <S.Select 
-                            name="role"
-                            value={registerData.role}
-                            onChange={handleRegisterChange}
-                            required
-                        >
-                            <option value="" disabled selected>Role</option>
-                            <option value="STUDENT">Student</option>
-                            <option value="TEACHER">Teacher</option>
-                            <option value="RESEARCHER">Researcher</option>
-                            <option value="OTHER">Other</option>
-                        </S.Select>
-                        
-                        <S.CheckboxContainer>
+                        <S.CheckboxContainer style={hasError('termsAccepted') ? { color: '#e74c3c' } : {}}>
                             <S.Checkbox
                                 type="checkbox"
                                 name="termsAccepted"
@@ -247,10 +410,11 @@ const Login = () => {
                                 onChange={handleRegisterChange}
                                 required
                             />
-                            <S.CheckboxLabel>
+                            <S.CheckboxLabel style={hasError('termsAccepted') ? { color: '#e74c3c' } : {}}>
                                 I have read and accepted the terms and conditions
                             </S.CheckboxLabel>
                         </S.CheckboxContainer>
+                        {fieldErrors.termsAccepted && <S.InputError style={{ margin: '-5px 0 10px 0' }}>{fieldErrors.termsAccepted}</S.InputError>}
                         
                         <S.Button type="submit" disabled={loading}>
                             {loading ? 'Processing...' : 'Sign Up'}
@@ -269,23 +433,31 @@ const Login = () => {
                     <S.Form onSubmit={handleLoginSubmit}>
                         <S.Title2>Sign In</S.Title2>
                         
-                        <LoginInput
-                            type="email"
-                            name="email"
-                            placeholder="Email Address"
-                            value={loginData.email}
-                            onChange={handleLoginChange}
-                            required
-                        />
+                        <div style={{ width: '80%' }}>
+                            <LoginInput
+                                type="email"
+                                name="email"
+                                placeholder="Email Address"
+                                value={loginData.email}
+                                onChange={handleLoginChange}
+                                required
+                                style={hasError('loginEmail') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.loginEmail && <S.InputError style={{ marginLeft: '10%' }}>{fieldErrors.loginEmail}</S.InputError>}
+                        </div>
                         
-                        <LoginInput
-                            type="password"
-                            name="password"
-                            placeholder="Password"
-                            value={loginData.password}
-                            onChange={handleLoginChange}
-                            required
-                        />
+                        <div style={{ width: '80%' }}>
+                            <LoginInput
+                                type="password"
+                                name="password"
+                                placeholder="Password"
+                                value={loginData.password}
+                                onChange={handleLoginChange}
+                                required
+                                style={hasError('loginPassword') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.loginPassword && <S.InputError style={{ marginLeft: '10%' }}>{fieldErrors.loginPassword}</S.InputError>}
+                        </div>
                         
                         <S.LinkText as={Link} to="/forgot-password">
                             Forgot your password?
