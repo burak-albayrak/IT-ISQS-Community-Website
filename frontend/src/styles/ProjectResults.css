@@ -4,11 +4,12 @@
 }
 
 .project-banner {
-  width: 100%;
+  width: 90%;
   height: 350px;
   overflow: hidden;
   position: relative;
-  margin-bottom: 40px;
+  border-radius: 20px;
+  margin: 0 auto 40px;
 }
 
 .banner-image {
@@ -47,6 +48,7 @@
 @media (max-width: 768px) {
   .project-banner {
     height: 200px;
+    width: 85%;
   }
 
   .project-heading {

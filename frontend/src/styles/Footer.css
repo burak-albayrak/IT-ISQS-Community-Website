@@ -10,6 +10,7 @@
   max-width: 1400px;
   margin: 0 auto;
   gap: 2rem;
+  align-items: center;
 }
 
 /* Logo Section */
@@ -26,9 +27,10 @@
 }
 
 .footer-logo-img {
-  height: 60px;
+  height: 150px;
   width: auto;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  object-fit: contain;
 }
 
 .footer-logo-text {
@@ -45,10 +47,9 @@
 
 /* Links Section */
 .footer-section.links-section {
-  flex: 1.5;
+  flex: 0.4;
   display: flex;
-  gap: 3rem;
-  min-width: 300px;
+  gap: 4rem;
   justify-content: center;
 }
 
@@ -56,6 +57,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
+  align-items: flex-start;
 }
 
 .footer-links-column a {
@@ -73,17 +75,24 @@
 .footer-section.eu-section {
   flex: 1;
   min-width: 300px;
-  max-width: 350px;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .eu-content {
   display: flex;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: center;
+  margin-right: 0;
 }
 
 .eu-flag {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .eu-flag-img {
@@ -128,10 +137,15 @@
   .footer-content {
     flex-direction: column;
     gap: 2rem;
+    align-items: flex-start;
   }
   
   .footer-section.links-section {
     width: 100%;
     justify-content: space-between;
+  }
+  
+  .eu-content {
+    align-items: flex-start;
   }
 } 

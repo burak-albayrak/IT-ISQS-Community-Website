@@ -90,14 +90,10 @@ const Header = () => {
         </nav>
 
         <div className="right-section">
-          <div className="language-selector">
-            <button className="language-btn">
-              <img src={languageIcon} alt="Language" className="language-icon" />
-              English
-            </button>
-          </div>
-          
           <div className="auth-buttons">
+            <button className="language-btn" title="Change Language">
+              <img src={languageIcon} alt="Language" className="language-icon" />
+            </button>
             <Link to="/contact" className="contact-btn">CONTACT US</Link>
             {isAuthenticated ? (
               <div className="auth-logged-in">
@@ -105,7 +101,7 @@ const Header = () => {
                 <button onClick={handleLogout} className="logout-btn">LOG OUT</button>
               </div>
             ) : (
-              <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>LOG IN</Link>
+              <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>SIGN IN</Link>
             )}
           </div>
         </div>

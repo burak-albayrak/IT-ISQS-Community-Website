@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import euLogo from '../assets/european.svg';
+import logo from '../assets/logo.png';
 import '../styles/Footer.css';
 
 const Footer = () => {
@@ -11,10 +12,10 @@ const Footer = () => {
       <div className="footer-content">
         <div className="footer-section logo-section">
           <div className="footer-logo">
-            <span className="footer-logo-text">IT-ISQS</span>
+            <img src={logo} alt="IT-ISQS Logo" className="footer-logo-img" />
           </div>
           <p className="footer-description">
-            Lorem ipsum dolor sit amet consectetur. Blandit metus sit a ultrices facilisis id netus in id. Varius non tristique integer eget quis mauris arcu sagittis suspendisse. Proin etiam non euismod et id. Adipiscing id vestibulum luctus nec nisi sem massa. Quisque scelerisque ridiculus porttitor adipiscing massa fermentum. Mi nunc purus.
+            Lorem ipsum dolor sit amet consectetur. Blandit metus sit a ultrices facilisis id netus in id. Varius non tristique integer eget quis mauris arcu sagittis suspendisse. Proin etiam non euismod et id. Adipiscing id vestibulum luctus nec nisi sem massa.
           </p>
         </div>
 

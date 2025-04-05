@@ -267,7 +267,7 @@ const Login = () => {
 
                 <S.SignInContainer isLogin={isLogin}>
                     <S.Form onSubmit={handleLoginSubmit}>
-                        <S.Title2>Log In</S.Title2>
+                        <S.Title2>Sign In</S.Title2>
                         
                         <LoginInput
                             type="email"

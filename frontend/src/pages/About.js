@@ -1,6 +1,7 @@
 import React from 'react';
 import '../styles/About.css';
 import aboutUsImage from '../assets/about-us.png'; // Yeni banner görseli
+import WorldMap from '../components/WorldMap';
 
 const About = () => {
   return (
@@ -39,6 +40,10 @@ const About = () => {
         </div>
 
         <h2 className="partnerships-heading">OUR PARTNERSHIPS</h2>
+        
+        {/* World Map Component */}
+        <WorldMap />
+        
         <div className="about-text">
           <p>
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullae, dignissim est. Maecenas nec mi, neque adipiscing habitasse id dapibus et iaculis. Purus vel sed et odio. Massa convallis, amet id interdum ac euismod, nec ante. Vitae at nunc faucibus mauris, arcu sagittis eu tincidunt, leo, quis donec et. Proin vehicula nec turpis. Urna viverra ipsum elementum.
