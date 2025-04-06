@@ -37,7 +37,7 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Invalid password");
         }
 
-        String jwt = jwtTokenService.generateToken(user.getEmail());
+        String jwt = jwtTokenService.generateTokenForUser(user);
         return new LoginResponse(jwt, "Login successful!");
 
     }

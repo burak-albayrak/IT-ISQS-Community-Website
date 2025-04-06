@@ -36,8 +36,7 @@ public class BlogService {
         blog.setOwner(
                 (request.getOwner() == null || request.getOwner().isBlank())
                         ? adminFullName
-                        : request.getOwner()
-        );
+                        : request.getOwner());
 
         blog.setCreatedAt(LocalDateTime.now());
         blog.setUpdatedAt(LocalDateTime.now());
@@ -58,16 +57,11 @@ public class BlogService {
     }
 
     public Blog updateBlog(int id, UpdateBlogRequest request, int adminId) {
-        Admin admin = adminRepository.findById(adminId)
+        adminRepository.findById(adminId)
                 .orElseThrow(() -> new EntityNotFoundException("Admin not found"));
 
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Blog not found"));
-
-        String adminFullName = admin.getFirstName() + " " + admin.getLastName();
-        if (!blog.getCreatedBy().equals(adminFullName)) {
-            throw new SecurityException("You can only update your own blogs.");
-        }
 
         blog.setTitle(request.getTitle());
         blog.setDescription(request.getDescription());
@@ -80,17 +74,12 @@ public class BlogService {
     }
 
     public void deleteBlog(int id, int adminId) {
-        Admin admin = adminRepository.findById(adminId)
+        adminRepository.findById(adminId)
                 .orElseThrow(() -> new EntityNotFoundException("Admin not found"));
-
+    
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Blog not found"));
-
-        String adminFullName = admin.getFirstName() + " " + admin.getLastName();
-        if (!blog.getCreatedBy().equals(adminFullName)) {
-            throw new SecurityException("You can only delete your own blogs.");
-        }
-
+    
         blogRepository.delete(blog);
     }
 }

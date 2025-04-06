@@ -1,0 +1,54 @@
+package com.devEra.ws.entity;
+
+import com.devEra.ws.core.enums.CreatorType;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@Table(name = "forum_posts")
+public class ForumPost {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "forum_post_id")
+    private int forumPostID;
+
+    @Size(min = 5, max = 255, message = "Title must be between 5 and 255 characters.")
+    @NotBlank(message = "Title cannot be blank.")
+    @Column(name = "title", nullable = false, length = 255)
+    private String title;
+
+    @NotBlank(message = "Description cannot be blank.")
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "media")
+    private String media;
+
+    @Column(name = "likes_count")
+    private int likesCount = 0;
+
+    @Column(name = "comment_count")
+    private int commentCount = 0;
+
+    @Column(name = "created_by")
+    private int createdBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "created_by_type")
+    private CreatorType createdByType;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt = LocalDateTime.now();
+}
