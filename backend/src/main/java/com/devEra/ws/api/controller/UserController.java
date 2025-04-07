@@ -4,23 +4,28 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.devEra.ws.core.enums.CreatorType;
 import com.devEra.ws.core.error.ApiError;
 import com.devEra.ws.core.message.GenericMessage;
 import com.devEra.ws.dto.request.UpdatePasswordRequest;
 import com.devEra.ws.dto.request.UpdateProfileRequest;
 import com.devEra.ws.entity.User;
+import com.devEra.ws.entity.Forum.ForumPost;
 import com.devEra.ws.exception.NotUniqueEmailException;
 import com.devEra.ws.service.UserService;
 
@@ -29,6 +34,7 @@ public class UserController {
 
     @Autowired
     UserService userService;
+
 
     @PostMapping("/api/v1/users")
     GenericMessage createUser(@Valid @RequestBody User user) {
@@ -65,6 +71,13 @@ public class UserController {
         }
 
         return ResponseEntity.ok(new GenericMessage("Password updated successfully."));
+    }
+
+    @GetMapping("/api/v1/users/{userId}/saved-posts")
+    public List<ForumPost> getUserSavedPosts(
+            @PathVariable int userId,
+            @RequestParam CreatorType creatorType) {
+        return userService.getSavedForumPosts(userId, creatorType);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

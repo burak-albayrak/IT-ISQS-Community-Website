@@ -89,6 +89,37 @@ public class JwtTokenService {
         }
     }
 
+    
+    // Admin token mı?
+    public boolean isAdminToken(String token) {
+        try {
+            var claims = Jwts.parserBuilder()
+                    .setSigningKey(SECRET_KEY)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            return claims.get("adminId") != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // User token mı?
+    public boolean isUserToken(String token) {
+        try {
+            var claims = Jwts.parserBuilder()
+                    .setSigningKey(SECRET_KEY)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            return claims.get("userId") != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public CreatorType getUserTypeFromToken(String token) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getUserTypeFromToken'");

@@ -5,7 +5,7 @@ import com.devEra.ws.core.enums.CreatorType;
 import com.devEra.ws.core.error.ApiError;
 import com.devEra.ws.core.message.GenericMessage;
 import com.devEra.ws.dto.request.Forum.CreateForumPostRequest;
-import com.devEra.ws.entity.ForumPost;
+import com.devEra.ws.entity.Forum.ForumPost;
 import com.devEra.ws.service.ForumPostService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -94,4 +94,45 @@ public class ForumPostController {
             }
         }
     }
+
+    @PostMapping("/like/{postId}")
+    public ResponseEntity<GenericMessage> likePost(
+            @PathVariable int postId,
+            @RequestHeader("Authorization") String tokenHeader) {
+
+        String token = tokenHeader.replace("Bearer ", "");
+
+        CreatorType userType;
+        int userId;
+
+        if (jwtTokenService.isAdminToken(token)) {
+            userType = CreatorType.ADMIN;
+            userId = jwtTokenService.getAdminIdFromToken(token);
+        } else {
+            userType = CreatorType.USER;
+            userId = jwtTokenService.getUserIdFromToken(token);
+        }
+
+        forumPostService.toggleLikePost(postId, userId, userType);
+
+        return ResponseEntity.ok(new GenericMessage("Post like status updated."));
+    }
+
+    @PostMapping("/{id}/save")
+    public ResponseEntity<GenericMessage> savePost(
+            @PathVariable int id,
+            @RequestHeader("Authorization") String tokenHeader) {
+
+        String token = tokenHeader.replace("Bearer ", "");
+        boolean isAdmin = jwtTokenService.isAdminToken(token);
+        int userId = isAdmin
+                ? jwtTokenService.getAdminIdFromToken(token)
+                : jwtTokenService.getUserIdFromToken(token);
+
+        CreatorType creatorType = isAdmin ? CreatorType.ADMIN : CreatorType.USER;
+
+        String resultMessage = forumPostService.saveOrUnsavePost(id, userId, creatorType);
+        return ResponseEntity.ok(new GenericMessage(resultMessage));
+    }
+
 }
