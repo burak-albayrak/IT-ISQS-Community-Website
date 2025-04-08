@@ -35,8 +35,8 @@ const Header = () => {
     if (navRef.current && indicatorRef.current) {
       const navItems = navRef.current.querySelectorAll('li');
       
-      // Login sayfasında ve verify-email sayfasında gösterge çizgisini gizle
-      if (location.pathname === '/login' || location.pathname === '/verify-email') {
+      // Login sayfasında, verify-email sayfasında ve reset-password sayfasında gösterge çizgisini gizle
+      if (location.pathname === '/login' || location.pathname === '/verify-email' || location.pathname === '/reset-password' || location.pathname === '/forgot-password') {
         indicatorRef.current.style.opacity = '0';
       } else {
         indicatorRef.current.style.opacity = '1';
@@ -59,8 +59,13 @@ const Header = () => {
     navigate('/');
   };
 
-  // Login butonunun stilini belirle
-  const isLoginPage = location.pathname === '/login' || location.pathname === '/verify-email';
+  // Login ve signup ve verify-email sayfalarını kontrol et
+  const isLoginPage = (location.pathname === '/login' && !location.search.includes('signup=true')) || 
+                      location.pathname === '/reset-password' || 
+                      location.pathname === '/forgot-password';
+  
+  const isSignupPage = location.pathname === '/verify-email' || 
+                       (location.pathname === '/login' && location.search.includes('signup=true'));
 
   return (
     <header className="header">
@@ -106,7 +111,7 @@ const Header = () => {
               </>
             ) : (
               <>
-                <Link to="/login?signup=true" className="contact-btn">SIGN UP</Link>
+                <Link to="/login?signup=true" className={`contact-btn ${isSignupPage ? 'signup-btn-active' : ''}`}>SIGN UP</Link>
                 <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>SIGN IN</Link>
               </>
             )}

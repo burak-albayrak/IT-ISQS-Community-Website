@@ -170,12 +170,19 @@
   transform: scaleX(1);
 }
 
+.signup-btn-active {
+  animation: glow 1.5s ease-in-out infinite alternate;
+  box-shadow: 0 0 8px rgba(0, 86, 179, 0.6);
+  transform: scale(1.05);
+  background: linear-gradient(to right, #2a4b8d, #3a5ca0, #4b6db3);
+}
+
 @keyframes glow {
   from {
     box-shadow: 0 0 5px rgba(0, 86, 179, 0.5);
   }
   to {
-    box-shadow: 0 0 10px rgba(0, 86, 179, 0.8);
+    box-shadow: 0 0 15px rgba(0, 86, 179, 0.9);
   }
 }
 
