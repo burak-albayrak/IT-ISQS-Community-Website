@@ -9,6 +9,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
+  min-height: 70vh;
   justify-content: space-between;
   padding: 2rem;
   margin: 2rem auto;
@@ -73,7 +74,7 @@ const EmailInputContainer = styled.div`
 
 const EmailInput = styled.input`
   width: 100%;
-  padding: 12px 15px 12px 40px;
+  padding: 12px 15px 12px 22px;
   border-radius: 30px;
   border: none;
   font-size: 1rem;

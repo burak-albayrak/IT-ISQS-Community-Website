@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import newLogo from '../assets/logo.png'; // New main logo
 import euLogo from '../assets/eu-logo.png'; // EU logo with text
-import languageIcon from '../assets/language.png'; // Language icon
+import { FiLogOut } from 'react-icons/fi'; // Geçici log out iconu
+import { BiWorld } from 'react-icons/bi'; // Google Translate benzeri icon
 import { useAuth } from '../contexts/AuthContext';
 
 import '../styles/Header.css';
@@ -22,24 +23,36 @@ const Header = () => {
     { path: '/blog', label: 'BLOG' },
     { path: '/forum', label: 'FORUM' },
     { path: '/project-results', label: 'PROJECT RESULTS' },
+    { path: '/contact', label: 'CONTACT US' },
   ];
 
   useEffect(() => {
-    const currentIndex = routes.findIndex(route => route.path === location.pathname);
-    setActiveIndex(currentIndex >= 0 ? currentIndex : 0);
+    // Don't set active index for profile pages
+    if (location.pathname === '/profile' || location.pathname === '/edit-profile') {
+      // Hide the indicator or set to a non-existent index
+      setActiveIndex(-1);
+    } else {
+      const currentIndex = routes.findIndex(route => route.path === location.pathname);
+      setActiveIndex(currentIndex >= 0 ? currentIndex : 0);
+    }
   }, [location]);
 
   useEffect(() => {
     if (navRef.current && indicatorRef.current) {
       const navItems = navRef.current.querySelectorAll('li');
       
-      // Login sayfasında ve verify-email sayfasında gösterge çizgisini gizle
-      if (location.pathname === '/login' || location.pathname === '/verify-email') {
+      // Login sayfasında, verify-email sayfasında ve reset-password sayfasında gösterge çizgisini gizle
+      if (location.pathname === '/login' || 
+          location.pathname === '/verify-email' || 
+          location.pathname === '/reset-password' || 
+          location.pathname === '/forgot-password' ||
+          location.pathname === '/profile' ||
+          location.pathname === '/edit-profile') {
         indicatorRef.current.style.opacity = '0';
       } else {
         indicatorRef.current.style.opacity = '1';
         
-        if (navItems.length > 0 && activeIndex < navItems.length) {
+        if (navItems.length > 0 && activeIndex >= 0 && activeIndex < navItems.length) {
           const activeItem = navItems[activeIndex];
           const itemRect = activeItem.getBoundingClientRect();
           const navRect = navRef.current.getBoundingClientRect();
@@ -57,8 +70,16 @@ const Header = () => {
     navigate('/');
   };
 
-  // Login butonunun stilini belirle
-  const isLoginPage = location.pathname === '/login' || location.pathname === '/verify-email';
+  // Login ve signup ve verify-email sayfalarını kontrol et
+  const isLoginPage = (location.pathname === '/login' && !location.search.includes('signup=true')) || 
+                      location.pathname === '/reset-password' || 
+                      location.pathname === '/forgot-password';
+  
+  const isSignupPage = location.pathname === '/verify-email' || 
+                       (location.pathname === '/login' && location.search.includes('signup=true'));
+                       
+  // Profile sayfasını kontrol et
+  const isProfilePage = location.pathname === '/profile' || location.pathname === '/edit-profile';
 
   return (
     <header className="header">
@@ -79,7 +100,7 @@ const Header = () => {
               <li key={route.path}>
                 <NavLink 
                   to={route.path} 
-                  className={({ isActive }) => isActive ? "active" : ""}
+                  className={({ isActive }) => isActive && !isProfilePage ? "active" : ""}
                 >
                   {route.label}
                 </NavLink>
@@ -92,16 +113,21 @@ const Header = () => {
         <div className="right-section">
           <div className="auth-buttons">
             <button className="language-btn" title="Change Language">
-              <img src={languageIcon} alt="Language" className="language-icon" />
+              <BiWorld size={26} color="#555" />
             </button>
-            <Link to="/contact" className="contact-btn">CONTACT US</Link>
+            
             {isAuthenticated ? (
-              <div className="auth-logged-in">
-                <Link to="/profile" className="login-btn">PROFILE</Link>
-                <button onClick={handleLogout} className="logout-btn">LOG OUT</button>
-              </div>
+              <>
+                <Link to="/profile" className={`contact-btn ${isProfilePage ? 'profile-btn-active' : ''}`}>PROFILE</Link>
+                <button onClick={handleLogout} className="logout-btn" title="Log Out">
+                  <FiLogOut size={24} />
+                </button>
+              </>
             ) : (
-              <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>SIGN IN</Link>
+              <>
+                <Link to="/login?signup=true" className={`contact-btn ${isSignupPage ? 'signup-btn-active' : ''}`}>SIGN UP</Link>
+                <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>SIGN IN</Link>
+              </>
             )}
           </div>
         </div>

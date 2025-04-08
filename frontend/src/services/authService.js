@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios';
 
 // Login servisi
 export const login = async (credentials) => {
@@ -110,6 +111,16 @@ export const verifyResetCode = async (code) => {
 export const resetPassword = async (code, newPassword) => {
   try {
     const response = await api.post('/users/reset-password', { code, newPassword });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+// Resend reset code for password reset
+export const resendResetCode = async (email) => {
+  try {
+    const response = await api.post('/users/resend-reset-code', { email });
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
