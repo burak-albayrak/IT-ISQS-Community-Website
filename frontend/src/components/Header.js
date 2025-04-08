@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import newLogo from '../assets/logo.png'; // New main logo
 import euLogo from '../assets/eu-logo.png'; // EU logo with text
-import languageIcon from '../assets/language.png'; // Language icon
+import { FiLogOut } from 'react-icons/fi'; // Geçici log out iconu
+import { BiWorld } from 'react-icons/bi'; // Google Translate benzeri icon
 import { useAuth } from '../contexts/AuthContext';
 
 import '../styles/Header.css';
@@ -22,6 +23,7 @@ const Header = () => {
     { path: '/blog', label: 'BLOG' },
     { path: '/forum', label: 'FORUM' },
     { path: '/project-results', label: 'PROJECT RESULTS' },
+    { path: '/contact', label: 'CONTACT US' },
   ];
 
   useEffect(() => {
@@ -92,16 +94,21 @@ const Header = () => {
         <div className="right-section">
           <div className="auth-buttons">
             <button className="language-btn" title="Change Language">
-              <img src={languageIcon} alt="Language" className="language-icon" />
+              <BiWorld size={26} color="#555" />
             </button>
-            <Link to="/contact" className="contact-btn">CONTACT US</Link>
+            
             {isAuthenticated ? (
-              <div className="auth-logged-in">
-                <Link to="/profile" className="login-btn">PROFILE</Link>
-                <button onClick={handleLogout} className="logout-btn">LOG OUT</button>
-              </div>
+              <>
+                <Link to="/profile" className="contact-btn">PROFILE</Link>
+                <button onClick={handleLogout} className="logout-btn" title="Log Out">
+                  <FiLogOut size={24} />
+                </button>
+              </>
             ) : (
-              <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>SIGN IN</Link>
+              <>
+                <Link to="/login?signup=true" className="contact-btn">SIGN UP</Link>
+                <Link to="/login" className={`login-btn ${isLoginPage ? 'login-btn-active' : ''}`}>SIGN IN</Link>
+              </>
             )}
           </div>
         </div>
