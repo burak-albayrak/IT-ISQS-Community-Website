@@ -1,14 +1,22 @@
 package com.devEra.ws.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.devEra.ws.core.enums.CreatorType;
 import com.devEra.ws.dto.request.UpdatePasswordRequest;
 import com.devEra.ws.dto.request.UpdateProfileRequest;
 import com.devEra.ws.entity.User;
+import com.devEra.ws.entity.Forum.ForumPost;
+import com.devEra.ws.entity.Forum.ForumPostSave;
 import com.devEra.ws.repository.UserRepository;
+import com.devEra.ws.repository.Forum.ForumPostSaveRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +27,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final EmailVerificationService emailVerificationService;
+    private final ForumPostSaveRepository forumPostSaveRepository;
 
     PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -56,7 +65,7 @@ public class UserService {
         if (request.getRole() != null) {
             user.setRole(request.getRole());
         }
-        
+
         userRepository.save(user);
     }
 
@@ -65,13 +74,20 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            return false; 
+            return false;
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
         return true;
+    }
+
+    public List<ForumPost> getSavedForumPosts(int userId, CreatorType creatorType) {
+        List<ForumPostSave> savedPosts = forumPostSaveRepository.findBySavedByAndSavedByType(userId, creatorType);
+        return savedPosts.stream()
+                .map(ForumPostSave::getForumPost)
+                .collect(Collectors.toList());
     }
 
 }

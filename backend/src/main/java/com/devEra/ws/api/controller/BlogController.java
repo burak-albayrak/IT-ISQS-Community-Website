@@ -1,15 +1,18 @@
 package com.devEra.ws.api.controller;
 
 import com.devEra.ws.config.security.JwtTokenService;
+import com.devEra.ws.core.error.ApiError;
 import com.devEra.ws.core.message.GenericMessage;
 import com.devEra.ws.dto.request.Blog.CreateBlogRequest;
 import com.devEra.ws.dto.request.Blog.UpdateBlogRequest;
 import com.devEra.ws.entity.Blog;
 import com.devEra.ws.service.BlogService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -22,8 +25,10 @@ public class BlogController {
 
     // 1. Blog oluştur (Admin)
     @PostMapping("/create")
-    public ResponseEntity<GenericMessage> createBlog(@RequestBody CreateBlogRequest request,
+    public ResponseEntity<GenericMessage> createBlog(
+            @RequestBody CreateBlogRequest request,
             @RequestHeader("Authorization") String tokenHeader) {
+
         String token = tokenHeader.replace("Bearer ", "");
         int adminId = jwtTokenService.getAdminIdFromToken(token);
 
@@ -44,26 +49,61 @@ public class BlogController {
     }
 
     // 4. Blog güncelle (Admin)
-    @PutMapping("/update/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<GenericMessage> updateBlog(
             @PathVariable int id,
             @RequestBody UpdateBlogRequest request,
             @RequestHeader("Authorization") String tokenHeader) {
+
         String token = tokenHeader.replace("Bearer ", "");
         int adminId = jwtTokenService.getAdminIdFromToken(token);
 
-        blogService.updateBlog(id, request, adminId); // service'e gönder
+        blogService.updateBlog(id, request, adminId);
         return ResponseEntity.ok(new GenericMessage("Blog updated successfully."));
     }
 
     // 5. Blog sil (Admin)
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<GenericMessage> deleteBlog(
             @PathVariable int id,
             @RequestHeader("Authorization") String tokenHeader) {
+
         String token = tokenHeader.replace("Bearer ", "");
         int adminId = jwtTokenService.getAdminIdFromToken(token);
+
         blogService.deleteBlog(id, adminId);
         return ResponseEntity.ok(new GenericMessage("Blog deleted successfully."));
+    }
+
+    // 🔴 NOT FOUND HATASI
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ApiError> handleEntityNotFound(EntityNotFoundException exception) {
+        ApiError error = new ApiError();
+        error.setStatus(404);
+        error.setMessage(exception.getMessage());
+        error.setPath("/api/v1/blogs");
+        error.setValidationErrors(new HashMap<>());
+        return ResponseEntity.status(404).body(error);
+    }
+
+
+    // JWT HATASI
+    @ExceptionHandler(io.jsonwebtoken.JwtException.class)
+    public ResponseEntity<ApiError> handleJwtException(io.jsonwebtoken.JwtException exception) {
+        ApiError error = new ApiError();
+        error.setStatus(401);
+        error.setMessage("Invalid or expired token. Please login again.");
+        error.setPath("/api/v1/blogs");
+        return ResponseEntity.status(401).body(error);
+    }
+
+    // GENERAL CATCH-ALL
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleGeneralException(Exception exception) {
+        ApiError error = new ApiError();
+        error.setStatus(500);
+        error.setMessage("Unexpected error occurred. Please try again later.");
+        error.setPath("/api/v1/blogs");
+        return ResponseEntity.status(500).body(error);
     }
 }
