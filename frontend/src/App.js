@@ -11,6 +11,9 @@ import EmailVerification from './pages/EmailVerification';
 import ContactUs from './pages/ContactUs';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Profile from './pages/Profile';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -32,7 +35,9 @@ function App() {
               <Route path="/verify-email" element={<EmailVerification />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/profile" element={<div className="page">Profile Page</div>} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/privacy-policy" element={<div className="page">Privacy & Policy Page</div>} />
               <Route path="/terms" element={<div className="page">Terms of Service Page</div>} />
               <Route path="/cookie-settings" element={<div className="page">Cookie Settings Page</div>} />
