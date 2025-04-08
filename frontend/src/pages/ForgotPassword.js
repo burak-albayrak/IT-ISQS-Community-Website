@@ -123,10 +123,17 @@ const ErrorMessage = styled.p`
   font-size: 0.9rem;
 `;
 
+const SuccessMessage = styled.p`
+  color: #27ae60;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+`;
+
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -141,6 +148,7 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       // Call the forgotPassword service
@@ -148,13 +156,19 @@ const ForgotPassword = () => {
       console.log('Reset password requested for:', email);
       console.log('Response:', response);
       
-      // Navigate to verification page
-      navigate('/verify-email', { 
-        state: { 
-          email: email,
-          fromForgotPassword: true 
-        } 
-      });
+      // Show success message
+      setSuccess('Verification code has been sent to your email.');
+      
+      // Short delay before navigating to code verification page
+      setTimeout(() => {
+        // Navigate to verification code page
+        navigate('/reset-password', { 
+          state: { 
+            email: email,
+            isPasswordReset: true
+          } 
+        });
+      }, 2000);
     } catch (err) {
       console.error('Error requesting password reset:', err);
       
@@ -170,7 +184,7 @@ const ForgotPassword = () => {
       } else {
         setError('Unable to process your request. Please try again later.');
       }
-      
+    } finally {
       setIsLoading(false);
     }
   };
@@ -183,7 +197,7 @@ const ForgotPassword = () => {
 
       <FormContainer>
         <Title>Please Enter Your E-mail Address</Title>
-        <Subtitle>We will send you an email.</Subtitle>
+        <Subtitle>We will send you an email with a verification code to reset your password.</Subtitle>
 
         <form onSubmit={handleSubmit} style={{ width: '100%' }}>
           <EmailInputContainer>
@@ -197,11 +211,12 @@ const ForgotPassword = () => {
           </EmailInputContainer>
 
           <SubmitButton type="submit" disabled={isLoading}>
-            {isLoading ? 'Processing...' : 'Done'}
+            {isLoading ? 'Processing...' : 'Send Verification Code'}
           </SubmitButton>
         </form>
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
+        {success && <SuccessMessage>{success}</SuccessMessage>}
       </FormContainer>
     </Container>
   );
