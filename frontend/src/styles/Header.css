@@ -177,6 +177,14 @@
   background: linear-gradient(to right, #2a4b8d, #3a5ca0, #4b6db3);
 }
 
+.profile-btn-active {
+  animation: glow 1.5s ease-in-out infinite alternate;
+  box-shadow: 0 0 10px rgba(0, 86, 179, 0.7);
+  transform: scale(1.05);
+  background: linear-gradient(to right, #2a4b8d, #3a5ca0, #4b6db3);
+  font-weight: 700;
+}
+
 @keyframes glow {
   from {
     box-shadow: 0 0 5px rgba(0, 86, 179, 0.5);

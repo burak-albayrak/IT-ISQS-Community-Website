@@ -27,8 +27,14 @@ const Header = () => {
   ];
 
   useEffect(() => {
-    const currentIndex = routes.findIndex(route => route.path === location.pathname);
-    setActiveIndex(currentIndex >= 0 ? currentIndex : 0);
+    // Don't set active index for profile pages
+    if (location.pathname === '/profile' || location.pathname === '/edit-profile') {
+      // Hide the indicator or set to a non-existent index
+      setActiveIndex(-1);
+    } else {
+      const currentIndex = routes.findIndex(route => route.path === location.pathname);
+      setActiveIndex(currentIndex >= 0 ? currentIndex : 0);
+    }
   }, [location]);
 
   useEffect(() => {
@@ -36,12 +42,17 @@ const Header = () => {
       const navItems = navRef.current.querySelectorAll('li');
       
       // Login sayfasında, verify-email sayfasında ve reset-password sayfasında gösterge çizgisini gizle
-      if (location.pathname === '/login' || location.pathname === '/verify-email' || location.pathname === '/reset-password' || location.pathname === '/forgot-password') {
+      if (location.pathname === '/login' || 
+          location.pathname === '/verify-email' || 
+          location.pathname === '/reset-password' || 
+          location.pathname === '/forgot-password' ||
+          location.pathname === '/profile' ||
+          location.pathname === '/edit-profile') {
         indicatorRef.current.style.opacity = '0';
       } else {
         indicatorRef.current.style.opacity = '1';
         
-        if (navItems.length > 0 && activeIndex < navItems.length) {
+        if (navItems.length > 0 && activeIndex >= 0 && activeIndex < navItems.length) {
           const activeItem = navItems[activeIndex];
           const itemRect = activeItem.getBoundingClientRect();
           const navRect = navRef.current.getBoundingClientRect();
@@ -66,6 +77,9 @@ const Header = () => {
   
   const isSignupPage = location.pathname === '/verify-email' || 
                        (location.pathname === '/login' && location.search.includes('signup=true'));
+                       
+  // Profile sayfasını kontrol et
+  const isProfilePage = location.pathname === '/profile' || location.pathname === '/edit-profile';
 
   return (
     <header className="header">
@@ -86,7 +100,7 @@ const Header = () => {
               <li key={route.path}>
                 <NavLink 
                   to={route.path} 
-                  className={({ isActive }) => isActive ? "active" : ""}
+                  className={({ isActive }) => isActive && !isProfilePage ? "active" : ""}
                 >
                   {route.label}
                 </NavLink>
@@ -104,7 +118,7 @@ const Header = () => {
             
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className="contact-btn">PROFILE</Link>
+                <Link to="/profile" className={`contact-btn ${isProfilePage ? 'profile-btn-active' : ''}`}>PROFILE</Link>
                 <button onClick={handleLogout} className="logout-btn" title="Log Out">
                   <FiLogOut size={24} />
                 </button>
