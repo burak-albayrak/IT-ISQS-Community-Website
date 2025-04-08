@@ -11,6 +11,7 @@ const Container = styled.div`
   justify-content: space-between;
   padding: 2rem;
   margin: 2rem auto;
+  min-height: 80vh;
   max-width: 1200px;
   gap: 2rem;
 
@@ -23,7 +24,7 @@ const Container = styled.div`
 const IllustrationContainer = styled.div`
   flex: 1;
   display: flex;
-  justify-content: center;npm 
+  justify-content: center;
   align-items: center;
 
   @media (max-width: 768px) {

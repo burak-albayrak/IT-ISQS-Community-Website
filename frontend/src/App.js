@@ -12,8 +12,11 @@ import ContactUs from './pages/ContactUs';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
+import EditProfile from './pages/EditProfile';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import Blog from './pages/Blog';
+import BlogDetail from './pages/BlogDetail';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -27,7 +30,8 @@ function App() {
               <Route path="/" element={<div className="page">Home Page</div>} />
               <Route path="/about" element={<About />} />
               <Route path="/syllabus" element={<Syllabus />} />
-              <Route path="/blog" element={<div className="page">Blog Page</div>} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:id" element={<BlogDetail />} />
               <Route path="/forum" element={<div className="page">Forum Page</div>} />
               <Route path="/project-results" element={<ProjectResults />} />
               <Route path="/contact" element={<ContactUs />} />
@@ -36,6 +40,7 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/edit-profile" element={<EditProfile />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/privacy-policy" element={<div className="page">Privacy & Policy Page</div>} />

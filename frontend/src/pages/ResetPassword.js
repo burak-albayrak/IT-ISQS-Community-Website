@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
-import newpasswordImg from '../assets/newpassword.png';
-import { resetPassword, verifyResetCode } from '../services/authService';
+import newpasswordImg from '../assets/mailman.png';
+import { resetPassword, verifyResetCode, resendResetCode } from '../services/authService';
 
 // Styled components
 const Container = styled.div`
@@ -10,9 +10,10 @@ const Container = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
-  margin: 1rem auto;
-  max-width: 1000px;
+  padding: 2rem;
+  margin: 2rem auto;
+  min-height: 80vh;
+  max-width: 1200px;
   gap: 2rem;
 
   @media (max-width: 768px) {
@@ -22,7 +23,7 @@ const Container = styled.div`
 `;
 
 const IllustrationContainer = styled.div`
-  flex: 0.9;
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -38,7 +39,7 @@ const Illustration = styled.img`
 `;
 
 const FormContainer = styled.div`
-  flex: 1.15;
+  flex: 1;
   background-color: #e1e5ee;
   border-radius: 16px;
   padding: 3rem;
@@ -51,7 +52,7 @@ const FormContainer = styled.div`
 
 const Title = styled.h1`
   font-size: 2rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: #223A70;
   font-weight: bold;
 `;
@@ -114,6 +115,29 @@ const SubmitButton = styled.button`
   }
 `;
 
+const VerifyButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background-color: white;
+  color: #333;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    background-color: #f5f5f5;
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
 const ErrorMessage = styled.p`
   color: #e74c3c;
   margin-top: 1rem;
@@ -152,6 +176,63 @@ const CodeInput = styled.input`
   }
 `;
 
+const ResendText = styled.p`
+  margin-top: 2.5rem;
+  font-size: 0.95rem;
+  color: #555;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+`;
+
+const ResendLink = styled.button`
+  background-color: rgba(34, 58, 112, 0.1);
+  border: none;
+  color: #223A70;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  &:hover {
+    background-color: rgba(34, 58, 112, 0.2);
+    color: #192C54;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(34, 58, 112, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    background-color: #e0e0e0;
+    color: #999;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+`;
+
+// SVG ikon için stil
+const RefreshIcon = styled.svg`
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  transition: transform 0.5s ease-in-out;
+
+  ${ResendLink}:hover & {
+    transform: rotate(180deg);
+  }
+`;
+
 const PasswordRequirements = styled.div`
   margin-top: 0.5rem;
   font-size: 0.8rem;
@@ -171,6 +252,7 @@ const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [email, setEmail] = useState('');
@@ -239,9 +321,8 @@ const ResetPassword = () => {
   };
 
   // Kod doğrulama işlemi
-  const handleVerifyCode = async (e) => {
-    e.preventDefault();
-    if (!isCodeComplete() || isLoading) return;
+  const handleVerifyCode = async () => {
+    if (!isCodeComplete() || isLoading || isResending) return;
 
     setIsLoading(true);
     setError('');
@@ -272,6 +353,34 @@ const ResetPassword = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Kodu yeniden gönderme
+  const handleResendCode = async () => {
+    if (!email || isResending || isLoading) return;
+
+    setIsResending(true);
+    setError('');
+    
+    try {
+      // API isteği
+      const response = await resendResetCode(email);
+      console.log('Resend code successful:', response);
+      
+      setIsResending(false);
+      // Kullanıcıya bildirim göster
+      alert('A new verification code has been sent to your email.');
+    } catch (err) {
+      console.error('Resend code error:', err);
+      if (err.message) {
+        setError(err.message);
+      } else if (typeof err === 'string') {
+        setError(err);
+      } else {
+        setError('Failed to resend verification code. Please try again.');
+      }
+      setIsResending(false);
     }
   };
 
@@ -337,26 +446,39 @@ const ResetPassword = () => {
             <Title>Verify Your Code</Title>
             <Subtitle>Enter the verification code sent to {email}</Subtitle>
 
-            <form onSubmit={handleVerifyCode} style={{ width: '100%' }}>
-              <CodeInputContainer>
-                {[0, 1, 2, 3, 4, 5].map((index) => (
-                  <CodeInput
-                    key={index}
-                    type="text"
-                    maxLength="1"
-                    value={verificationCode[index]}
-                    onChange={(e) => handleCodeChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    ref={(el) => (inputRefs.current[index] = el)}
-                    required
-                  />
-                ))}
-              </CodeInputContainer>
+            <CodeInputContainer>
+              {[0, 1, 2, 3, 4, 5].map((index) => (
+                <CodeInput
+                  key={index}
+                  type="text"
+                  maxLength="1"
+                  value={verificationCode[index]}
+                  onChange={(e) => handleCodeChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  ref={(el) => (inputRefs.current[index] = el)}
+                />
+              ))}
+            </CodeInputContainer>
 
-              <SubmitButton type="submit" disabled={isLoading || !isCodeComplete()}>
-                {isLoading ? 'Verifying...' : 'Verify Code'}
-              </SubmitButton>
-            </form>
+            <VerifyButton 
+              onClick={handleVerifyCode} 
+              disabled={!isCodeComplete() || isLoading || isResending}
+            >
+              {isLoading ? 'Verifying...' : 'Done'}
+            </VerifyButton>
+            
+            {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
+            {success && <SuccessMessage>{success}</SuccessMessage>}
+            
+            <ResendText>
+              Didn't receive a code?
+              <ResendLink onClick={handleResendCode} disabled={isResending || isLoading}>
+                <RefreshIcon viewBox="0 0 24 24">
+                  <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 9h7V2l-2.35 4.35z"/>
+                </RefreshIcon>
+                {isResending ? 'Sending...' : 'Resend code'}
+              </ResendLink>
+            </ResendText>
           </>
         ) : (
           <>
@@ -391,11 +513,11 @@ const ResetPassword = () => {
                 {isLoading ? 'Processing...' : 'Reset Password'}
               </SubmitButton>
             </form>
+            
+            {error && <ErrorMessage>{error}</ErrorMessage>}
+            {success && <SuccessMessage>{success}</SuccessMessage>}
           </>
         )}
-
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-        {success && <SuccessMessage>{success}</SuccessMessage>}
       </FormContainer>
     </Container>
   );

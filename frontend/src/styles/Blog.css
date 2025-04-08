@@ -1,0 +1,87 @@
+/* Blog Placeholder Images */
+.blog-card-image[src="/images/blog/empty-office.jpg"],
+.blog-card-image[src="/images/blog/team-meeting.jpg"],
+.blog-card-image[src="/images/blog/desk-setup.jpg"],
+.blog-card-image[src="/images/blog/mountain.jpg"],
+.blog-card-image[src="/images/blog/brainstorming.jpg"],
+.blog-card-image[src="/images/blog/desk-setup-2.jpg"],
+.blog-card-image[src="/images/blog/whiteboard.jpg"],
+.blog-card-image[src="/images/blog/laptop-work.jpg"],
+.blog-card-image[src="/images/blog/laptop-bed.jpg"],
+.blog-card-image[src="/images/blog/default-blog-image.jpg"] {
+  background-color: #f2f4f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #667085;
+  font-size: 16px;
+  position: relative;
+}
+
+.blog-card-image[src="/images/blog/empty-office.jpg"]::after {
+  content: "Office";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/team-meeting.jpg"]::after {
+  content: "Team Meeting";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/desk-setup.jpg"]::after {
+  content: "Desk Setup";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/mountain.jpg"]::after {
+  content: "Mountain";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/brainstorming.jpg"]::after {
+  content: "Brainstorming";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/desk-setup-2.jpg"]::after {
+  content: "Desk Setup 2";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/whiteboard.jpg"]::after {
+  content: "Whiteboard";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/laptop-work.jpg"]::after {
+  content: "Working on Laptop";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/laptop-bed.jpg"]::after {
+  content: "Laptop in Bed";
+  position: absolute;
+}
+
+.blog-card-image[src="/images/blog/default-blog-image.jpg"]::after {
+  content: "Default Blog Image";
+  position: absolute;
+}
+
+.banner-image[src="/images/blog/glasses.png"] {
+  background-color: #f5f7ff;
+  width: 200px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.banner-image[src="/images/blog/glasses.png"]::after {
+  content: "👓 Glasses";
+  position: absolute;
+  color: #6941C6;
+  font-size: 20px;
+  font-weight: bold;
+} 

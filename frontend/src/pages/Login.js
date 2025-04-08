@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import * as S from '../styles/AuthStyles';
 import logo from '../logo.svg'; // Şimdilik React logosu kullanıyoruz
 import styled from 'styled-components';
@@ -32,6 +32,7 @@ const LoginGoogleButton = styled(S.GoogleButton)`
 `;
 
 const Login = () => {
+    const location = useLocation();
     const [isLogin, setIsLogin] = useState(true);
     const [loginData, setLoginData] = useState({
         email: '',
@@ -53,6 +54,18 @@ const Login = () => {
     const [fieldErrors, setFieldErrors] = useState({});
     const navigate = useNavigate();
     const { login: authLogin } = useAuth();
+
+    // URL'de signup parametresini kontrol et
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const signupParam = queryParams.get('signup');
+        
+        if (signupParam === 'true') {
+            setIsLogin(false); // Kayıt formunu göster
+        } else {
+            setIsLogin(true); // Giriş formunu göster
+        }
+    }, [location.search]);
 
     const handleLoginChange = (e) => {
         setLoginData({
@@ -484,8 +497,10 @@ const Login = () => {
                                 Don't you have an account?<br />
                                 Join us to use all of site features.
                             </S.Text>
-                            <S.GhostButton onClick={() => setIsLogin(false)}>
-                                Sign Up
+                            <S.GhostButton onClick={() => {
+                                navigate('/login?signup=true');
+                            }}>
+                                SIGN UP
                             </S.GhostButton>
                         </S.LeftOverlayPanel>
 
@@ -495,8 +510,10 @@ const Login = () => {
                                 You already have an account?<br />
                                 Sign In!
                             </S.Text>
-                            <S.GhostButton onClick={() => setIsLogin(true)}>
-                                Sign In
+                            <S.GhostButton onClick={() => {
+                                navigate('/login');
+                            }}>
+                                SIGN IN
                             </S.GhostButton>
                         </S.RightOverlayPanel>
                     </S.Overlay>
