@@ -80,6 +80,52 @@ public class UserController {
         return userService.getSavedForumPosts(userId, creatorType);
     }
 
+    /**
+     * Kullanıcı bilgilerini ID'ye göre getirir
+     * 
+     * @param userId Kullanıcı ID'si
+     * @return Kullanıcı bilgileri
+     */
+    @GetMapping("/api/v1/users/{userId}")
+    public ResponseEntity<?> getUser(@PathVariable int userId) {
+        try {
+            User user = userService.getUser(userId);
+            return ResponseEntity.ok(user);
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/users/" + userId);
+            return ResponseEntity.status(404).body(error);
+        }
+    }
+    
+    /**
+     * Kullanıcı bilgilerini email adresine göre getirir
+     * 
+     * @param email Kullanıcı email adresi
+     * @return Kullanıcı bilgileri
+     */
+    @GetMapping("/api/v1/users/email")
+    public ResponseEntity<?> getUserByEmail(@RequestParam String email) {
+        try {
+            User user = userService.getUserByEmail(email);
+            return ResponseEntity.ok(user);
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/users/email?email=" + email);
+            return ResponseEntity.status(404).body(error);
+        } catch (IllegalArgumentException e) {
+            ApiError error = new ApiError();
+            error.setStatus(400);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/users/email");
+            return ResponseEntity.status(400).body(error);
+        }
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleMethodArgNotValidEx(MethodArgumentNotValidException exception) {
 

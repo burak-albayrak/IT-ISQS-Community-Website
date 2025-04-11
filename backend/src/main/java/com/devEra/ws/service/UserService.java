@@ -90,4 +90,32 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Kullanıcıyı ID'ye göre getirir.
+     * 
+     * @param userId Kullanıcı ID'si
+     * @return Kullanıcı nesnesi
+     * @throws EntityNotFoundException Kullanıcı bulunamazsa
+     */
+    public User getUser(int userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+    }
+    
+    /**
+     * Kullanıcıyı email adresine göre getirir.
+     * 
+     * @param email Kullanıcı email adresi
+     * @return Kullanıcı nesnesi
+     * @throws EntityNotFoundException Kullanıcı bulunamazsa
+     */
+    public User getUserByEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be null or empty");
+        }
+        
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
+    }
+
 }

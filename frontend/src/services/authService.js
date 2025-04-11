@@ -6,25 +6,63 @@ export const login = async (credentials) => {
   try {
     const response = await api.post('/users/login', credentials);
     if (response.data && response.data.token) {
-      localStorage.setItem('token', response.data.token);
+      const token = response.data.token;
+      localStorage.setItem('token', token);
       
-      // Create a basic user object from credentials
-      // Ideally, the backend would return user details in the token or response
-      const basicUserInfo = {
+      // Token'dan kullanıcı ID'sini çıkar
+      const userId = extractUserIdFromToken(token);
+      console.log("Extracted user ID from token:", userId);
+      
+      // Temel kullanıcı bilgilerini oluştur
+      let userInfo = {
         email: credentials.email,
-        id: extractUserIdFromToken(response.data.token), // Try to extract user ID from token
-        firstName: '',
-        lastName: ''
+        id: userId,
+        userID: userId  // Her iki alan adını da kullan
       };
       
-      // Store basic user info in localStorage
-      localStorage.setItem('user', JSON.stringify(basicUserInfo));
+      try {
+        // Kullanıcının tam profilini getir
+        if (userId) {
+          // ID ile profil getir
+          const profileResponse = await getUserProfile(userId);
+          console.log("Profile response from API:", profileResponse);
+          
+          if (profileResponse) {
+            userInfo = {
+              ...userInfo,
+              ...profileResponse,
+              id: userId, // ID'yi koru
+              userID: userId // UserID'yi de koru
+            };
+          }
+        } else {
+          // Email ile profil getir
+          const emailProfileResponse = await getUserByEmail(credentials.email);
+          console.log("Profile by email response:", emailProfileResponse);
+          
+          if (emailProfileResponse) {
+            const backendUserId = emailProfileResponse.userID;
+            userInfo = {
+              ...userInfo,
+              ...emailProfileResponse,
+              id: backendUserId, // Her iki alanı da güncelleyelim
+              userID: backendUserId // Backend'den gelen ID'yi kullan
+            };
+          }
+        }
+      } catch (profileError) {
+        console.warn('Could not fetch complete profile:', profileError);
+        // Profil getirilemese bile login devam etmeli
+      }
       
-      // Return both token and user info
+      // LocalStorage'a güncel kullanıcı bilgilerini kaydet
+      console.log("Final user info to be stored:", userInfo);
+      localStorage.setItem('user', JSON.stringify(userInfo));
+      
       return {
-        token: response.data.token,
-        message: response.data.message,
-        user: basicUserInfo
+        token: token,
+        message: response.data.message || 'Login successful',
+        user: userInfo
       };
     }
     return response.data;
@@ -42,10 +80,16 @@ const extractUserIdFromToken = (token) => {
     if (parts.length !== 3) return null;
     
     // Decode the payload (middle part)
-    const payload = JSON.parse(atob(parts[1]));
+    const decoded = atob(parts[1]);
+    const payload = JSON.parse(decoded);
+    
+    console.log("JWT payload:", payload);
     
     // Return user ID if present in token payload
-    return payload.id || payload.sub || null;
+    // Backend'de userID veya sub alanlarını kontrol et
+    const extractedId = payload.userID || payload.id || payload.sub || null;
+    console.log("Extracted ID:", extractedId);
+    return extractedId;
   } catch (error) {
     console.error('Error extracting user ID from token:', error);
     return null;
@@ -138,6 +182,17 @@ export const getUserProfile = async (userId) => {
   }
 };
 
+// Get user profile by email
+export const getUserByEmail = async (email) => {
+  try {
+    const response = await api.get(`/users/email?email=${encodeURIComponent(email)}`);
+    return response.data;
+  } catch (error) {
+    console.error('Get user by email error:', error);
+    throw error;
+  }
+};
+
 // Update user profile
 export const updateUserProfile = async (userId, profileData) => {
   try {
@@ -158,11 +213,28 @@ export const updateUserProfile = async (userId, profileData) => {
 // Update user password
 export const updateUserPassword = async (userId, passwordData) => {
   try {
+    console.log(`Sending password update request to: /users/${userId}/password`);
+    
     const response = await api.put(`/users/${userId}/password`, passwordData);
-    return response.data;
+    
+    // Başarılı cevap döndüyse
+    if (response.data) {
+      console.log("Password update successful:", response.data);
+      return response.data;
+    }
+    
+    return { message: "Password updated successfully" };
   } catch (error) {
     console.error('Update password service error:', error);
-    throw error;
+    
+    // Spesifik hata durumlarını kontrol et
+    if (error.status === 400 || 
+        (error.message && error.message.toLowerCase().includes("password"))) {
+      throw new Error("Old password is incorrect");
+    }
+    
+    // Diğer hataları işle
+    throw error.message ? error : new Error("Failed to update password");
   }
 };
 

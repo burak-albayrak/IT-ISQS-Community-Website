@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, updateUserPassword, getUserProfile, updateUserProfile } from '../services/authService';
+import { getCurrentUser, updateUserPassword, getUserProfile, updateUserProfile, getUserByEmail } from '../services/authService';
 import styled from 'styled-components';
 import { FaEdit, FaEnvelope, FaUniversity, FaGlobe, FaUserTag, FaBirthdayCake, FaUser, FaSave, FaTimes } from 'react-icons/fa';
 import defaultLogo from '../assets/jenny.png';
@@ -313,6 +313,37 @@ const SaveButton = styled.button`
   }
 `;
 
+// Yükleme animasyonu için stiller
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh;
+  padding: 40px;
+`;
+
+const Spinner = styled.div`
+  width: 50px;
+  height: 50px;
+  border: 4px solid #E4E7EC;
+  border-top: 4px solid #223A70;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const LoadingText = styled.div`
+  font-size: 16px;
+  color: #667085;
+  margin-top: 16px;
+`;
+
 const Profile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('about');
@@ -338,18 +369,6 @@ const Profile = () => {
     confirmPassword: ''
   });
 
-  const mockUser = {
-    firstName: 'Jenny',
-    lastName: 'Wilson',
-    email: 'jennywilson@example.com',
-    institution: 'Example University',
-    country: 'England',
-    role: 'Student',
-    age: 24,
-    gender: 'Female',
-    avatarUrl: 'https://via.placeholder.com/200'
-  };
-
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -360,64 +379,118 @@ const Profile = () => {
         }
         
         try {
-          if (currentUser.id) {
-            const userProfileData = await getUserProfile(currentUser.id);
-            if (userProfileData) {
-              const userData = {
-                ...userProfileData,
-                avatarUrl: userProfileData.avatarUrl || defaultLogo
-              };
-              setUser(userData);
-              setEditData({
-                firstName: userData.firstName || '',
-                lastName: userData.lastName || '',
-                email: userData.email || '',
-                institution: userData.institution || '',
-                country: userData.country || '',
-                role: userData.role || '',
-                age: userData.age?.toString() || '',
-                gender: userData.gender || ''
+          const userId = currentUser.userID || currentUser.id;
+          console.log("Current user from localStorage:", currentUser);
+          console.log("Extracted user ID:", userId);
+          
+          if (userId) {
+            try {
+              const userProfileData = await getUserProfile(userId);
+              console.log("API response - user profile data:", userProfileData);
+              
+              if (userProfileData) {
+                const userData = {
+                  ...currentUser,
+                  ...userProfileData,
+                  id: userId
+                };
+                
+                console.log("Final user data after merging:", userData);
+                
+                setUser(userData);
+                setEditData({
+                  firstName: userData.firstName || '',
+                  lastName: userData.lastName || '',
+                  email: userData.email || '',
+                  institution: userData.institution || '',
+                  country: userData.country || '',
+                  role: userData.role || '',
+                  age: userData.age?.toString() || '',
+                  gender: userData.gender || ''
+                });
+                
+                localStorage.setItem('user', JSON.stringify(userData));
+                
+                setLoading(false);
+                return;
+              }
+            } catch (idError) {
+              console.error('Error fetching user profile by ID:', idError);
+            }
+          }
+          
+          if (currentUser.email) {
+            try {
+              const userByEmail = await getUserByEmail(currentUser.email);
+              console.log("API response - user by email:", userByEmail);
+              
+              if (userByEmail) {
+                const userData = {
+                  ...currentUser,
+                  ...userByEmail,
+                  id: userByEmail.userID,
+                  userID: userByEmail.userID 
+                };
+                
+                console.log("Final user data after merging with email data:", userData);
+                
+                setUser(userData);
+                setEditData({
+                  firstName: userData.firstName || '',
+                  lastName: userData.lastName || '',
+                  email: userData.email || '',
+                  institution: userData.institution || '',
+                  country: userData.country || '',
+                  role: userData.role || '',
+                  age: userData.age?.toString() || '',
+                  gender: userData.gender || ''
+                });
+                
+                localStorage.setItem('user', JSON.stringify(userData));
+                
+                setLoading(false);
+                return;
+              }
+            } catch (emailError) {
+              console.error('Error fetching user profile by email:', emailError);
+              setMessage({
+                text: 'Profil bilgileri yüklenemedi. Lütfen çıkış yapıp tekrar giriş yapın.',
+                error: true
               });
-              setLoading(false);
-              return;
             }
           }
         } catch (error) {
           console.error('Error fetching user profile from API:', error);
+          setMessage({
+            text: 'Profil bilgileri yüklenemedi. Lütfen çıkış yapıp tekrar giriş yapın.',
+            error: true
+          });
         }
         
-        const userData = {
-          ...mockUser,
-          ...currentUser,
-          avatarUrl: currentUser.avatarUrl || defaultLogo
-        };
-        setUser(userData);
-        setEditData({
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
-          email: userData.email || '',
-          institution: userData.institution || '',
-          country: userData.country || '',
-          role: userData.role || '',
-          age: userData.age?.toString() || '',
-          gender: userData.gender || ''
-        });
+        if (currentUser) {
+          setUser(currentUser);
+          setEditData({
+            firstName: currentUser.firstName || '',
+            lastName: currentUser.lastName || '',
+            email: currentUser.email || '',
+            institution: currentUser.institution || '',
+            country: currentUser.country || '',
+            role: currentUser.role || '',
+            age: currentUser.age?.toString() || '',
+            gender: currentUser.gender || ''
+          });
+        } else {
+          setMessage({
+            text: 'Oturum bilgileriniz bulunamadı. Lütfen tekrar giriş yapın.',
+            error: true
+          });
+          setTimeout(() => navigate('/login'), 2000);
+        }
       } catch (error) {
         console.error('Error in profile component:', error);
-        const userData = {
-          ...mockUser,
-          avatarUrl: defaultLogo
-        };
-        setUser(userData);
-        setEditData({
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
-          email: userData.email || '',
-          institution: userData.institution || '',
-          country: userData.country || '',
-          role: userData.role || '',
-          age: userData.age?.toString() || '',
-          gender: userData.gender || ''
+        setMessage({
+          text: 'Bir hata oluştu. Lütfen çıkış yapıp tekrar giriş yapın.',
+          error: true
         });
       } finally {
         setLoading(false);
@@ -437,22 +510,31 @@ const Profile = () => {
     setMessage({ text: '', error: false });
     
     try {
-      if (!user.id) {
+      const userId = user.userID || user.id;
+      
+      if (!userId) {
         throw new Error('User ID is missing. Please log in again.');
       }
       
       const updatedProfile = {
-        ...editData,
+        firstName: editData.firstName,
+        lastName: editData.lastName,
+        institution: editData.institution,
+        country: editData.country,
+        role: editData.role?.toUpperCase(),
         age: editData.age ? parseInt(editData.age) : null,
+        gender: editData.gender?.toUpperCase()
       };
       
-      delete updatedProfile.email;
+      console.log("Sending profile update data:", updatedProfile);
       
-      await updateUserProfile(user.id, updatedProfile);
+      await updateUserProfile(userId, updatedProfile);
       
       setUser(prevUser => ({
         ...prevUser,
-        ...updatedProfile
+        ...updatedProfile,
+        role: editData.role, 
+        gender: editData.gender
       }));
       
       setMessage({
@@ -462,6 +544,7 @@ const Profile = () => {
       
       setEditMode(false);
     } catch (error) {
+      console.error("Profile update error:", error);
       setMessage({
         text: error.message || 'Failed to update profile. Please try again.',
         error: true
@@ -481,6 +564,7 @@ const Profile = () => {
     setLoading(true);
     setMessage({ text: '', error: false });
     
+    // Confirm password validation
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setMessage({
         text: 'New passwords do not match!',
@@ -490,15 +574,53 @@ const Profile = () => {
       return;
     }
     
+    // Password strength validation
+    if (passwordForm.newPassword.length < 8) {
+      setMessage({
+        text: 'New password must be at least 8 characters long',
+        error: true
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // Check if password contains at least one uppercase, one lowercase and one number
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+    if (!passwordRegex.test(passwordForm.newPassword)) {
+      setMessage({
+        text: 'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+        error: true
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // Check if new password is same as old password
+    if (passwordForm.oldPassword === passwordForm.newPassword) {
+      setMessage({
+        text: 'New password cannot be the same as the current password',
+        error: true
+      });
+      setLoading(false);
+      return;
+    }
+    
     try {
-      if (!user.id) {
+      // Use userID or id - consistent with profile update
+      const userId = user.userID || user.id;
+      
+      if (!userId) {
         throw new Error('User ID is missing. Please log in again.');
       }
       
-      await updateUserPassword(user.id, {
+      console.log("Sending password update request for user ID:", userId);
+      
+      const response = await updateUserPassword(userId, {
         oldPassword: passwordForm.oldPassword,
         newPassword: passwordForm.newPassword
       });
+      
+      console.log("Password update response:", response);
       
       setMessage({
         text: 'Password updated successfully!',
@@ -511,17 +633,31 @@ const Profile = () => {
         confirmPassword: ''
       });
     } catch (error) {
-      setMessage({
-        text: error.message || 'Failed to update password. Please try again.',
-        error: true
-      });
+      console.error("Password update error:", error);
+      
+      // Handle specific error cases
+      if (error.message && error.message.includes("incorrect")) {
+        setMessage({
+          text: 'Current password is incorrect',
+          error: true
+        });
+      } else {
+        setMessage({
+          text: error.message || 'Failed to update password. Please try again.',
+          error: true
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <div>Loading user information...</div>;
+    return (
+      <LoadingContainer>
+        <Spinner />
+      </LoadingContainer>
+    );
   }
 
   const toggleEditMode = () => {
@@ -564,22 +700,72 @@ const Profile = () => {
     "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
   ];
 
-  const roles = ["Student", "Professor", "Researcher", "Professional", "Other"];
+  const roles = ["STUDENT", "ACADEMIC", "INDUSTRY_PROFESSIONAL", "OTHER"];
+  
+  const formatRole = (role) => {
+    if (!role) return "";
+    
+    switch(role) {
+      case "STUDENT": return "Student";
+      case "ACADEMIC": return "Academic";
+      case "INDUSTRY_PROFESSIONAL": return "Industry Professional";
+      case "OTHER": return "Other";
+      default: 
+        if (role === role.toUpperCase()) {
+          return role.charAt(0) + role.slice(1).toLowerCase().replace(/_/g, ' ');
+        }
+        return role;
+    }
+  };
+  
+  const genders = ["MALE", "FEMALE", "OTHER"];
+  
+  const formatGender = (gender) => {
+    if (!gender) return "";
+    
+    switch(gender) {
+      case "MALE": return "Male";
+      case "FEMALE": return "Female";
+      case "OTHER": return "Other";
+      default: 
+        if (gender === gender.toUpperCase()) {
+          return gender.charAt(0) + gender.slice(1).toLowerCase();
+        }
+        return gender;
+    }
+  };
+
+  // Ülke adı formatlaması
+  const formatCountry = (country) => {
+    if (!country) return "";
+    
+    // Tüm ülkelerin listesinde varsa doğru yazılışını kullan
+    const foundCountry = countries.find(c => 
+      c.toLowerCase() === country.toLowerCase()
+    );
+    
+    if (foundCountry) return foundCountry;
+    
+    // Listede yoksa ilk harfi büyük yap
+    return country.charAt(0).toUpperCase() + country.slice(1).toLowerCase();
+  };
 
   return (
     <ProfileContainer>
       <ProfileLeft>
         <UserAvatar>
           <img 
-            src={user?.avatarUrl || '/logo192.png'} 
-            alt={`${user?.firstName} ${user?.lastName}`} 
+            src={user?.avatarUrl || defaultLogo} 
+            alt={`${user?.firstName || ''} ${user?.lastName || ''} Profile`}
             onError={(e) => {
               e.target.onerror = null; 
-              e.target.src = '/logo192.png';
+              e.target.src = defaultLogo;
             }}
           />
         </UserAvatar>
-        <UserName>{user.firstName ? `${user.firstName} ${user.lastName}` : 'Jenny Wilson'}</UserName>
+        <UserName>
+          {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.email || 'Kullanıcı'}
+        </UserName>
       </ProfileLeft>
       
       <ProfileRight>
@@ -616,7 +802,7 @@ const Profile = () => {
               <InfoSection>
                 <InfoRow>
                   <InfoLabel><FaEnvelope /> E-mail:</InfoLabel>
-                  <InfoValue>{user?.email}</InfoValue>
+                  <InfoValue>{user?.email || <span style={{color: '#999', fontStyle: 'italic'}}>Not specified</span>}</InfoValue>
                 </InfoRow>
                 <InfoRow>
                   <InfoLabel><FaUniversity /> Institution:</InfoLabel>
@@ -628,7 +814,7 @@ const Profile = () => {
                       onChange={handleEditChange}
                     />
                   ) : (
-                    <InfoValue>{user?.institution}</InfoValue>
+                    <InfoValue>{user?.institution || <span style={{color: '#999', fontStyle: 'italic'}}>Not specified</span>}</InfoValue>
                   )}
                 </InfoRow>
                 <InfoRow>
@@ -647,7 +833,13 @@ const Profile = () => {
                       ))}
                     </EditSelect>
                   ) : (
-                    <InfoValue>{user?.country}</InfoValue>
+                    <InfoValue>
+                      {user?.country ? 
+                        (typeof user.country === 'string' ? 
+                          formatCountry(user.country) : 
+                          user.country) : 
+                        <span style={{color: '#999', fontStyle: 'italic'}}>Not specified</span>}
+                    </InfoValue>
                   )}
                 </InfoRow>
                 <InfoRow>
@@ -661,12 +853,18 @@ const Profile = () => {
                       <option value="">Select Role</option>
                       {roles.map((role, index) => (
                         <option key={index} value={role}>
-                          {role}
+                          {formatRole(role)}
                         </option>
                       ))}
                     </EditSelect>
                   ) : (
-                    <InfoValue>{user?.role}</InfoValue>
+                    <InfoValue>
+                      {user?.role ? 
+                        (typeof user.role === 'string' ? 
+                          formatRole(user.role) : 
+                          user.role) : 
+                        <span style={{color: '#999', fontStyle: 'italic'}}>Not specified</span>}
+                    </InfoValue>
                   )}
                 </InfoRow>
                 <InfoRow>
@@ -681,7 +879,7 @@ const Profile = () => {
                       onChange={handleEditChange}
                     />
                   ) : (
-                    <InfoValue>{user?.age}</InfoValue>
+                    <InfoValue>{user?.age !== null && user?.age !== undefined ? user.age : <span style={{color: '#999', fontStyle: 'italic'}}>Not specified</span>}</InfoValue>
                   )}
                 </InfoRow>
                 <InfoRow>
@@ -693,13 +891,18 @@ const Profile = () => {
                       onChange={handleEditChange}
                     >
                       <option value="">Select Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
+                      {genders.map((gender, index) => (
+                        <option key={index} value={gender}>
+                          {formatGender(gender)}
+                        </option>
+                      ))}
                     </EditSelect>
                   ) : (
-                    <InfoValue>{user?.gender}</InfoValue>
+                    <InfoValue>{user?.gender ? 
+                      (typeof user.gender === 'string' ? 
+                        formatGender(user.gender) : 
+                        user.gender) : 
+                      <span style={{color: '#999', fontStyle: 'italic'}}>Not specified</span>}</InfoValue>
                   )}
                 </InfoRow>
               </InfoSection>
@@ -729,6 +932,8 @@ const Profile = () => {
                   onChange={handlePasswordChange}
                   required
                   placeholder="Current Password"
+                  minLength="8"
+                  maxLength="64"
                 />
               </FormGroup>
               
@@ -742,6 +947,10 @@ const Profile = () => {
                   onChange={handlePasswordChange}
                   required
                   placeholder="New Password"
+                  minLength="8"
+                  maxLength="64"
+                  title="Must contain at least one number, one uppercase and lowercase letter, and at least 8 characters"
+                  pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
                 />
               </FormGroup>
               
@@ -755,11 +964,26 @@ const Profile = () => {
                   onChange={handlePasswordChange}
                   required
                   placeholder="Confirm New Password"
+                  minLength="8"
+                  maxLength="64"
                 />
+                {passwordForm.confirmPassword && passwordForm.newPassword && 
+                  passwordForm.confirmPassword !== passwordForm.newPassword && (
+                  <small style={{ color: '#c62828', fontSize: '12px', marginTop: '5px' }}>
+                    Passwords do not match
+                  </small>
+                )}
               </FormGroup>
               
-              <Button type="submit" disabled={loading}>
-                Done
+              <Button 
+                type="submit" 
+                disabled={
+                  loading || 
+                  (passwordForm.confirmPassword && passwordForm.newPassword && 
+                  passwordForm.confirmPassword !== passwordForm.newPassword)
+                }
+              >
+                {loading ? 'Processing...' : 'Change Password'}
               </Button>
             </Form>
           )}

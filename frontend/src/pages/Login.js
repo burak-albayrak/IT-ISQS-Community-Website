@@ -7,7 +7,7 @@ import mailIcon from '../assets/mail.png'; // Mail ikonunu import ediyoruz
 import tikIcon from '../assets/tik.png'; // Tik ikonunu import ediyoruz
 import personIcon from '../assets/person.png'; // Person ikonunu import ediyoruz
 import lockIcon from '../assets/lock.png'; // Lock ikonunu import ediyoruz
-import { login, register } from '../services/authService';
+import { login, register, getUserByEmail } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
 
 // Formda yan yana koyacağımız girdi alanları için stil ekleyelim
@@ -138,11 +138,15 @@ const Login = () => {
             const response = await login(loginData);
             console.log('Login successful:', response);
             
-            // AuthContext'i güncelleme
-            authLogin(response.user);
-            
-            // Başarılı giriş sonrası yönlendirme
-            navigate('/');
+            if (response.user) {
+                // Kullanıcı bilgilerini AuthContext'e aktar
+                authLogin(response.user);
+                
+                // Başarılı giriş sonrası yönlendirme
+                navigate('/');
+            } else {
+                throw new Error('Login response did not contain user data');
+            }
         } catch (err) {
             console.error('Login error:', err);
             if (err.message) {
