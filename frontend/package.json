@@ -4,10 +4,17 @@
   "private": true,
   "dependencies": {
     "@floating-ui/react": "^0.27.6",
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.2",
     "axios": "^1.8.4",
     "d3-geo": "^3.1.1",
     "is-regex": "^1.2.1",
@@ -21,6 +28,7 @@
     "react-simple-maps": "^3.0.0",
     "react-tooltip": "^5.28.0",
     "styled-components": "^6.1.16",
+    "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -48,6 +56,8 @@
     ]
   },
   "devDependencies": {
-    "css-minimizer-webpack-plugin": "^7.0.2"
+    "css-minimizer-webpack-plugin": "^7.0.2",
+    "fork-ts-checker-webpack-plugin": "^6.5.3",
+    "schema-utils": "^4.3.0"
   }
 }

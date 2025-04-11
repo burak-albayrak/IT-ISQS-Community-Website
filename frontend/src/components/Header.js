@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import newLogo from '../assets/logo.png'; // New main logo
 import euLogo from '../assets/eu-logo.png'; // EU logo with text
-import { FiLogOut } from 'react-icons/fi'; // Geçici log out iconu
-import { BiWorld } from 'react-icons/bi'; // Google Translate benzeri icon
+import { FiLogOut, FiUser } from 'react-icons/fi'; // Log out ve profil iconları
+import { SiGoogletranslate } from 'react-icons/si'; // Google Translate ikonu
 import { useAuth } from '../contexts/AuthContext';
 
 import '../styles/Header.css';
@@ -15,6 +15,7 @@ const Header = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const navRef = useRef(null);
   const indicatorRef = useRef(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const routes = [
     { path: '/', label: 'HOME' },
@@ -26,14 +27,27 @@ const Header = () => {
     { path: '/contact', label: 'CONTACT US' },
   ];
 
+  const isActive = (path) => {
+    if (path === '/blog') {
+      return location.pathname === '/blog' || location.pathname.startsWith('/blog/');
+    }
+    return location.pathname === path;
+  };
+
   useEffect(() => {
     // Don't set active index for profile pages
     if (location.pathname === '/profile' || location.pathname === '/edit-profile') {
       // Hide the indicator or set to a non-existent index
       setActiveIndex(-1);
     } else {
-      const currentIndex = routes.findIndex(route => route.path === location.pathname);
-      setActiveIndex(currentIndex >= 0 ? currentIndex : 0);
+      // Blog sayfaları için özel kontrol
+      if (location.pathname.startsWith('/blog')) {
+        const blogIndex = routes.findIndex(route => route.path === '/blog');
+        setActiveIndex(blogIndex);
+      } else {
+        const currentIndex = routes.findIndex(route => route.path === location.pathname);
+        setActiveIndex(currentIndex >= 0 ? currentIndex : 0);
+      }
     }
   }, [location]);
 
@@ -100,7 +114,12 @@ const Header = () => {
               <li key={route.path}>
                 <NavLink 
                   to={route.path} 
-                  className={({ isActive }) => isActive && !isProfilePage ? "active" : ""}
+                  className={({ isActive }) => {
+                    if (route.path === '/blog') {
+                      return (location.pathname === '/blog' || location.pathname.startsWith('/blog/')) && !isProfilePage ? "active" : "";
+                    }
+                    return isActive && !isProfilePage ? "active" : "";
+                  }}
                 >
                   {route.label}
                 </NavLink>
@@ -112,13 +131,15 @@ const Header = () => {
 
         <div className="right-section">
           <div className="auth-buttons">
-            <button className="language-btn" title="Change Language">
-              <BiWorld size={26} color="#555" />
+            <button className="language-btn" title="Translate">
+              <SiGoogletranslate size={24} color="#555" />
             </button>
             
             {isAuthenticated ? (
               <>
-                <Link to="/profile" className={`contact-btn ${isProfilePage ? 'profile-btn-active' : ''}`}>PROFILE</Link>
+                <Link to="/profile" className={`profile-btn ${isProfilePage ? 'profile-btn-active' : ''}`} title="Profile">
+                  <FiUser size={24} />
+                </Link>
                 <button onClick={handleLogout} className="logout-btn" title="Log Out">
                   <FiLogOut size={24} />
                 </button>

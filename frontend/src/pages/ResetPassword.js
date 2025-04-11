@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
-import newpasswordImg from '../assets/mailman.png';
+import newpasswordImg from '../assets/newpassword.png';
 import { resetPassword, verifyResetCode, resendResetCode } from '../services/authService';
 
 // Styled components
@@ -34,7 +34,7 @@ const IllustrationContainer = styled.div`
 `;
 
 const Illustration = styled.img`
-  max-width: 100%;
+  max-width: 90%;
   height: auto;
 `;
 

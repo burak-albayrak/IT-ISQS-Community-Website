@@ -100,23 +100,24 @@
 }
 
 .language-btn {
-  background: none;
-  border: 2px solid #aaa;
-  border-radius: 6px;
-  padding: 0.5rem;
+  background: white;
+  border: 1px solid #d0d0d0;
+  border-radius: 50%;
+  padding: 0.7rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.3s, transform 0.2s, background-color 0.3s;
-  width: 45px;
-  height: 45px;
+  transition: border-color 0.3s, transform 0.2s, box-shadow 0.2s;
+  width: 46px;
+  height: 46px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .language-btn:hover {
   border-color: #777;
   transform: scale(1.05);
-  background-color: #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .contact-btn {
@@ -177,12 +178,28 @@
   background: linear-gradient(to right, #2a4b8d, #3a5ca0, #4b6db3);
 }
 
+.profile-btn {
+  background: linear-gradient(to right, #1e3c7a, #2a4b8d, #3a5ca0);
+  color: white;
+  padding: 0.6rem;
+  border-radius: 50%;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.profile-btn:hover {
+  background: linear-gradient(to right, #18325e, #1a3a7d, #2a4c8f);
+  transform: scale(1.1);
+}
+
 .profile-btn-active {
   animation: glow 1.5s ease-in-out infinite alternate;
   box-shadow: 0 0 10px rgba(0, 86, 179, 0.7);
   transform: scale(1.05);
   background: linear-gradient(to right, #2a4b8d, #3a5ca0, #4b6db3);
-  font-weight: 700;
 }
 
 @keyframes glow {
