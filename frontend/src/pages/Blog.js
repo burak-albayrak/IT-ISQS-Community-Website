@@ -1,9 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { FiSearch, FiArrowRight } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from 'react';
+import styled, { createGlobalStyle } from 'styled-components';
+import { FiSearch, FiArrowRight, FiFilter, FiChevronDown } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Blog.css';
 import BlogService from '../services/BlogService';
+import axios from 'axios';
+import defaultBlogImage from '../assets/defaultblog.png';
+import blogBannerLogo from '../assets/blog-banner.png';
+
+// Global stil ekleyerek, tüm sayfa için geçerli olacak stilleri tanımlayalım
+const GlobalStyle = createGlobalStyle`
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    width: 100%;
+  }
+`;
 
 const Blog = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,126 +28,112 @@ const Blog = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [error, setError] = useState(null);
+  const [sortOption, setSortOption] = useState('newest');
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const sortRef = useRef(null);
   const navigate = useNavigate();
 
   // Blog verileri için sayfa yüklendiğinde çalışacak efekt
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
-        // Kategorileri getir
-        const categoriesResponse = await BlogService.getAllCategories();
-        setCategories(categoriesResponse.data);
-
-        // Son eklenen blogları getir
-        const recentResponse = await BlogService.getRecentBlogs();
-        setRecentBlogPosts(recentResponse.data);
-
-        // Tüm blogları getir (sayfalı)
-        const allBlogsResponse = await BlogService.getAllBlogs(currentPage);
-        setAllBlogPosts(allBlogsResponse.data.content);
-        setTotalPages(allBlogsResponse.data.totalPages);
+        // Fix duplicate /api/ path issue 
+        const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+        
+        if (response && response.data) {
+          // If backend data is returned
+          const blogs = response.data;
+          
+          if (blogs.length > 0) {
+            // Sort blogs by createdAt date (newest first)
+            const sortedBlogs = [...blogs].sort((a, b) => {
+              const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+              const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+              return dateB - dateA; // Newest first
+            });
+            
+            // Take most recent 3 blogs for the featured section
+            const recentBlogs = sortedBlogs.slice(0, 3).map(blog => ({
+              id: blog.blogID,
+              title: blog.title,
+              summary: blog.description.substring(0, 150) + '...',
+              categories: [blog.category || 'Uncategorized'],
+              date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+              author: blog.owner || blog.createdBy || 'Anonymous',
+              imageUrl: blog.media || '' // Boş string bırak, null ise varsayılan resim kullanılacak
+            }));
+            setRecentBlogPosts(recentBlogs);
+            
+            // Format all blogs for display
+            const formattedBlogs = sortedBlogs.map(blog => ({
+              id: blog.blogID,
+              title: blog.title,
+              summary: blog.description.substring(0, 150) + '...',
+              categories: [blog.category || 'Uncategorized'],
+              date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+              author: blog.owner || blog.createdBy || 'Anonymous',
+              imageUrl: blog.media || '' // Boş string bırak, null ise varsayılan resim kullanılacak
+            }));
+            
+            setAllBlogPosts(formattedBlogs);
+            
+            // Extract categories from blogs
+            const uniqueCategories = [...new Set(blogs
+              .map(blog => blog.category)
+              .filter(category => category)
+            )];
+            
+            if (uniqueCategories.length > 0) {
+              setCategories(uniqueCategories);
+            } else {
+              setCategories(['Uncategorized']);
+            }
+            
+            // Set pagination
+            setTotalPages(Math.ceil(blogs.length / 10));
+          } else {
+            // No blogs found
+            setError("Henüz blog yazısı bulunmamaktadır.");
+            setRecentBlogPosts([]);
+            setAllBlogPosts([]);
+            setCategories(['Uncategorized']);
+            setTotalPages(0);
+          }
+        } else {
+          throw new Error('Invalid response format');
+        }
         
         setLoading(false);
       } catch (err) {
         console.error("Blog verilerini getirirken hata oluştu:", err);
         setError("Blog verileri yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+        setRecentBlogPosts([]);
+        setAllBlogPosts([]);
+        setCategories(['Uncategorized']);
+        setTotalPages(0);
         setLoading(false);
-
-        // Şu anda mock verilerle devam et (backend hazır olmadığında)
-        setRecentBlogPosts([
-          {
-            id: 1,
-            title: 'UX review presentations',
-            summary: 'How do you create compelling presentations that wow your colleagues and impress your managers?',
-            author: 'Olivia Rhye',
-            date: '1 Jan 2023',
-            categories: ['Design', 'Research', 'Presentation'],
-            imageUrl: '/images/blog/empty-office.jpg'
-          },
-          {
-            id: 2,
-            title: 'Migrating to Linear 101',
-            summary: 'Linear helps streamline software projects, sprints, tasks, and bug tracking. Here\'s how to get started.',
-            author: 'Phoenix Baker',
-            date: '1 Jan 2023',
-            categories: ['Design', 'Research'],
-            imageUrl: '/images/blog/team-meeting.jpg'
-          },
-          {
-            id: 3,
-            title: 'Building your API Stack',
-            summary: 'The rise of RESTful APIs has been met by a rise in tools for creating, testing, and managing...',
-            author: 'Lana Steiner',
-            date: '1 Jan 2023',
-            categories: ['Design', 'Research'],
-            imageUrl: '/images/blog/desk-setup.jpg'
-          }
-        ]);
-
-        setAllBlogPosts([
-          {
-            id: 4,
-            title: 'Bill Walsh leadership lessons',
-            summary: 'Like to know the secrets of transforming a 2-14 team into a 3x Super Bowl winning Dynasty?',
-            author: 'Alec Whitten',
-            date: '1 Jan 2023',
-            categories: ['Leadership', 'Management'],
-            imageUrl: '/images/blog/mountain.jpg'
-          },
-          {
-            id: 5,
-            title: 'PM mental models',
-            summary: 'Mental models are simple expressions of complex processes or relationships.',
-            author: 'Demi Wilkinson',
-            date: '1 Jan 2023',
-            categories: ['Product', 'Research', 'Frameworks'],
-            imageUrl: '/images/blog/brainstorming.jpg'
-          },
-          {
-            id: 6,
-            title: 'What is Wireframing?',
-            summary: 'Introduction to Wireframing and its Principles. Learn from the best in the industry.',
-            author: 'Candice Wu',
-            date: '1 Jan 2023',
-            categories: ['Design', 'Research'],
-            imageUrl: '/images/blog/desk-setup-2.jpg'
-          },
-          {
-            id: 7,
-            title: 'How collaboration makes us better designers',
-            summary: 'Collaboration can make our teams stronger, and our individual designs better.',
-            author: 'Natali Craig',
-            date: '1 Jan 2023',
-            categories: ['Design', 'Research'],
-            imageUrl: '/images/blog/whiteboard.jpg'
-          },
-          {
-            id: 8,
-            title: 'Our top 10 Javascript frameworks to use',
-            summary: 'JavaScript frameworks make development easy with extensive features and functionalities.',
-            author: 'Drew Cano',
-            date: '1 Jan 2023',
-            categories: ['Software Development', 'Tools', 'SaaS'],
-            imageUrl: '/images/blog/laptop-work.jpg'
-          },
-          {
-            id: 9,
-            title: 'Podcast: Creating a better CX Community',
-            summary: 'Starting a community doesn\'t need to be complicated, but how do you get started?',
-            author: 'Orlando Diggs',
-            date: '1 Jan 2023',
-            categories: ['Podcasts', 'Customer Success'],
-            imageUrl: '/images/blog/laptop-bed.jpg'
-          }
-        ]);
-        
-        setCategories(['Design', 'Research', 'Product', 'Development', 'Leadership']);
       }
     };
 
     fetchData();
   }, [currentPage]);
+
+  // Dropdown dışına tıklayınca kapanmasını sağlayan effect
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (sortRef.current && !sortRef.current.contains(event.target)) {
+        setShowSortDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [sortRef]);
 
   // Sayfa değiştiğinde çalışacak fonksiyon
   const handlePageChange = (newPage) => {
@@ -146,9 +145,46 @@ const Blog = () => {
     if (!searchQuery.trim()) return;
 
     try {
-      const response = await BlogService.searchBlogs(searchQuery);
-      setAllBlogPosts(response.data.content);
-      setTotalPages(response.data.totalPages);
+      // Get all blogs from the database and filter them on the client side
+      const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+      
+      if (response && response.data) {
+        const blogs = response.data;
+        
+        // Filter blogs by search query
+        const filteredBlogs = blogs.filter(blog => {
+          const searchLower = searchQuery.toLowerCase();
+          return (
+            (blog.title && blog.title.toLowerCase().includes(searchLower)) ||
+            (blog.description && blog.description.toLowerCase().includes(searchLower)) ||
+            (blog.category && blog.category.toLowerCase().includes(searchLower)) ||
+            (blog.owner && blog.owner.toLowerCase().includes(searchLower)) ||
+            (blog.createdBy && blog.createdBy.toLowerCase().includes(searchLower))
+          );
+        });
+        
+        if (filteredBlogs.length === 0) {
+          setError("Arama sonucunda blog bulunamadı.");
+        } else {
+          setError(null);
+        }
+        
+        // Format the filtered blogs
+        const formattedBlogs = filteredBlogs.map(blog => ({
+          id: blog.blogID,
+          title: blog.title,
+          summary: blog.description.substring(0, 150) + '...',
+          categories: [blog.category || 'Uncategorized'],
+          date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+          author: blog.owner || blog.createdBy || 'Anonymous',
+          imageUrl: blog.media
+        }));
+        
+        setAllBlogPosts(formattedBlogs);
+        setTotalPages(Math.ceil(formattedBlogs.length / 10));
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (err) {
       console.error("Blog araması yaparken hata oluştu:", err);
       setError("Arama sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
@@ -162,22 +198,69 @@ const Blog = () => {
     if (!category) {
       // Kategori seçilmemişse, tüm blogları göster
       try {
-        const response = await BlogService.getAllBlogs(0);
-        setAllBlogPosts(response.data.content);
-        setTotalPages(response.data.totalPages);
+        const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+        
+        if (response && response.data) {
+          const blogs = response.data;
+          
+          // Format all blogs for display
+          const formattedBlogs = blogs.map(blog => ({
+            id: blog.blogID,
+            title: blog.title,
+            summary: blog.description.substring(0, 150) + '...',
+            categories: [blog.category || 'Uncategorized'],
+            date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+            author: blog.owner || blog.createdBy || 'Anonymous',
+            imageUrl: blog.media
+          }));
+          
+          setAllBlogPosts(formattedBlogs);
+          setTotalPages(Math.ceil(formattedBlogs.length / 10));
         setCurrentPage(0);
+          setError(null);
+        }
       } catch (err) {
         console.error("Blogları getirirken hata oluştu:", err);
+        setError("Blogları getirirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
       }
       return;
     }
 
-    // Seçilen kategoriye göre blogları getir
+    // Seçilen kategoriye göre blogları client-side'da filtrele
     try {
-      const response = await BlogService.getBlogsByCategory(category, 0);
-      setAllBlogPosts(response.data.content);
-      setTotalPages(response.data.totalPages);
+      const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+      
+      if (response && response.data) {
+        const blogs = response.data;
+        
+        // Filter blogs by category
+        const filteredBlogs = blogs.filter(blog => 
+          blog.category && blog.category.toLowerCase() === category.toLowerCase()
+        );
+        
+        if (filteredBlogs.length === 0) {
+          setError(`"${category}" kategorisinde blog bulunamadı.`);
+        } else {
+          setError(null);
+        }
+        
+        // Format the filtered blogs
+        const formattedBlogs = filteredBlogs.map(blog => ({
+          id: blog.blogID,
+          title: blog.title,
+          summary: blog.description.substring(0, 150) + '...',
+          categories: [blog.category || 'Uncategorized'],
+          date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+          author: blog.owner || blog.createdBy || 'Anonymous',
+          imageUrl: blog.media
+        }));
+        
+        setAllBlogPosts(formattedBlogs);
+        setTotalPages(Math.ceil(formattedBlogs.length / 10));
       setCurrentPage(0);
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (err) {
       console.error("Kategori filtrelemesi yaparken hata oluştu:", err);
       setError("Kategori filtrelemesi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
@@ -205,14 +288,40 @@ const Blog = () => {
       return `data:image/${blog.imageType || 'jpeg'};base64,${blog.imageData}`;
     }
 
-    // Varsayılan görsel
-    return '/images/blog/default-blog-image.jpg';
+    // Varsayılan görsel - assets klasöründeki defaultblog.png
+    return defaultBlogImage;
+  };
+
+  // Sıralama seçeneği değiştiğinde çalışacak fonksiyon
+  const handleSortChange = (option) => {
+    setSortOption(option);
+    setShowSortDropdown(false);
+    
+    // Mevcut blogları sıralama seçeneğine göre sırala
+    const sortedBlogs = [...allBlogPosts].sort((a, b) => {
+      switch (option) {
+        case 'newest':
+          return new Date(b.date) - new Date(a.date);
+        case 'oldest':
+          return new Date(a.date) - new Date(b.date);
+        case 'a-z':
+          return a.title.localeCompare(b.title);
+        case 'z-a':
+          return b.title.localeCompare(a.title);
+        default:
+          return 0;
+      }
+    });
+    
+    setAllBlogPosts(sortedBlogs);
   };
 
   if (loading) {
     return (
       <BlogContainer>
-        <Loading>Yükleniyor...</Loading>
+        <LoadingContainer>
+          <Spinner />
+        </LoadingContainer>
       </BlogContainer>
     );
   }
@@ -226,27 +335,66 @@ const Blog = () => {
   }
 
   return (
+    <>
+      <GlobalStyle />
+      <FullWidthBanner>
     <BlogContainer>
-      <Banner>
-        <BannerContent>
           <BannerTitle>Shaping the Future: Research and Industry Perspectives</BannerTitle>
-          <BannerImage className="banner-image" src="/images/blog/glasses.png" alt="Blog Banner" />
-        </BannerContent>
-      </Banner>
+        </BlogContainer>
+      </FullWidthBanner>
 
+      <BlogContainer style={{ marginTop: "30px" }}>
       <SearchSection>
-        <SearchForm onSubmit={handleSearch}>
+          <SearchFormContainer onSubmit={handleSearch}>
+            <SearchIcon>
+              <FiSearch />
+            </SearchIcon>
           <SearchInput 
             type="text" 
             placeholder="Search in Blogs" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <SearchIcon>
-            <FiSearch />
-          </SearchIcon>
-        </SearchForm>
-        <Separator>|</Separator>
+          </SearchFormContainer>
+          
+          <SortButtonContainer ref={sortRef}>
+            <SortButton onClick={() => setShowSortDropdown(!showSortDropdown)}>
+              <FiFilter />
+              <span>Sort</span>
+              <FiChevronDown />
+            </SortButton>
+            
+            {showSortDropdown && (
+              <SortDropdown>
+                <SortOption 
+                  selected={sortOption === 'newest'} 
+                  onClick={() => handleSortChange('newest')}
+                >
+                  Newest first
+                </SortOption>
+                <SortOption 
+                  selected={sortOption === 'oldest'} 
+                  onClick={() => handleSortChange('oldest')}
+                >
+                  Oldest first
+                </SortOption>
+                <SortOption 
+                  selected={sortOption === 'a-z'} 
+                  onClick={() => handleSortChange('a-z')}
+                >
+                  A-Z
+                </SortOption>
+                <SortOption 
+                  selected={sortOption === 'z-a'} 
+                  onClick={() => handleSortChange('z-a')}
+                >
+                  Z-A
+                </SortOption>
+              </SortDropdown>
+            )}
+          </SortButtonContainer>
+          
+          <CategorySelectContainer>
         <CategorySelect 
           value={selectedCategory}
           onChange={handleCategoryChange}
@@ -256,36 +404,51 @@ const Blog = () => {
             <option key={index} value={category}>{category}</option>
           ))}
         </CategorySelect>
+            <CategorySelectIcon>
+              <FiChevronDown />
+            </CategorySelectIcon>
+          </CategorySelectContainer>
+          
+          <BlogLogo src={blogBannerLogo} alt="Blog Logo" />
       </SearchSection>
 
       <BlogSection>
-        <SectionTitle>Recently added blog post</SectionTitle>
-        <RecentPostsGrid>
-          {recentBlogPosts.map((post, index) => (
-            <BlogCard 
-              key={post.id} 
-              featured={index === 0}
-              onClick={() => handleBlogClick(post.id)}
-            >
-              <BlogCardImage 
-                className="blog-card-image" 
-                src={getImageUrl(post)} 
-                alt={post.title} 
-              />
-              <BlogCardContent>
-                <BlogAuthor>{post.author} • {post.date}</BlogAuthor>
-                <BlogTitle>{post.title}</BlogTitle>
-                <BlogSummary>{post.summary}</BlogSummary>
+          <SectionTitle>Recently added blog posts</SectionTitle>
+          <RecentBlogsGrid>
+            {recentBlogPosts.length > 0 && (
+              <FeaturedBlog onClick={() => handleBlogClick(recentBlogPosts[0].id)}>
+                <FeaturedBlogImage src={getImageUrl(recentBlogPosts[0])} alt={recentBlogPosts[0].title} />
+                <FeaturedBlogContent>
+                  <FeaturedBlogAuthor>{recentBlogPosts[0].author} • {recentBlogPosts[0].date}</FeaturedBlogAuthor>
+                  <FeaturedBlogTitle>{recentBlogPosts[0].title}</FeaturedBlogTitle>
+                  <FeaturedBlogDescription>{recentBlogPosts[0].summary}</FeaturedBlogDescription>
+                  <CategoryTags>
+                    {recentBlogPosts[0].categories && recentBlogPosts[0].categories.map((category, idx) => (
+                      <CategoryTag key={idx}>{category}</CategoryTag>
+                    ))}
+                  </CategoryTags>
+                </FeaturedBlogContent>
+              </FeaturedBlog>
+            )}
+            
+            <SideBlogsContainer>
+              {recentBlogPosts.slice(1, 3).map((blog) => (
+                <SideBlog key={blog.id} onClick={() => handleBlogClick(blog.id)}>
+                  <SideBlogImage src={getImageUrl(blog)} alt={blog.title} />
+                  <SideBlogContent>
+                    <SideBlogAuthor>{blog.author} • {blog.date}</SideBlogAuthor>
+                    <SideBlogTitle>{blog.title}</SideBlogTitle>
+                    <SideBlogDescription>{blog.summary}</SideBlogDescription>
                 <CategoryTags>
-                  {post.categories.map((category, idx) => (
+                      {blog.categories && blog.categories.map((category, idx) => (
                     <CategoryTag key={idx}>{category}</CategoryTag>
                   ))}
                 </CategoryTags>
-                {index === 0 && <ReadMoreIcon><FiArrowRight /></ReadMoreIcon>}
-              </BlogCardContent>
-            </BlogCard>
+                  </SideBlogContent>
+                </SideBlog>
           ))}
-        </RecentPostsGrid>
+            </SideBlogsContainer>
+          </RecentBlogsGrid>
       </BlogSection>
 
       <BlogSection>
@@ -310,7 +473,6 @@ const Blog = () => {
                     <CategoryTag key={idx}>{category}</CategoryTag>
                   ))}
                 </CategoryTags>
-                <ReadMoreIcon><FiArrowRight /></ReadMoreIcon>
               </BlogCardContent>
             </BlogCard>
           ))}
@@ -324,7 +486,7 @@ const Blog = () => {
           onClick={() => handlePageChange(currentPage - 1)}
           style={{ visibility: currentPage > 0 ? 'visible' : 'hidden' }}
         >
-          ← Previous
+            <FiArrowRight style={{ transform: 'rotate(180deg)', marginRight: '4px' }} /> Previous
         </PaginationLink>
         <PageNumbers>
           {[...Array(totalPages).keys()].map(page => (
@@ -344,10 +506,11 @@ const Blog = () => {
           onClick={() => handlePageChange(currentPage + 1)}
           style={{ visibility: currentPage < totalPages - 1 ? 'visible' : 'hidden' }}
         >
-          Next →
+            Next <FiArrowRight style={{ marginLeft: '4px' }} />
         </PaginationLink>
       </Pagination>
     </BlogContainer>
+    </>
   );
 };
 
@@ -356,80 +519,176 @@ const BlogContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
+  position: relative;
 `;
 
-const Banner = styled.div`
-  margin: 40px 0;
-  padding: 20px;
+const BannerWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+`;
+
+const FullWidthBanner = styled.div`
   background-color: #f5f7ff;
-  border-radius: 8px;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  padding: 40px 0;
+  margin-top: -30px;
 `;
 
-const BannerContent = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const ContentWrapper = styled.div`
+  padding-top: 20px;
 `;
 
 const BannerTitle = styled.h1`
-  font-size: 32px;
-  font-weight: 600;
-  max-width: 60%;
+  font-size: 26px;
+  font-weight: 550;
   color: #101828;
-`;
-
-const BannerImage = styled.img`
-  max-width: 200px;
-  height: auto;
+  margin: 0;
+  max-width: 1000px;
 `;
 
 const SearchSection = styled.div`
   display: flex;
   align-items: center;
+  gap: 6px;
   margin: 30px 0;
-  background-color: #f9fafb;
-  border-radius: 8px;
-  padding: 8px 16px;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
 `;
 
-const SearchForm = styled.form`
-  position: relative;
-  flex: 1;
+const SearchFormContainer = styled.form`
+  display: flex;
+  align-items: center;
+  background-color: #f2f4f7;
+  border-radius: 25px;
+  padding: 8px 16px;
+  flex-grow: 1;
+  max-width: 380px;
+  
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
 `;
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 10px 10px 10px 35px;
+  padding: 8px 8px 8px 10px;
   border: none;
   background: transparent;
-  font-size: 16px;
+  font-size: 15px;
   &:focus {
     outline: none;
   }
 `;
 
 const SearchIcon = styled.div`
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
   color: #667085;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
 `;
 
-const Separator = styled.span`
-  color: #d0d5dd;
-  margin: 0 10px;
+const SortButtonContainer = styled.div`
+  position: relative;
+  margin: 0 4px;
+`;
+
+const SortButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: #f2f4f7;
+  border: none;
+  border-radius: 25px;
+  padding: 10px 16px;
+  height: 39px;
+  color: #667085;
+  font-size: 15px;
+  cursor: pointer;
+  white-space: nowrap;
+  
+  &:hover {
+    background-color: #e4e7ec;
+  }
+`;
+
+const SortDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  overflow: hidden;
+`;
+
+const SortOption = styled.div`
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  
+  ${({ selected }) => selected && `
+    background-color: #EFF6FF;
+    color: #1E40AF;
+    font-weight: 500;
+  `}
+  
+  &:hover:not(${({ selected }) => selected && '&'}) {
+    background-color: #F2F4F7;
+  }
+`;
+
+const CategorySelectContainer = styled.div`
+  position: relative;
+  background-color: #f2f4f7;
+  border-radius: 25px;
+  padding: 8px 16px;
+  min-width: 130px;
+  height: 39px;
+  display: flex;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+  }
 `;
 
 const CategorySelect = styled.select`
-  padding: 10px;
+  width: 100%;
+  padding: 2px 24px 2px 2px;
   border: none;
   background: transparent;
-  font-size: 16px;
+  font-size: 15px;
   color: #667085;
+  appearance: none;
+  cursor: pointer;
+  
   &:focus {
     outline: none;
   }
+`;
+
+const CategorySelectIcon = styled.div`
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #667085;
+  pointer-events: none;
 `;
 
 const BlogSection = styled.section`
@@ -439,14 +698,19 @@ const BlogSection = styled.section`
 const SectionTitle = styled.h2`
   font-size: 24px;
   font-weight: 600;
-  margin-bottom: 24px;
   color: #101828;
+  position: relative;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #E4E7EC;
 `;
 
-const RecentPostsGrid = styled.div`
+const RecentBlogsGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  grid-template-columns: 1.5fr 1.25fr;
+  gap: 28px;
+  margin-top: 24px;
+  
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
@@ -456,6 +720,7 @@ const AllPostsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
+  margin-top: 24px;
   @media (max-width: 992px) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -466,11 +731,14 @@ const AllPostsGrid = styled.div`
 
 const BlogCard = styled.div`
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   
   &:hover {
     transform: translateY(-4px);
@@ -478,8 +746,29 @@ const BlogCard = styled.div`
   }
   
   ${({ featured }) => featured && `
-    grid-column: 1 / span 1;
-    grid-row: 1 / span 1;
+    .blog-card-image {
+      height: 300px;
+    }
+    
+    h3 {
+      font-size: 24px;
+      line-height: 1.3;
+    }
+  `}
+  
+  ${({ compact }) => compact && `
+    .blog-card-image {
+      height: 160px;
+    }
+    
+    h3 {
+      font-size: 18px;
+      line-height: 1.3;
+    }
+    
+    p {
+      font-size: 14px;
+    }
   `}
 `;
 
@@ -492,6 +781,11 @@ const BlogCardImage = styled.img`
 const BlogCardContent = styled.div`
   padding: 20px;
   position: relative;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
 `;
 
 const BlogAuthor = styled.p`
@@ -501,7 +795,7 @@ const BlogAuthor = styled.p`
 `;
 
 const BlogTitle = styled.h3`
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   margin-bottom: 8px;
   color: #101828;
@@ -512,52 +806,82 @@ const BlogSummary = styled.p`
   color: #667085;
   margin-bottom: 16px;
   line-height: 1.5;
+  flex-grow: 1;
+  min-height: 72px;
+  
+  ${({ short }) => short && `
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+    min-height: 60px;
+  `}
 `;
 
 const CategoryTags = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 6px;
+  margin-top: auto;
 `;
 
 const CategoryTag = styled.span`
-  font-size: 14px;
-  color: #6941C6;
-  background-color: #F9F5FF;
-  padding: 4px 10px;
-  border-radius: 16px;
-`;
-
-const ReadMoreIcon = styled.div`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  color: #6941C6;
-  font-size: 20px;
+  font-size: 12px;
+  color: #1E40AF;
+  background-color: #EFF6FF;
+  padding: 3px 8px;
+  border-radius: 12px;
 `;
 
 const Pagination = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  gap: 4px;
   margin: 40px 0;
+  padding: 4px;
+  border-radius: 10px;
+  max-width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    justify-content: center;
+  }
 `;
 
 const PaginationLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  height: 36px;
+  border-radius: 8px;
   color: #667085;
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
 
   &:hover {
-    color: #6941C6;
+    background-color: #F2F4F7;
+    color: #1E40AF;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 13px;
+    padding: 0 10px;
   }
 `;
 
 const PageNumbers = styled.div`
   display: flex;
-  gap: 4px;
+  gap: 2px;
 `;
 
 const PageNumber = styled(Link)`
@@ -570,15 +894,22 @@ const PageNumber = styled(Link)`
   font-size: 14px;
   color: #667085;
   text-decoration: none;
+  transition: all 0.2s ease;
   
   &.active {
-    background-color: #F9F5FF;
-    color: #6941C6;
-    font-weight: 500;
+    background-color: #EFF6FF;
+    color: #1E40AF;
+    font-weight: 600;
   }
   
   &:hover:not(.active) {
     background-color: #F2F4F7;
+  }
+  
+  @media (max-width: 768px) {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
   }
 `;
 
@@ -589,11 +920,180 @@ const Loading = styled.div`
   padding: 60px;
 `;
 
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+`;
+
+const Spinner = styled.div`
+  width: 50px;
+  height: 50px;
+  border: 4px solid #E4E7EC;
+  border-top: 4px solid #1E40AF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
 const ErrorMessage = styled.div`
   text-align: center;
   font-size: 18px;
   color: #F04438;
   padding: 60px;
+`;
+
+const BlogLogo = styled.img`
+  height: 200px;
+  margin-left: auto;
+  margin-top: -120px;
+  position: absolute;
+  right: -100px;
+  z-index: 0;
+  
+  @media (max-width: 768px) {
+    margin: 5px auto;
+    height: 150px;
+    position: relative;
+    right: auto;
+  }
+`;
+
+const FeaturedBlog = styled.div`
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  border: 1px solid #E4E7EC;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    box-shadow: 0 4px 8px rgba(16, 24, 40, 0.1);
+    transform: translateY(-4px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+`;
+
+const FeaturedBlogImage = styled.img`
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-bottom: 1px solid #E4E7EC;
+`;
+
+const FeaturedBlogContent = styled.div`
+  padding: 24px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const FeaturedBlogAuthor = styled.div`
+  font-size: 14px;
+  color: #667085;
+  margin-bottom: 8px;
+`;
+
+const FeaturedBlogTitle = styled.h2`
+  font-size: 22px;
+  font-weight: 600;
+  color: #101828;
+  margin-bottom: 10px;
+  line-height: 1.3;
+`;
+
+const FeaturedBlogDescription = styled.p`
+  font-size: 15px;
+  color: #475467;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const SideBlog = styled.div`
+  position: relative;
+  cursor: pointer;
+  margin-bottom: 14px;
+  padding: 18px 18px 18px 240px;
+  border: 1px solid #E4E7EC;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  min-height: 230px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(16, 24, 40, 0.1);
+    transform: translateY(-4px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+`;
+
+const SideBlogImage = styled.img`
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 220px;
+  height: 100%;
+  object-fit: cover;
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+  border-right: 1px solid #E4E7EC;
+`;
+
+const SideBlogContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+`;
+
+const SideBlogAuthor = styled.div`
+  font-size: 14px;
+  color: #667085;
+  margin-bottom: 8px;
+`;
+
+const SideBlogTitle = styled.h3`
+  font-size: 17px;
+  font-weight: 600;
+  color: #101828;
+  margin-bottom: 6px;
+  line-height: 1.3;
+`;
+
+const SideBlogDescription = styled.p`
+  font-size: 15px;
+  color: #475467;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 6px;
+`;
+
+const SideBlogsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 20px;
+  height: 100%;
 `;
 
 export default Blog; 
