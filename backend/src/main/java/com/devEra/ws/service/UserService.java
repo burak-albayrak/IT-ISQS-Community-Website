@@ -65,6 +65,10 @@ public class UserService {
         if (request.getRole() != null) {
             user.setRole(request.getRole());
         }
+        
+        // Special handling for picture - always update it, even if it's null
+        // This allows setting the picture to null to remove it
+        user.setPicture(request.getPicture());
 
         userRepository.save(user);
     }
@@ -116,6 +120,15 @@ public class UserService {
         
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
+    }
+
+    public User findById(int userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    }
+    
+    public void saveUser(User user) {
+        userRepository.save(user);
     }
 
 }

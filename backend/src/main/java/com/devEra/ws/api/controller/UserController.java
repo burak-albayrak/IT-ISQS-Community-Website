@@ -3,6 +3,7 @@ package com.devEra.ws.api.controller;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.devEra.ws.core.enums.CreatorType;
 import com.devEra.ws.core.error.ApiError;
@@ -28,12 +31,16 @@ import com.devEra.ws.entity.User;
 import com.devEra.ws.entity.Forum.ForumPost;
 import com.devEra.ws.exception.NotUniqueEmailException;
 import com.devEra.ws.service.UserService;
+import com.devEra.ws.service.S3Service;
 
 @RestController
 public class UserController {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    S3Service s3Service;
 
 
     @PostMapping("/api/v1/users")
@@ -152,5 +159,87 @@ public class UserController {
         apiError.setStatus(400);
         apiError.setValidationErrors(exception.getValidationErrors());
         return ResponseEntity.badRequest().body(apiError);
+    }
+
+    /**
+     * Kullanıcının profil resmini günceller
+     * 
+     * @param userId Kullanıcı ID'si
+     * @param file Yüklenen profil resmi
+     * @return Başarı mesajı
+     */
+    @PostMapping("/api/v1/users/{userId}/profile-picture")
+    public ResponseEntity<?> uploadProfilePicture(
+            @PathVariable int userId,
+            @RequestPart("file") MultipartFile file) {
+        
+        try {
+            // S3'e dosyayı yükle ve URL'ini al
+            String pictureUrl = s3Service.uploadProfilePicture(file, userId);
+            
+            // Kullanıcı profilini güncelle
+            UpdateProfileRequest updateRequest = new UpdateProfileRequest();
+            updateRequest.setPicture(pictureUrl);
+            userService.updateProfile(userId, updateRequest);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Profile picture uploaded successfully");
+            response.put("pictureUrl", pictureUrl);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IOException e) {
+            ApiError error = new ApiError();
+            error.setStatus(500);
+            error.setMessage("Failed to upload profile picture: " + e.getMessage());
+            error.setPath("/api/v1/users/" + userId + "/profile-picture");
+            return ResponseEntity.status(500).body(error);
+        } catch (IllegalArgumentException e) {
+            ApiError error = new ApiError();
+            error.setStatus(400);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/users/" + userId + "/profile-picture");
+            return ResponseEntity.badRequest().body(error);
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/users/" + userId + "/profile-picture");
+            return ResponseEntity.status(404).body(error);
+        }
+    }
+    
+    /**
+     * Kullanıcının profil resmini kaldırır (null olarak ayarlar)
+     * 
+     * @param userId Kullanıcı ID'si
+     * @return Başarı mesajı
+     */
+    @PostMapping("/api/v1/users/{userId}/remove-profile-picture")
+    public ResponseEntity<?> removeProfilePicture(@PathVariable int userId) {
+        try {
+            // Kullanıcı profilini güncelle - resmi null olarak ayarla
+            UpdateProfileRequest updateRequest = new UpdateProfileRequest();
+            updateRequest.setPicture(null);
+            userService.updateProfile(userId, updateRequest);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Profile picture removed successfully");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/users/" + userId + "/remove-profile-picture");
+            return ResponseEntity.status(404).body(error);
+        } catch (Exception e) {
+            ApiError error = new ApiError();
+            error.setStatus(500);
+            error.setMessage("Failed to remove profile picture: " + e.getMessage());
+            error.setPath("/api/v1/users/" + userId + "/remove-profile-picture");
+            return ResponseEntity.status(500).body(error);
+        }
     }
 }

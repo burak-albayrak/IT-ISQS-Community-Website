@@ -40,7 +40,7 @@ public class User {
     private String email;
 
     @Size(min = 8, max = 255, message = "Password must be between 8 and 255 characters.")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$", message = "Passwordmust contain at least one uppercase letter, one lowercase letter, and onedigit.")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$", message = "Password must contain at least one uppercase letter, one lowercase letter, and one digit.")
     @NotBlank(message = "Password cannot be blank.")
     private String password;
 
@@ -59,4 +59,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Gender gender;
+    
+    @Column(name = "picture")
+    private String picture;
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateUserProfile } from '../services/authService';
 import styled from 'styled-components';
+import ProfilePictureUpload from '../components/ProfilePictureUpload';
 
 const Container = styled.div`
   max-width: 1000px;
@@ -330,6 +331,7 @@ const countries = [
 
 // Profil için önceden doldurulmuş değerler (mockup)
 const mockUser = {
+  userID: 1,
   firstName: 'Jenny',
   lastName: 'Wilson',
   email: 'jennywilson@example.com',
@@ -338,7 +340,7 @@ const mockUser = {
   role: 'Student',
   age: 24,
   gender: 'Female',
-  avatarUrl: 'https://via.placeholder.com/200'
+  picture: ''
 };
 
 const EditProfile = () => {
@@ -356,8 +358,11 @@ const EditProfile = () => {
     country: '',
     role: '',
     age: '',
-    gender: ''
+    gender: '',
+    picture: ''
   });
+
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -376,6 +381,7 @@ const EditProfile = () => {
         };
         
         setUser(userProfile);
+        setUserId(userProfile.userID);
         
         // Form verilerini kullanıcı bilgileriyle dolduruyoruz
         setFormData({
@@ -386,12 +392,14 @@ const EditProfile = () => {
           country: userProfile.country || '',
           role: userProfile.role || '',
           age: userProfile.age?.toString() || '',
-          gender: userProfile.gender || ''
+          gender: userProfile.gender || '',
+          picture: userProfile.picture || ''
         });
       } catch (error) {
         console.error('Error fetching user profile:', error);
         // Hata durumunda mockup verileri kullanıyoruz
         setUser(mockUser);
+        setUserId(mockUser.userID);
         setFormData({
           firstName: mockUser.firstName,
           lastName: mockUser.lastName,
@@ -400,7 +408,8 @@ const EditProfile = () => {
           country: mockUser.country,
           role: mockUser.role,
           age: mockUser.age.toString(),
-          gender: mockUser.gender
+          gender: mockUser.gender,
+          picture: mockUser.picture
         });
       } finally {
         setLoading(false);
@@ -420,8 +429,12 @@ const EditProfile = () => {
     setSaving(true);
     setMessage({ text: '', error: false });
     
+    console.log('Form submission - userId:', userId);
+    console.log('Original form data:', formData);
+    
     try {
-      if (!user.id) {
+      // userId değerini kontrol ediyoruz
+      if (!userId) {
         throw new Error('User ID is missing. Please log in again.');
       }
       
@@ -431,9 +444,17 @@ const EditProfile = () => {
         age: formData.age ? parseInt(formData.age) : null,
       };
       
+      console.log('Profile data before email removal:', updatedProfile);
+      
+      // Only remove email, preserve all other fields including picture
       delete updatedProfile.email; // Email değiştirilemez
       
-      await updateUserProfile(user.id, updatedProfile);
+      // Ensure picture field is explicitly included
+      updatedProfile.picture = formData.picture;
+      
+      console.log('Final update data being sent:', updatedProfile);
+      
+      await updateUserProfile(userId, updatedProfile);
       
       setMessage({
         text: 'Profile updated successfully!',
@@ -443,6 +464,7 @@ const EditProfile = () => {
       // Profil sayfasına dönüş için kısa bir gecikme
       setTimeout(() => navigate('/profile'), 1500);
     } catch (error) {
+      console.error('Profile update error:', error);
       setMessage({
         text: error.message || 'Failed to update profile. Please try again.',
         error: true
@@ -452,6 +474,13 @@ const EditProfile = () => {
     }
   };
 
+  const handlePictureUpdate = (pictureUrl) => {
+    setFormData({
+      ...formData,
+      picture: pictureUrl
+    });
+  };
+
   if (loading) {
     return <div>Loading user information...</div>;
   }
@@ -459,6 +488,15 @@ const EditProfile = () => {
   return (
     <Container>
       <Title>Edit Profile</Title>
+      
+      <div style={{ marginBottom: '30px', textAlign: 'center' }}>
+        <h3 style={{ marginBottom: '15px', color: '#223A70' }}>Profil Resmi</h3>
+        <ProfilePictureUpload
+          userId={userId}
+          currentPicture={formData.picture}
+          onPictureUpdated={handlePictureUpdate}
+        />
+      </div>
       
       {message.text && (
         <Message error={message.error}>

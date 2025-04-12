@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateUserPassword, getUserProfile, updateUserProfile, getUserByEmail } from '../services/authService';
 import styled from 'styled-components';
-import { FaEdit, FaEnvelope, FaUniversity, FaGlobe, FaUserTag, FaBirthdayCake, FaUser, FaSave, FaTimes } from 'react-icons/fa';
-import defaultLogo from '../assets/jenny.png';
+import { FaEdit, FaEnvelope, FaUniversity, FaGlobe, FaUserTag, FaBirthdayCake, FaUser, FaSave, FaTimes, FaTimesCircle } from 'react-icons/fa';
+import defaultAvatar from '../assets/defaultpp.jpg';
+import ProfilePictureUpload from '../components/ProfilePictureUpload';
 
 const ProfileContainer = styled.div`
   max-width: 1200px;
@@ -43,16 +44,38 @@ const ProfileRight = styled.div`
 const UserAvatar = styled.div`
   width: 200px;
   height: 200px;
-  border-radius: 5px;
+  border-radius: 50%;
   overflow: hidden;
   margin-bottom: 20px;
   border: 1px solid #eaeaea;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
   
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+`;
+
+const PhotoButton = styled.button`
+  background-color: #223A70;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #192C54;
   }
 `;
 
@@ -76,9 +99,9 @@ const Tab = styled.button`
   margin-right: 20px;
   border: none;
   background: transparent;
-  color: ${props => props.active ? '#0056b3' : '#333'};
+  color: ${props => props.active === "true" ? '#0056b3' : '#333'};
   font-size: 16px;
-  font-weight: ${props => props.active ? '700' : '600'};
+  font-weight: ${props => props.active === "true" ? '700' : '600'};
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   position: relative;
   opacity: ${props => props.disabled ? 0.5 : 1};
@@ -86,7 +109,7 @@ const Tab = styled.button`
   border-radius: 4px;
   
   &:hover {
-    color: ${props => props.active ? '#0056b3' : '#666'};
+    color: ${props => props.active === "true" ? '#0056b3' : '#666'};
     background-color: ${props => props.disabled ? 'transparent' : '#f0f0f0'};
   }
   
@@ -98,7 +121,7 @@ const Tab = styled.button`
     background-color: #0056b3;
     bottom: -2px;
     left: 0;
-    transform: scaleX(${props => props.active ? '1' : '0'});
+    transform: scaleX(${props => props.active === "true" ? '1' : '0'});
     transform-origin: center;
     transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -344,6 +367,69 @@ const LoadingText = styled.div`
   margin-top: 16px;
 `;
 
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 480px;
+  position: relative;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f1f1f1;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0;
+  color: #223A70;
+  font-size: 1.5rem;
+  font-weight: 600;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #666;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #f1f1f1;
+    color: #333;
+  }
+  
+  &:focus {
+    outline: none;
+  }
+`;
+
 const Profile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('about');
@@ -351,6 +437,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ text: '', error: false });
   const [editMode, setEditMode] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   
   const [editData, setEditData] = useState({
     firstName: '',
@@ -367,6 +454,19 @@ const Profile = () => {
     oldPassword: '',
     newPassword: '',
     confirmPassword: ''
+  });
+
+  const [userProfile, setUserProfile] = useState({
+    userID: 0,
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: '',
+    institution: '',
+    country: '',
+    age: 0,
+    gender: '',
+    picture: ''
   });
 
   useEffect(() => {
@@ -411,6 +511,19 @@ const Profile = () => {
                 
                 localStorage.setItem('user', JSON.stringify(userData));
                 
+                setUserProfile({
+                  userID: userData.userID,
+                  firstName: userData.firstName,
+                  lastName: userData.lastName,
+                  email: userData.email,
+                  institution: userData.institution || '',
+                  country: userData.country || '',
+                  role: userData.role || '',
+                  age: userData.age || 0,
+                  gender: userData.gender || '',
+                  picture: userData.picture || ''
+                });
+                
                 setLoading(false);
                 return;
               }
@@ -447,6 +560,19 @@ const Profile = () => {
                 });
                 
                 localStorage.setItem('user', JSON.stringify(userData));
+                
+                setUserProfile({
+                  userID: userData.userID,
+                  firstName: userData.firstName,
+                  lastName: userData.lastName,
+                  email: userData.email,
+                  institution: userData.institution || '',
+                  country: userData.country || '',
+                  role: userData.role || '',
+                  age: userData.age || 0,
+                  gender: userData.gender || '',
+                  picture: userData.picture || ''
+                });
                 
                 setLoading(false);
                 return;
@@ -523,10 +649,12 @@ const Profile = () => {
         country: editData.country,
         role: editData.role?.toUpperCase(),
         age: editData.age ? parseInt(editData.age) : null,
-        gender: editData.gender?.toUpperCase()
+        gender: editData.gender?.toUpperCase(),
+        picture: user.picture
       };
       
-      console.log("Sending profile update data:", updatedProfile);
+      console.log("Current user data:", user);
+      console.log("Sending profile update data with picture:", updatedProfile);
       
       await updateUserProfile(userId, updatedProfile);
       
@@ -534,7 +662,16 @@ const Profile = () => {
         ...prevUser,
         ...updatedProfile,
         role: editData.role, 
-        gender: editData.gender
+        gender: editData.gender,
+        picture: prevUser.picture
+      }));
+      
+      setUserProfile(prevProfile => ({
+        ...prevProfile,
+        ...updatedProfile,
+        role: editData.role,
+        gender: editData.gender,
+        picture: prevProfile.picture
       }));
       
       setMessage({
@@ -652,6 +789,55 @@ const Profile = () => {
     }
   };
 
+  const handlePictureUpdate = (pictureUrl) => {
+    console.log('handlePictureUpdate called with pictureUrl:', pictureUrl);
+    
+    setUserProfile(prev => {
+      console.log('Previous userProfile:', prev);
+      const updated = {
+        ...prev,
+        picture: pictureUrl
+      };
+      console.log('Updated userProfile:', updated);
+      return updated;
+    });
+    
+    // Ayrıca ana user state'ini de güncelle
+    setUser(prevUser => {
+      console.log('Previous user state:', prevUser);
+      const updated = {
+        ...prevUser,
+        picture: pictureUrl
+      };
+      console.log('Updated user state:', updated);
+      return updated;
+    });
+    
+    // Update the user data in localStorage to persist the change
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      if (storedUser) {
+        console.log('Updating localStorage user data with new picture URL');
+        const updatedUser = {
+          ...storedUser,
+          picture: pictureUrl
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Error updating user data in localStorage:', error);
+    }
+    
+    // Güncelleme başarılı mesajı
+    setMessage({
+      text: 'Profile picture successfully updated!',
+      error: false
+    });
+    
+    // Modalı kapat
+    setShowPhotoModal(false);
+  };
+
   if (loading) {
     return (
       <LoadingContainer>
@@ -754,24 +940,20 @@ const Profile = () => {
     <ProfileContainer>
       <ProfileLeft>
         <UserAvatar>
-          <img 
-            src={user?.avatarUrl || defaultLogo} 
-            alt={`${user?.firstName || ''} ${user?.lastName || ''} Profile`}
-            onError={(e) => {
-              e.target.onerror = null; 
-              e.target.src = defaultLogo;
-            }}
-          />
+          <img src={userProfile.picture || defaultAvatar} alt={`${userProfile.firstName}'s avatar`} />
         </UserAvatar>
-        <UserName>
-          {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.email || 'Kullanıcı'}
-        </UserName>
+        {editMode && (
+          <PhotoButton onClick={() => setShowPhotoModal(true)}>
+            <FaEdit /> Change Profile Picture
+          </PhotoButton>
+        )}
+        <UserName>{`${userProfile.firstName} ${userProfile.lastName}`}</UserName>
       </ProfileLeft>
       
       <ProfileRight>
         <TabContainer>
           <Tab 
-            active={activeTab === 'about'} 
+            active={activeTab === 'about' ? "true" : "false"} 
             onClick={() => setActiveTab('about')}
           >
             About
@@ -783,7 +965,7 @@ const Profile = () => {
             My Forum Posts
           </Tab>
           <Tab 
-            active={activeTab === 'password'} 
+            active={activeTab === 'password' ? "true" : "false"} 
             onClick={() => setActiveTab('password')}
           >
             Change Password
@@ -993,6 +1175,25 @@ const Profile = () => {
       <EditButton onClick={toggleEditMode}>
         <FaEdit /> {editMode ? 'Cancel Edit' : 'Edit Profile'}
       </EditButton>
+      
+      {/* Profil Resmi Güncelleme Modal */}
+      {showPhotoModal && (
+        <Modal>
+          <ModalContent>
+            <ModalHeader>
+              <ModalTitle>Update Profile Picture</ModalTitle>
+              <CloseButton onClick={() => setShowPhotoModal(false)}>
+                <span style={{ fontSize: '24px', fontWeight: 'bold' }}>×</span>
+              </CloseButton>
+            </ModalHeader>
+            <ProfilePictureUpload 
+              userId={userProfile.userID}
+              currentPicture={userProfile.picture}
+              onPictureUpdated={handlePictureUpdate}
+            />
+          </ModalContent>
+        </Modal>
+      )}
     </ProfileContainer>
   );
 };
