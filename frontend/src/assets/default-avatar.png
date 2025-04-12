@@ -1,0 +1,6 @@
+Bu dosya bir resim (png) dosyası olduğu için, doğrudan metinsel olarak oluşturulamaz. 
+
+Bunu yerine, frontend uygulamasına aşağıdaki şekilde bir geçici çözüm uygulayabiliriz:
+
+1. Herhangi bir png avatarını indirip assets klasörüne koyabilirsiniz
+2. Frontend kodunda aşağıdaki gibi base64 kodlu basit bir avatar kullanabilirsiniz 

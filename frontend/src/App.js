@@ -12,7 +12,6 @@ import ContactUs from './pages/ContactUs';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
-import EditProfile from './pages/EditProfile';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import Blog from './pages/Blog';
@@ -40,7 +39,6 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/edit-profile" element={<EditProfile />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/privacy-policy" element={<div className="page">Privacy & Policy Page</div>} />

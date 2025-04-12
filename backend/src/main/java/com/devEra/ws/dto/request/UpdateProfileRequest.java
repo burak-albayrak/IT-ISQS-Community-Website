@@ -14,4 +14,5 @@ public class UpdateProfileRequest {
     private Role role;
     private Integer age;
     private Gender gender;
+    private String picture;
 }
