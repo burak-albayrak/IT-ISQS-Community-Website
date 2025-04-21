@@ -126,7 +126,40 @@ public class ForumPostService {
     }
 
     public List<ForumPost> getAllPosts() {
-        return forumPostRepository.findAll();
+        // Fetch all posts
+        List<ForumPost> posts = forumPostRepository.findAll();
+        
+        // Iterate through posts and populate creator details
+        for (ForumPost post : posts) {
+            try {
+                if (post.getCreatedByType() == CreatorType.USER) {
+                    User creator = userRepository.findById(post.getCreatedBy()).orElse(null);
+                    if (creator != null) {
+                        post.setCreatorName(creator.getFirstName() + " " + creator.getLastName()); // Or just username if preferred
+                        post.setCreatorProfilePic(creator.getPicture()); // Use getPicture() instead of getProfilePictureUrl()
+                    } else {
+                        post.setCreatorName("Unknown User");
+                        // Keep default profile pic or set a specific one for unknown
+                    }
+                } else if (post.getCreatedByType() == CreatorType.ADMIN) {
+                    Admin creator = adminRepository.findById(post.getCreatedBy()).orElse(null);
+                    if (creator != null) {
+                        post.setCreatorName(creator.getFirstName() + " " + creator.getLastName()); // Adjust field names if needed
+                        post.setCreatorProfilePic(creator.getPicture()); // Use getPicture() instead of getProfilePictureUrl()
+                    } else {
+                        post.setCreatorName("Unknown Admin");
+                        // Keep default profile pic or set a specific one for unknown
+                    }
+                }
+            } catch (Exception e) {
+                 // Log the error and set default names
+                 System.err.println("Error fetching creator details for post ID " + post.getForumPostID() + ": " + e.getMessage());
+                 post.setCreatorName("Error Loading Name");
+                 // Set default profile picture
+            }
+        }
+        
+        return posts;
     }
 
     public ForumPost getPostById(int id) {

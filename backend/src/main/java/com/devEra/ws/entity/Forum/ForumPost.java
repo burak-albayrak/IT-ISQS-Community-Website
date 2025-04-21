@@ -59,4 +59,11 @@ public class ForumPost {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    // Transient fields for creator details (not persisted)
+    @Transient
+    private String creatorName;
+
+    @Transient
+    private String creatorProfilePic;
 }

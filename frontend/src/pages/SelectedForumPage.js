@@ -22,9 +22,41 @@ const SelectedForumPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false); // Add loading state for comments
+  const [commentError, setCommentError] = useState(null); // Add error state for comments
   const [newComment, setNewComment] = useState('');
   const [forumPosts, setForumPosts] = useState([]); // For popular posts sidebar
   const [savedForumPosts, setSavedForumPosts] = useState([]); // For saved posts sidebar
+
+  // New function to fetch comments
+  const fetchComments = async (currentPostId) => {
+    setCommentsLoading(true);
+    setCommentError(null);
+    try {
+      // Assuming the backend endpoint for getting comments by post ID is like this
+      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}`);
+      if (response && response.data) {
+        // Format comments based on backend response structure
+        const formattedComments = response.data.map(comment => ({
+          id: comment.commentID, // Adjust based on actual backend response field name (e.g., commentId)
+          content: comment.description,
+          createdAt: comment.createdAt,
+          timeAgo: getTimeAgo(comment.createdAt),
+          userName: comment.creatorName || 'Anonymous', // Adjust based on backend response
+          userProfilePic: comment.creatorProfilePic || defaultProfilePic, // Adjust based on backend response
+          replies: comment.replies ? comment.replies.map(/* Need to format replies if backend sends them nested */) : [] // Handle replies if needed
+        }));
+        setComments(formattedComments);
+      } else {
+        setComments([]);
+      }
+    } catch (err) {
+      console.error('Error fetching comments:', err);
+      setCommentError('Failed to load comments.');
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,35 +79,22 @@ const SelectedForumPage = () => {
             id: postData.forumPostID,
             title: postData.title,
             description: postData.description,
-            media: postData.media || '',
+            media: postData.mediaList || [], // Assuming media is in mediaList
             likesCount: postData.likesCount || 0,
-            commentCount: postData.commentCount || 0,
+            commentCount: postData.commentCount || 0, // Use comment count from post if available
             createdBy: postData.createdBy,
             createdByType: postData.createdByType,
             createdAt: postData.createdAt,
             formattedDate: formatDate(postData.createdAt),
             timeAgo: getTimeAgo(postData.createdAt),
             updatedAt: postData.updatedAt,
-            tags: postData.tags || ['Research'],
-            userName: postData.userName || postData.ownerName || 'Anonymous',
-            userProfilePic: postData.userProfilePic || ''
+            tags: postData.category ? [postData.category.name] : [], // Assuming category is an object with name
+            userName: postData.creatorName || 'Anonymous', // Adjust if backend provides creator name
+            userProfilePic: postData.creatorProfilePic || defaultProfilePic // Adjust if backend provides pic
           });
           
-          // Since we don't have a clear API for comments, use placeholder data for now
-          // or load from postData.comments if available
-          if (postData.comments) {
-            setComments(postData.comments.map(comment => ({
-              id: comment.id,
-              content: comment.description || comment.content,
-              createdAt: comment.createdAt,
-              timeAgo: getTimeAgo(comment.createdAt),
-              userName: comment.userName || 'Anonymous',
-              userProfilePic: comment.userProfilePic || ''
-            })));
-          } else {
-            // Use empty array for now - will be populated when user comments
-            setComments([]);
-          }
+          // Fetch comments separately using the function
+          fetchComments(postData.forumPostID || postId);
           
           // Fetch popular posts for sidebar
           try {
@@ -142,6 +161,9 @@ const SelectedForumPage = () => {
   }, [postId, navigate]);
 
   const handleLikePost = async () => {
+    // Check if post data is available
+    if (!post) return;
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -149,6 +171,7 @@ const SelectedForumPage = () => {
         return;
       }
 
+      // Make the API call to toggle the like status
       await axios.post(
         `http://localhost:8080/api/v1/forum-posts/like/${postId}`,
         {},
@@ -158,18 +181,30 @@ const SelectedForumPage = () => {
           }
         }
       );
-      
-      setPost(prev => ({
-        ...prev,
-        likesCount: prev.likesCount + 1,
-        isLiked: true
-      }));
+
+      // Update the post state to reflect the toggled like status
+      setPost(prev => {
+        if (!prev) return null; // Should not happen if post is checked above, but safe check
+        const currentlyLiked = prev.isLiked || false; // Assume not liked if undefined
+        const newLikesCount = currentlyLiked ? prev.likesCount - 1 : prev.likesCount + 1;
+        return {
+          ...prev,
+          likesCount: newLikesCount < 0 ? 0 : newLikesCount, // Prevent negative likes
+          isLiked: !currentlyLiked // Toggle the liked status
+        };
+      });
+
     } catch (err) {
-      console.error('Error liking post:', err);
+      console.error('Error toggling like on post:', err);
+      // Optional: Show an error message to the user
+      // setError('Could not update like status. Please try again.');
     }
   };
 
   const handleSavePost = async () => {
+    // Check if post data is available
+    if (!post) return;
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -177,7 +212,9 @@ const SelectedForumPage = () => {
         return;
       }
 
-      await axios.post(
+      // Make the API call to toggle the save status
+      // Backend service saveOrUnsavePost returns a message
+      const response = await axios.post(
         `http://localhost:8080/api/v1/forum-posts/${postId}/save`,
         {},
         {
@@ -186,56 +223,48 @@ const SelectedForumPage = () => {
           }
         }
       );
-      
-      setPost(prev => ({
-        ...prev,
-        isSaved: !prev.isSaved
-      }));
+
+      console.log('Save/Unsave response:', response.data); // Log the message from backend
+
+      // Update the post state to reflect the toggled save status
+      setPost(prev => {
+        if (!prev) return null;
+        const currentlySaved = prev.isSaved || false; // Assume not saved if undefined
+        return {
+          ...prev,
+          isSaved: !currentlySaved // Toggle the saved status
+        };
+      });
+
+      // Optional: Show a success message to the user based on response.data.message
+
     } catch (err) {
-      console.error('Error saving post:', err);
+      console.error('Error toggling save on post:', err);
+      // Optional: Show an error message to the user
+      // setError('Could not update save status. Please try again.');
     }
   };
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to comment' } });
-        return;
-      }
 
-      // Note: Since we're not sure if the backend endpoint exists, 
-      // let's simulate adding a comment locally for now
-      console.log('Would send comment to API if endpoint was known:', newComment);
-      
-      // Simulate successful comment creation
-      const newCommentData = {
-        id: Date.now(), // Generate temporary ID
-        content: newComment,
-        createdAt: new Date().toISOString(),
-        timeAgo: 'just now',
-        userName: 'You', // In a real app, use the logged-in user's name
-        userProfilePic: '' // In a real app, use the logged-in user's profile pic
-      };
-      
-      // Add comment to state
-      setComments(prev => [newCommentData, ...prev]);
-      setNewComment('');
-      
-      // Update post comment count
-      setPost(prev => ({
-        ...prev,
-        commentCount: prev.commentCount + 1
-      }));
-      
-      // In a real implementation, you would make an API call like:
-      /*
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to comment' } });
+      return;
+    }
+    setCommentError(null); // Clear previous errors
+
+    try {
+      // Make the API call to the backend comment endpoint
       const response = await axios.post(
-        `http://localhost:8080/api/v1/forum-posts/${postId}/comments`, 
-        { content: newComment },
+        `http://localhost:8080/api/v1/forum-comments`,
+        {
+          forumPostID: parseInt(postId), // Ensure postId is passed correctly
+          description: newComment,
+          // parentCommentID: null // Explicitly null for main comments, handle replies later if needed
+        },
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -243,13 +272,31 @@ const SelectedForumPage = () => {
           }
         }
       );
-      */
-      
+
+      console.log('Comment submitted successfully:', response.data);
+
+      // Clear the input field
+      setNewComment('');
+
+      // Refresh the comments list to show the new comment
+      fetchComments(postId);
+
+      // Update post comment count locally for immediate UI feedback
+      // Note: The backend might automatically update this, fetching comments might be enough
+      setPost(prev => ({
+        ...prev,
+        commentCount: (prev.commentCount || 0) + 1
+      }));
+
     } catch (err) {
       console.error('Error submitting comment:', err);
-      if (err.response?.status === 401) {
-        alert('Your session has expired. Please log in again.');
-        navigate('/login');
+      if (err.response?.status === 401 || err.response?.status === 403) {
+         setCommentError('Authentication error or insufficient permissions. Please log in again.');
+      } else if (err.response) {
+        setCommentError(`Error: ${err.response.data?.message || 'Failed to submit comment.'}`);
+      }
+      else {
+         setCommentError('Failed to submit comment. Please check your connection and try again.');
       }
     }
   };
@@ -418,7 +465,19 @@ const SelectedForumPage = () => {
               <DetailedPostContent>
                 <DetailedPostTitle>{post.title}</DetailedPostTitle>
                 <DetailedPostText>{post.description}</DetailedPostText>
-                {post.media && <DetailedPostMedia src={post.media} alt="Post media" />}
+                {/* Check if post.media is an array and has items */}
+                {Array.isArray(post.media) && post.media.length > 0 && (
+                  <MediaContainer>
+                    {post.media.map((mediaUrl, index) => (
+                      // Render img or video based on file type (simple check)
+                      mediaUrl.match(/\.(jpeg|jpg|gif|png)$/) != null
+                      ? <DetailedPostMedia key={index} src={mediaUrl} alt={`Post media ${index + 1}`} />
+                      : mediaUrl.match(/\.(mp4|webm|ogg)$/) != null
+                        ? <DetailedPostVideo key={index} src={mediaUrl} controls />
+                        : null // Handle other types or show placeholder if needed
+                    ))}
+                  </MediaContainer>
+                )}
               </DetailedPostContent>
               
               <DetailedPostFooter>
@@ -447,41 +506,33 @@ const SelectedForumPage = () => {
                   onChange={(e) => setNewComment(e.target.value)}
                 />
                 <CommentSubmitButton type="submit">
-                  <FiSend size={16} />
+                  <FiSend />
                 </CommentSubmitButton>
               </CommentForm>
-              
+              {commentError && <ErrorMessage style={{marginTop: '10px'}}>{commentError}</ErrorMessage>}
+
               <CommentsTitle>Comments ({comments.length})</CommentsTitle>
               
-              <CommentsList>
-                {comments.length > 0 ? (
+              <CommentList>
+                {commentsLoading ? (
+                  <LoadingContainer><Spinner /></LoadingContainer>
+                ) : comments.length > 0 ? (
                   comments.map((comment) => (
                     <CommentItem key={comment.id}>
-                      <CommentAuthor>
-                        <CommentAvatar>
-                          <img 
-                            src={comment.userProfilePic || defaultProfilePic}
-                            alt="User avatar" 
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = defaultProfilePic;
-                            }}
-                          />
-                        </CommentAvatar>
-                        <CommentAuthorInfo>
+                      <CommentAvatar src={comment.userProfilePic || defaultProfilePic} alt={comment.userName} />
+                      <CommentContent>
+                        <CommentAuthor>
                           <CommentAuthorName>{comment.userName}</CommentAuthorName>
                           <CommentTime>{comment.timeAgo}</CommentTime>
-                        </CommentAuthorInfo>
-                      </CommentAuthor>
-                      <CommentContent>{comment.content}</CommentContent>
+                        </CommentAuthor>
+                        <CommentText>{comment.content}</CommentText>
+                      </CommentContent>
                     </CommentItem>
                   ))
                 ) : (
-                  <EmptyCommentsMessage>
-                    No comments yet. Be the first to comment!
-                  </EmptyCommentsMessage>
+                  !commentError && <EmptyCommentsMessage>No comments yet. Be the first to comment!</EmptyCommentsMessage>
                 )}
-              </CommentsList>
+              </CommentList>
             </CommentsSection>
           </RightContent>
         </ForumContent>
@@ -716,6 +767,23 @@ const DetailedPostMedia = styled.img`
   max-width: 100%;
   border-radius: 8px;
   margin-top: 10px;
+  display: block; // Ensure image takes its own line
+`;
+
+// Add styled component for video if needed
+const DetailedPostVideo = styled.video`
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 10px;
+  display: block; // Ensure video takes its own line
+`;
+
+// Container for multiple media items
+const MediaContainer = styled.div`
+  display: flex;
+  flex-direction: column; // Display media vertically
+  gap: 15px; // Add some space between media items
+  margin-top: 20px;
 `;
 
 const DetailedPostFooter = styled.div`
@@ -758,36 +826,41 @@ const CommentsSection = styled.div`
 
 const CommentForm = styled.form`
   display: flex;
-  margin-bottom: 20px;
-  border: 1px solid #E4E7EC;
-  border-radius: 8px;
-  padding: 12px 16px;
-  background-color: #fff;
+  align-items: flex-start;
+  margin-top: 20px;
+  gap: 8px;
 `;
 
-const CommentInput = styled.input`
-  flex: 1;
-  border: none;
-  outline: none;
+const CommentInput = styled.textarea`
+  flex-grow: 1;
+  padding: 10px 15px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
   font-size: 14px;
-  color: #344054;
-  
-  &::placeholder {
-    color: #98A2B3;
+  resize: vertical;
+  min-height: 40px;
+  &:focus {
+    outline: none;
+    border-color: #1570EF;
+    box-shadow: 0 0 0 2px rgba(21, 112, 239, 0.2);
   }
 `;
 
 const CommentSubmitButton = styled.button`
   background: none;
   border: none;
+  color: #1570EF;
   cursor: pointer;
-  color: #1849A9;
+  padding: 8px;
+  margin-left: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  
+  font-size: 18px;
+  height: 40px;
+
   &:hover {
-    color: #0F2C70;
+    color: #0d5ecb;
   }
 `;
 
@@ -798,7 +871,8 @@ const CommentsTitle = styled.h2`
   margin: 0 0 20px 0;
 `;
 
-const CommentsList = styled.div`
+const CommentList = styled.div`
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -809,21 +883,17 @@ const CommentItem = styled.div`
   border-radius: 8px;
   padding: 15px;
   background-color: #fff;
-`;
-
-const CommentAuthor = styled.div`
   display: flex;
-  align-items: center;
-  margin-bottom: 10px;
+  gap: 12px;
 `;
 
 const CommentAvatar = styled.div`
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
-  margin-right: 10px;
-  
+  flex-shrink: 0;
+
   img {
     width: 100%;
     height: 100%;
@@ -831,9 +901,15 @@ const CommentAvatar = styled.div`
   }
 `;
 
-const CommentAuthorInfo = styled.div`
+const CommentContent = styled.div`
+  flex-grow: 1;
+`;
+
+const CommentAuthor = styled.div`
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  margin-bottom: 5px;
+  gap: 8px;
 `;
 
 const CommentAuthorName = styled.div`
@@ -847,17 +923,11 @@ const CommentTime = styled.div`
   color: #667085;
 `;
 
-const CommentContent = styled.div`
+const CommentText = styled.p`
+  margin: 0;
   font-size: 14px;
   color: #344054;
   line-height: 1.5;
-`;
-
-const EmptyStateMessage = styled.div`
-  text-align: center;
-  padding: 30px 20px;
-  color: #667085;
-  font-size: 14px;
 `;
 
 const EmptyCommentsMessage = styled.div`
@@ -869,6 +939,13 @@ const EmptyCommentsMessage = styled.div`
   border-radius: 8px;
 `;
 
+const EmptyStateMessage = styled.p`
+  color: #667085;
+  text-align: center;
+  padding: 20px 0;
+  font-style: italic;
+`;
+
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -877,13 +954,13 @@ const LoadingContainer = styled.div`
 `;
 
 const Spinner = styled.div`
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border: 4px solid #E4E7EC;
-  border-top: 4px solid #1E40AF;
+  border-top: 4px solid #1570EF;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  
+
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -891,19 +968,18 @@ const Spinner = styled.div`
 `;
 
 const ErrorMessage = styled.div`
+  color: #d92d20;
+  background-color: #fef3f2;
+  border: 1px solid #fecdca;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 14px;
   text-align: center;
-  padding: 50px 0;
-  color: #D92D20;
-  font-size: 16px;
-  font-weight: 500;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
 `;
 
 const BackButton = styled.button`
-  background-color: #1849A9;
+  background-color: #1570EF;
   color: white;
   border: none;
   border-radius: 8px;
@@ -911,10 +987,11 @@ const BackButton = styled.button`
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  
+  margin-top: 15px;
+
   &:hover {
-    background-color: #0F2C70;
+    background-color: #0d5ecb;
   }
 `;
 
-export default SelectedForumPage; 
+export default SelectedForumPage;

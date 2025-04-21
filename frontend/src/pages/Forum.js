@@ -37,13 +37,41 @@ const Forum = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
-  const [newPostTags, setNewPostTags] = useState([]);
+  const [newPostCategoryId, setNewPostCategoryId] = useState('');
+  const [backendCategories, setBackendCategories] = useState([]); // State for ALL categories fetched from backend
+  const [displayCategories, setDisplayCategories] = useState([]); // State for filtered categories to display in dropdown
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const fileInputRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const modalRef = useRef(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // State to trigger data refresh
+  const [submitSuccess, setSubmitSuccess] = useState(''); // State for success message
 
-  // Fetch forum data when page loads
+  // Define the allowed category names (alphabetically sorted)
+  const allowedCategoryNames = [
+    'ARVR',
+    'Blockchain',
+    'CloudComputing',
+    'Cybersecurity',
+    'DataScience',
+    'DatabaseManagement',
+    'DevOps',
+    'EmbeddedSystems',
+    'GameDevelopment',
+    'MachineLearning',
+    'MobileDevelopment',
+    'OpenSource',
+    'ProjectManagement',
+    'QAStandards',
+    'SoftwareArchitecture',
+    'SoftwareTesting',
+    'TestPlanning',
+    'WebDevelopment'
+  ];
+
+  // Fetch forum data when page loads or refreshKey changes
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -80,7 +108,7 @@ const Forum = () => {
               id: post.forumPostID,
               title: post.title,
               description: post.description,
-              media: post.media || '',
+              media: post.mediaList || [], // Use mediaList if available
               likesCount: post.likesCount || 0,
               commentCount: post.commentCount || 0,
               createdBy: post.createdBy,
@@ -89,9 +117,13 @@ const Forum = () => {
               formattedDate: formatDate(post.createdAt),
               timeAgo: getTimeAgo(post.createdAt),
               updatedAt: post.updatedAt,
-              tags: post.tags || ['Research'], // Default to Research if no tags
-              userName: post.userName || post.ownerName || 'Anonymous', // Use actual username if available
-              userProfilePic: post.userProfilePic || '' // Store profile pic URL if available
+              // Use category object if available from backend response
+              tags: post.category ? [post.category.name] : ['General'], 
+              // Use creatorName and creatorProfilePic if available from backend
+              userName: post.creatorName || 'Anonymous', 
+              userProfilePic: post.creatorProfilePic || defaultProfilePic, 
+              isLiked: post.isLikedByUser || false, // Assume backend provides like status
+              isSaved: post.isSavedByUser || false // Assume backend provides save status
             }));
             
             // Save all posts for filtering
@@ -137,7 +169,41 @@ const Forum = () => {
     };
 
     fetchData();
-  }, [currentPage]);
+    // Add refreshKey to dependency array
+  }, [currentPage, refreshKey]);
+
+  // Fetch categories from backend and filter them
+  useEffect(() => {
+    const fetchAndFilterCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/forum-categories');
+        let fetchedCategories = [];
+        if (response && response.data) {
+          fetchedCategories = response.data; // Assuming response.data is an array of { categoryId, name, ... }
+          setBackendCategories(fetchedCategories);
+        } else {
+          setBackendCategories([]);
+        }
+
+        // Filter fetched categories based on the allowed names
+        const filtered = fetchedCategories.filter(category =>
+          allowedCategoryNames.includes(category.name)
+        );
+
+        // Sort the filtered categories alphabetically by name for display
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+        setDisplayCategories(filtered);
+
+      } catch (error) {
+        console.error('Error fetching or filtering categories:', error);
+        setBackendCategories([]);
+        setDisplayCategories([]); // Set empty on error
+      }
+    };
+
+    fetchAndFilterCategories();
+  }, []); // Fetch categories once when component mounts
 
   // Format date to readable format (e.g., "Oct 15, 2023")
   const formatDate = (dateString) => {
@@ -353,22 +419,47 @@ const Forum = () => {
     };
   }, [showCreateModal, modalRef]);
 
-  // Create a new forum post
+  // Create a new forum post - Open Modal
   const handleCreatePost = () => {
     setShowCreateModal(true);
     setNewPostTitle('');
     setNewPostContent('');
-    setNewPostTags([]);
+    setNewPostCategoryId('');
+    setSelectedFiles([]);
     setSubmitError('');
   };
 
-  // Handle tag selection
-  const handleTagSelection = (tag) => {
-    if (newPostTags.includes(tag)) {
-      setNewPostTags(newPostTags.filter(t => t !== tag));
-    } else {
-      setNewPostTags([...newPostTags, tag]);
+  // Handle category selection from dropdown
+  const handleCategorySelect = (event) => {
+    setNewPostCategoryId(event.target.value);
+  };
+
+  // Trigger hidden file input click
+  const handleUploadButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
+  };
+
+  // Handle file selection
+  const handleFileChange = (event) => {
+    const files = Array.from(event.target.files);
+    // Limit to 10 files as per backend constraint (adjust if needed)
+    if (selectedFiles.length + files.length > 10) {
+      setSubmitError('You can upload a maximum of 10 media files.');
+      return;
+    }
+    setSelectedFiles(prevFiles => [...prevFiles, ...files]);
+    setSubmitError(''); // Clear error if successful
+    // Reset file input value to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Remove a selected file
+  const handleRemoveFile = (fileName) => {
+    setSelectedFiles(prevFiles => prevFiles.filter(file => file.name !== fileName));
   };
 
   // Submit new post
@@ -378,9 +469,12 @@ const Forum = () => {
       setSubmitError('Please enter a title for your post');
       return;
     }
-
     if (!newPostContent.trim()) {
       setSubmitError('Please enter content for your post');
+      return;
+    }
+    if (!newPostCategoryId) {
+      setSubmitError('Please select a category for your post');
       return;
     }
 
@@ -388,61 +482,87 @@ const Forum = () => {
     setSubmitError('');
 
     try {
-      // Get token from local storage
       const token = localStorage.getItem('token');
-      
       if (!token) {
         navigate('/login', { state: { from: '/forum', message: 'Please log in to create a post' } });
+        setIsSubmitting(false); // Ensure submitting state is reset
         return;
       }
 
-      // Create post data
-      const postData = {
-        title: newPostTitle,
-        description: newPostContent,
-        tags: newPostTags.length > 0 ? newPostTags : ['General']
-      };
+      let response;
+      // Check if files are selected
+      if (selectedFiles.length > 0) {
+        // Use FormData for multipart request
+        const formData = new FormData();
+        formData.append('title', newPostTitle);
+        formData.append('description', newPostContent);
+        formData.append('categoryId', newPostCategoryId);
 
-      // Send POST request to API
-      const response = await axios.post(
-        'http://localhost:8080/api/v1/forum-posts',
-        postData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        selectedFiles.forEach(file => {
+          formData.append('mediaFiles', file);
+        });
+
+        // Send POST request to the /with-media endpoint
+        response = await axios.post(
+          'http://localhost:8080/api/v1/forum-posts/with-media',
+          formData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              // Content-Type is automatically set by axios for FormData
+            }
           }
-        }
-      );
-
-      if (response.status === 200 || response.status === 201) {
-        // Close modal and refresh posts
-        setShowCreateModal(false);
-        
-        // Add new post to state to avoid full refresh
-        const newPost = {
-          id: response.data.id || Date.now(), // Use returned ID or temporary one
+        );
+      } else {
+        // Use standard JSON request if no files
+        const postData = {
           title: newPostTitle,
           description: newPostContent,
-          likesCount: 0,
-          commentCount: 0,
-          createdBy: 'You', // This should come from the authenticated user
-          createdByType: 'USER',
-          createdAt: new Date().toISOString(),
-          formattedDate: formatDate(new Date()),
-          timeAgo: 'Just now',
-          tags: newPostTags.length > 0 ? newPostTags : ['General']
+          categoryId: parseInt(newPostCategoryId) // Ensure categoryId is integer
         };
 
-        // Update state
-        setAllPosts([newPost, ...allPosts]);
-        setRecentForumPosts([newPost, ...recentForumPosts.slice(0, 4)]);
+        // Send POST request to the standard endpoint
+        response = await axios.post(
+          'http://localhost:8080/api/v1/forum-posts',
+          postData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
       }
+
+      if (response && (response.status === 200 || response.status === 201)) {
+        // Post created successfully
+        setShowCreateModal(false); // Close modal
+        setIsSubmitting(false);
+
+        // Set success message
+        setSubmitSuccess('Forum post published successfully!');
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setSubmitSuccess('');
+        }, 5000);
+
+        // Refresh the posts list by incrementing the refreshKey
+        setRefreshKey(prev => prev + 1);
+
+      } else {
+        // Handle unexpected success response
+        setSubmitError(response.data?.message || 'Failed to create post. Unexpected response.');
+        setIsSubmitting(false);
+      }
+
     } catch (error) {
       console.error('Error creating post:', error);
-      setSubmitError(error.response?.data?.message || 'Failed to create post. Please try again.');
-    } finally {
       setIsSubmitting(false);
+      if (error.response) {
+        setSubmitError(error.response.data?.message || `Error: ${error.response.status}`);
+      } else {
+        setSubmitError('Failed to create post. Check connection or try again.');
+      }
     }
   };
 
@@ -570,6 +690,11 @@ const Forum = () => {
       </FullWidthBanner>
 
       <ForumContainer style={{ marginTop: "30px" }}>
+        {/* Display Success Message */} 
+        {submitSuccess && <SuccessMessage>{submitSuccess}</SuccessMessage>}
+        {/* Display Error Message (if any general errors occur) */}
+        {error && <GeneralErrorMessage>{error}</GeneralErrorMessage>}
+
         <ForumContent>
           <LeftSidebar>
             <PopularPostsTitle>Popular Forum Posts</PopularPostsTitle>
@@ -677,13 +802,13 @@ const Forum = () => {
                     >
                       All Categories
                     </CategoryOption>
-                    {categories.map((category, index) => (
+                    {displayCategories.map((category) => (
                       <CategoryOption 
-                        key={index} 
-                        selected={selectedCategory === category}
-                        onClick={() => handleCategoryChange({ target: { value: category } })}
+                        key={category.categoryId} 
+                        selected={selectedCategory === category.name}
+                        onClick={() => handleCategoryChange({ target: { value: category.name } })}
                       >
-                        {category}
+                        {category.name}
                       </CategoryOption>
                     ))}
                   </CategoryDropdown>
@@ -706,9 +831,9 @@ const Forum = () => {
                     <DetailedPostHeader>
                       <DetailedPostAuthorSection>
                         <AuthorAvatar>
-                          <img 
-                            src={post.userProfilePic || defaultProfilePic}
-                            alt="User avatar" 
+                          <img
+                            src={post.userProfilePic}
+                            alt="User avatar"
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = defaultProfilePic;
@@ -762,10 +887,6 @@ const Forum = () => {
                         }}>
                           {post.isLiked ? <FiHeart size={16} fill="#E94A65" color="#E94A65" /> : <FiHeart size={16} />}
                           <span>{post.likesCount}</span>
-                        </DetailedPostStat>
-                        <DetailedPostStat onClick={(e) => e.stopPropagation()}>
-                          <FiEye size={16} />
-                          <span>{100 + index * 20}</span>
                         </DetailedPostStat>
                       </DetailedPostStats>
                     </DetailedPostFooter>
@@ -834,38 +955,62 @@ const Forum = () => {
                 onChange={(e) => setNewPostTitle(e.target.value)}
               />
               
+              <InputLabel>Category</InputLabel>
+              <CategorySelect value={newPostCategoryId} onChange={handleCategorySelect}>
+                <option value="" disabled>Select a category</option>
+                {displayCategories.map((category) => (
+                  <option key={category.categoryId} value={category.categoryId}>
+                    {category.name}
+                  </option>
+                ))}
+              </CategorySelect>
+              
               <InputLabel>Content</InputLabel>
               <ContentTextarea 
                 placeholder="Share your thoughts, questions, or ideas..."
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
               />
-              
-              <InputLabel>Tags</InputLabel>
-              <TagsContainer>
-                {categories.map((tag, index) => (
-                  <TagOption 
-                    key={index} 
-                    selected={newPostTags.includes(tag)}
-                    onClick={() => handleTagSelection(tag)}
-                  >
-                    {tag}
-                  </TagOption>
-                ))}
-              </TagsContainer>
-              
-              {submitError && <ErrorMessage>{submitError}</ErrorMessage>}
+
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/*" // Adjust accepted file types if needed
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+
+              {/* Display Selected Files */}
+              {selectedFiles.length > 0 && (
+                <SelectedFilesPreview>
+                  <InputLabel style={{ marginBottom: '5px' }}>Selected Files ({selectedFiles.length}/10):</InputLabel>
+                  <FileList>
+                    {selectedFiles.map((file, index) => (
+                      <FileItem key={index}>
+                        <FileName>{file.name} ({ (file.size / 1024).toFixed(1) } KB)</FileName>
+                        <RemoveFileButton onClick={() => handleRemoveFile(file.name)}>
+                          <FiX size={14} />
+                        </RemoveFileButton>
+                      </FileItem>
+                    ))}
+                  </FileList>
+                </SelectedFilesPreview>
+              )}
+
+              {submitError && <ModalErrorMessage>{submitError}</ModalErrorMessage>}
             </ModalBody>
             <ModalFooter>
-              <UploadButton>
+              <UploadButton onClick={handleUploadButtonClick} disabled={isSubmitting}>
                 <FiImage />
-                Add Image
+                Add Media (Max 10)
               </UploadButton>
-              <SubmitButton 
+              <SubmitButton
                 onClick={submitNewPost}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Posting...' : 'Post'} <FiSend />
+                {isSubmitting ? <ButtonSpinner /> : (<>Post <FiSend /></>) }
               </SubmitButton>
             </ModalFooter>
           </ModalContainer>
@@ -985,7 +1130,7 @@ const SortDropdown = styled.div`
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
+  min-width: 180px;
   margin-top: 8px;
   background-color: white;
   border-radius: 8px;
@@ -998,7 +1143,8 @@ const SortOption = styled.div`
   padding: 12px 16px;
   cursor: pointer;
   font-size: 14px;
-  
+  white-space: nowrap;
+
   ${({ selected }) => selected && `
     background-color: #EFF6FF;
     color: #1E40AF;
@@ -1038,20 +1184,23 @@ const CategoryDropdown = styled.div`
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
+  min-width: 180px;
   margin-top: 8px;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 10;
   overflow: hidden;
+  max-height: 310px;
+  overflow-y: auto;
 `;
 
 const CategoryOption = styled.div`
   padding: 12px 16px;
   cursor: pointer;
   font-size: 14px;
-  
+  white-space: nowrap;
+
   ${({ selected }) => selected && `
     background-color: #EFF6FF;
     color: #1E40AF;
@@ -1294,10 +1443,15 @@ const DetailedPostStat = styled.div`
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease, transform 0.1s ease;
   
   &:hover {
     background-color: #f2f4f7;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 `;
 
@@ -1401,12 +1555,14 @@ const ModalOverlay = styled.div`
 
 const ModalContainer = styled.div`
   background-color: white;
-  border-radius: 12px;
+  border-radius: 30px;
   width: 90%;
-  max-width: 600px;
+  max-width: 700px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
 `;
 
 const ModalHeader = styled.div`
@@ -1427,92 +1583,158 @@ const ModalTitle = styled.h2`
 const CloseButton = styled.button`
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 24px;
   color: #667085;
   cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f2f4f7;
+  }
 `;
 
 const ModalBody = styled.div`
-  padding: 20px;
+  padding: 24px 30px;
+  flex-grow: 1;
+  overflow-y: auto;
 `;
 
 const InputLabel = styled.label`
   display: block;
   font-size: 14px;
-  font-weight: 500;
-  color: #344054;
-  margin-bottom: 6px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 8px;
 `;
 
 const TitleInput = styled.input`
   width: 100%;
   padding: 10px 14px;
   border: 1px solid #D0D5DD;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 30px;
+  font-size: 1rem;
   margin-bottom: 20px;
   
   &:focus {
     outline: none;
-    border-color: #1849A9;
-    box-shadow: 0 0 0 3px rgba(24, 73, 169, 0.1);
+    border-color: #223A70;
   }
 `;
 
 const ContentTextarea = styled.textarea`
   width: 100%;
-  height: 180px;
-  padding: 10px 14px;
-  border: 1px solid #D0D5DD;
-  border-radius: 8px;
-  font-size: 16px;
-  resize: vertical;
-  margin-bottom: 20px;
-  
+  min-height: 150px;
+  padding: 10px 15px;
+  border: 1px solid #d0d5dd;
+  border-radius: 30px;
+  font-size: 1rem;
+  resize: none;
+  margin-bottom: 15px;
   &:focus {
     outline: none;
-    border-color: #1849A9;
-    box-shadow: 0 0 0 3px rgba(24, 73, 169, 0.1);
+    border-color: #223A70;
   }
 `;
 
-const TagsContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 20px;
+const CategorySelect = styled.select`
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 30px;
+  font-size: 1rem;
+  margin-bottom: 15px;
+  background-color: white;
+  cursor: pointer;
+  color: ${props => props.value === "" ? '#98a2b3' : '#101828'};
+  appearance: none;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+  background-repeat: no-repeat;
+  background-position: right 15px top 50%;
+  background-size: 12px auto;
+
+  option:disabled {
+    color: #98a2b3;
+  }
+
+  option {
+    color: #223A70;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #223A70;
+  }
 `;
 
-const TagOption = styled.div`
-  font-size: 12px;
-  font-weight: 500;
-  color: #1E40AF;
-  background-color: #EFF4FF;
-  padding: 4px 10px;
-  border-radius: 16px;
-  display: inline-flex;
+const SelectedFilesPreview = styled.div`
+  margin-bottom: 15px;
+`;
+
+const FileList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 100px; // Limit height for many files
+  overflow-y: auto; // Add scroll if needed
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  padding: 8px;
+`;
+
+const FileItem = styled.li`
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  transition: all 0.2s ease;
+  font-size: 13px;
+  color: #475467;
+  padding: 4px 8px;
+  background-color: #f9fafb;
+  border-radius: 4px;
+  margin-bottom: 4px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const FileName = styled.span`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 10px;
+`;
+
+const RemoveFileButton = styled.button`
+  background: none;
+  border: none;
+  color: #98a2b3;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
 
   &:hover {
-    background-color: #DBE4FF;
-    transform: translateY(-1px);
+    color: #d92d20;
   }
 `;
 
-const ErrorMessage = styled.p`
-  color: #D92D20;
-  font-size: 14px;
-  margin: 10px 0;
+const ModalErrorMessage = styled.div`
+  color: #d92d20;
+  font-size: 13px;
+  margin-top: 10px;
+  text-align: center;
 `;
 
 const ModalFooter = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 16px 30px;
   border-top: 1px solid #E4E7EC;
 `;
 
@@ -1520,17 +1742,23 @@ const UploadButton = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background-color: white;
-  border: 1px solid #D0D5DD;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #344054;
+  padding: 12px 20px;
+  background-color: #f1f1f1;
+  border: none;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
   cursor: pointer;
-  
+  transition: background-color 0.3s ease;
+
   &:hover {
-    background-color: #F9FAFB;
+    background-color: #e1e1e1;
+  }
+
+  &:disabled {
+    background-color: #e0e0e0;
+    cursor: not-allowed;
   }
 `;
 
@@ -1538,21 +1766,22 @@ const SubmitButton = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background-color: #026AA2;
+  padding: 12px 20px;
+  background-color: #223A70;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
   color: white;
   cursor: pointer;
-  
+  transition: background-color 0.3s ease;
+
   &:hover {
-    background-color: #0284C7;
+    background-color: #192C54;
   }
-  
+
   &:disabled {
-    background-color: #BAE6FD;
+    background-color: #95a5a6;
     cursor: not-allowed;
   }
 `;
@@ -1601,10 +1830,15 @@ const SaveButton = styled.button`
   justify-content: center;
   margin-left: 4px;
   border-radius: 50%;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease, transform 0.1s ease;
   
   &:hover {
     background-color: #F0F7FF;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.90);
   }
 `;
 
@@ -1685,6 +1919,33 @@ const PageNumber = styled(Link)`
     height: 32px;
     font-size: 13px;
   }
+`;
+
+const ButtonSpinner = styled(Spinner)`
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+  border-top-color: white;
+  border-left-color: white;
+  border-bottom-color: white;
+  margin: 0;
+`;
+
+// Add styles for success and general error messages
+const SuccessMessage = styled.div`
+  background-color: #e8f5e9; // Light green background
+  color: #2e7d32; // Dark green text
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 5px solid #4caf50;
+  font-weight: 500;
+`;
+
+const GeneralErrorMessage = styled(SuccessMessage)`
+  background-color: #ffebee; // Light red background
+  color: #c62828; // Dark red text
+  border-left-color: #f44336;
 `;
 
 export default Forum; 
