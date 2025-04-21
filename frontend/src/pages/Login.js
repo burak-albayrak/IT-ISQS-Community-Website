@@ -55,6 +55,31 @@ const Login = () => {
     const navigate = useNavigate();
     const { login: authLogin } = useAuth();
 
+    // Add countries array before the component logic
+    const countries = [
+        "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", 
+        "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", 
+        "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", 
+        "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", 
+        "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", 
+        "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "England", "Equatorial Guinea", "Eritrea", "Estonia", 
+        "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", 
+        "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", 
+        "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", 
+        "Kiribati", "Korea, North", "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", 
+        "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", 
+        "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", 
+        "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", 
+        "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", 
+        "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", 
+        "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", 
+        "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", 
+        "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", 
+        "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", 
+        "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", 
+        "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+    ];
+    
     // URL'de signup parametresini kontrol et
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
@@ -243,25 +268,32 @@ const Login = () => {
         setLoading(true);
         setError('');
         setFieldErrors({});
-
+        
         // Validate form
         if (!validateForm()) {
             setLoading(false);
             return;
         }
-
-        // Backend'e gönderilecek verileri hazırla
-        const userData = {
-            firstName: registerData.firstName,
-            lastName: registerData.lastName,
-            email: registerData.email,
-            password: registerData.password,
-            country: registerData.country,
-            institution: registerData.institution,
-            role: registerData.role
-        };
-
+        
         try {
+            // Get the properly capitalized country name from the countries array
+            const properCountryName = countries.find(country => 
+                country.toLowerCase() === registerData.country.toLowerCase()
+            ) || registerData.country;
+            
+            // Backend'e gönderilecek verileri hazırla
+            const userData = {
+                firstName: registerData.firstName,
+                lastName: registerData.lastName,
+                email: registerData.email,
+                password: registerData.password,
+                country: properCountryName, // Use proper case country name
+                institution: registerData.institution,
+                role: registerData.role
+            };
+            
+            console.log('Register data being sent:', userData);
+            
             // Register API isteği
             const response = await register(userData);
             console.log('Registration successful:', response);
@@ -378,13 +410,12 @@ const Login = () => {
                                     required
                                     style={hasError('country') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
                                 >
-                                    <option value="" disabled selected>Country</option>
-                                    <option value="turkey">Turkey</option>
-                                    <option value="germany">Germany</option>
-                                    <option value="italy">Italy</option>
-                                    <option value="spain">Spain</option>
-                                    <option value="france">France</option>
-                                    <option value="uk">United Kingdom</option>
+                                    <option value="" disabled>Country</option>
+                                    {countries.map((country, index) => (
+                                        <option key={index} value={country.toLowerCase()}>
+                                            {country}
+                                        </option>
+                                    ))}
                                 </S.Select>
                                 {fieldErrors.country && <S.InputError>{fieldErrors.country}</S.InputError>}
                             </div>

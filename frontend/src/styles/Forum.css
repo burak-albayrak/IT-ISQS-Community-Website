@@ -1,0 +1,51 @@
+/* Forum CSS Styles */
+
+/* Animation for loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .forum-post-item {
+    flex-direction: column;
+  }
+  
+  .post-author-section {
+    margin-bottom: 10px;
+    margin-right: 0;
+  }
+  
+  .post-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+}
+
+/* For better tag appearance */
+.category-tag {
+  transition: background-color 0.2s;
+}
+
+.category-tag:hover {
+  background-color: #e4e7ec;
+}
+
+/* Button hover effects */
+.action-button:hover, 
+.create-post-button:hover,
+.sort-button:hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s;
+}
+
+/* Focus styles for accessibility */
+input:focus,
+select:focus,
+button:focus {
+  outline: 2px solid rgba(21, 112, 239, 0.5);
+  outline-offset: 2px;
+} 
