@@ -33,6 +33,14 @@ public class ForumComment {
 
     @Column(name = "edited")
     private boolean edited = false;
+    
+    // Parent comment ID - reply yapısı için
+    @Column(name = "parent_comment_id")
+    private Integer parentCommentID;
+    
+    // Yorumun cevap aldığı yorum sayısı
+    @Column(name = "reply_count")
+    private int replyCount = 0;
 
     @Column(name = "created_by")
     private int createdBy;

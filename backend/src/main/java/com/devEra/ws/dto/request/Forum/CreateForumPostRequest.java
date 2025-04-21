@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 public class CreateForumPostRequest {
 
@@ -14,5 +17,5 @@ public class CreateForumPostRequest {
     @NotBlank(message = "Description cannot be blank.")
     private String description;
 
-    private String media; // optional – UI'da boş bırakılabilir
+    private List<String> mediaList = new ArrayList<>();
 }
