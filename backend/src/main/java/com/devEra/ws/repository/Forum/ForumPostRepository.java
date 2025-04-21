@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.devEra.ws.core.enums.CreatorType;
+import com.devEra.ws.entity.Forum.ForumCategory;
 import com.devEra.ws.entity.Forum.ForumPost;
 
 import java.util.List;
@@ -27,4 +28,15 @@ public interface ForumPostRepository extends JpaRepository<ForumPost,Integer>{
     @Modifying
     @Query(value = "DELETE FROM forum_comments WHERE forum_post_id = :postId", nativeQuery = true)
     void deleteAllCommentsByPostId(@Param("postId") int postId);
+    
+    // Metin içeriğine göre arama
+    @Query("SELECT p FROM ForumPost p WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :searchText, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :searchText, '%'))")
+    List<ForumPost> findByTitleOrDescriptionContainingIgnoreCase(@Param("searchText") String searchText);
+    
+    // Kategori bazlı filtreleme
+    List<ForumPost> findByCategory(ForumCategory category);
+    
+    // Kategori bazlı filtreleme ve metin araması
+    @Query("SELECT p FROM ForumPost p WHERE p.category = :category AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :searchText, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :searchText, '%')))")
+    List<ForumPost> findByCategoryAndTitleOrDescriptionContainingIgnoreCase(@Param("category") ForumCategory category, @Param("searchText") String searchText);
 }

@@ -59,14 +59,16 @@ public class ForumPostController {
      * @param title Forum başlığı
      * @param description Forum açıklaması
      * @param mediaFiles Yüklenecek medya dosyaları (max 10 adet)
+     * @param categoryId Kategori ID
      * @param tokenHeader Yetkilendirme token'ı
      * @return Oluşturulan forum post'un ID'si veya hata mesajı
      */
-    @PostMapping(value = "/with-media", consumes = { "multipart/form-data" })
+    @PostMapping("/with-media")
     public ResponseEntity<?> createForumPostWithMedia(
-            @RequestParam("title") String title,
-            @RequestParam("description") String description,
-            @RequestParam(value = "mediaFiles", required = false) List<MultipartFile> mediaFiles,
+            @RequestParam String title,
+            @RequestParam String description,
+            @RequestParam(required = false) List<MultipartFile> mediaFiles,
+            @RequestParam(required = false) Integer categoryId,
             @RequestHeader("Authorization") String tokenHeader) {
         
         try {
@@ -83,17 +85,16 @@ public class ForumPostController {
                 creatorType = CreatorType.USER;
             }
             
-            // Forum post oluştur ve medya dosyalarını yükle
-            ForumPost post = forumPostService.createForumPostWithMedia(
-                title, description, mediaFiles, userId, creatorType);
+            // Forum gönderisi oluştur
+            ForumPost post = forumPostService.createForumPostWithMedia(title, description, mediaFiles, categoryId, userId, creatorType);
             
+            // Yanıtı oluştur
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Forum post created successfully.");
             response.put("postId", post.getForumPostID());
             response.put("mediaCount", post.getMediaList() != null ? post.getMediaList().size() : 0);
             
             return ResponseEntity.ok(response);
-            
         } catch (IllegalArgumentException e) {
             ApiError error = new ApiError();
             error.setStatus(400);
@@ -103,7 +104,7 @@ public class ForumPostController {
         } catch (IOException e) {
             ApiError error = new ApiError();
             error.setStatus(500);
-            error.setMessage("Failed to upload media files: " + e.getMessage());
+            error.setMessage("Error uploading media files: " + e.getMessage());
             error.setPath("/api/v1/forum-posts/with-media");
             return ResponseEntity.status(500).body(error);
         } catch (Exception e) {
@@ -254,6 +255,81 @@ public class ForumPostController {
             error.setMessage(e.getMessage());
             error.setPath("/api/v1/forum-posts/user/" + userId);
             return ResponseEntity.status(404).body(error);
+        }
+    }
+
+    /**
+     * Forum postlarını arama
+     * 
+     * @param searchQuery Arama sorgusu
+     * @return Bulunan forum gönderileri
+     */
+    @GetMapping("/search")
+    public ResponseEntity<?> searchPosts(@RequestParam(required = false) String searchQuery) {
+        try {
+            List<ForumPost> posts = forumPostService.searchPosts(searchQuery);
+            return ResponseEntity.ok(posts);
+        } catch (Exception e) {
+            ApiError error = new ApiError();
+            error.setStatus(500);
+            error.setMessage("Error searching posts: " + e.getMessage());
+            error.setPath("/api/v1/forum-posts/search");
+            return ResponseEntity.status(500).body(error);
+        }
+    }
+    
+    /**
+     * Kategori bazlı forum postlarını getirme
+     * 
+     * @param categoryId Kategori ID
+     * @return Kategori ile filtrelenmiş forum gönderileri
+     */
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<?> getPostsByCategory(@PathVariable int categoryId) {
+        try {
+            List<ForumPost> posts = forumPostService.getPostsByCategory(categoryId);
+            return ResponseEntity.ok(posts);
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/forum-posts/category/" + categoryId);
+            return ResponseEntity.status(404).body(error);
+        } catch (Exception e) {
+            ApiError error = new ApiError();
+            error.setStatus(500);
+            error.setMessage("Error retrieving posts: " + e.getMessage());
+            error.setPath("/api/v1/forum-posts/category/" + categoryId);
+            return ResponseEntity.status(500).body(error);
+        }
+    }
+    
+    /**
+     * Metin içeriğine ve kategoriye göre forum gönderilerini arama
+     * 
+     * @param categoryId Kategori ID
+     * @param searchQuery Arama sorgusu
+     * @return Bulunan forum gönderileri
+     */
+    @GetMapping("/category/{categoryId}/search")
+    public ResponseEntity<?> searchPostsByCategoryAndText(
+            @PathVariable int categoryId,
+            @RequestParam(required = false) String searchQuery) {
+        try {
+            List<ForumPost> posts = forumPostService.searchPostsByCategoryAndText(searchQuery, categoryId);
+            return ResponseEntity.ok(posts);
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/forum-posts/category/" + categoryId + "/search");
+            return ResponseEntity.status(404).body(error);
+        } catch (Exception e) {
+            ApiError error = new ApiError();
+            error.setStatus(500);
+            error.setMessage("Error searching posts: " + e.getMessage());
+            error.setPath("/api/v1/forum-posts/category/" + categoryId + "/search");
+            return ResponseEntity.status(500).body(error);
         }
     }
 }

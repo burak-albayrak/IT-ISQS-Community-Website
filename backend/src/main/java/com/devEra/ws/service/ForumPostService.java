@@ -7,11 +7,13 @@ import com.devEra.ws.entity.User;
 import com.devEra.ws.entity.Forum.ForumPost;
 import com.devEra.ws.entity.Forum.ForumPostLike;
 import com.devEra.ws.entity.Forum.ForumPostSave;
+import com.devEra.ws.entity.Forum.ForumCategory;
 import com.devEra.ws.repository.AdminRepository;
 import com.devEra.ws.repository.UserRepository;
 import com.devEra.ws.repository.Forum.ForumPostLikeRepository;
 import com.devEra.ws.repository.Forum.ForumPostRepository;
 import com.devEra.ws.repository.Forum.ForumPostSaveRepository;
+import com.devEra.ws.repository.Forum.ForumCategoryRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -35,12 +37,20 @@ public class ForumPostService {
     private final UserRepository userRepository;
     private final AdminRepository adminRepository;
     private final S3Service s3Service;
+    private final ForumCategoryRepository forumCategoryRepository;
 
     public ForumPost createForumPost(CreateForumPostRequest request, int creatorId, CreatorType creatorType) {
         ForumPost post = new ForumPost();
         post.setTitle(request.getTitle());
         post.setDescription(request.getDescription());
         post.setMediaList(request.getMediaList());
+        
+        // Kategori ataması
+        if (request.getCategoryId() != null) {
+            ForumCategory category = findCategoryById(request.getCategoryId());
+            post.setCategory(category);
+        }
+        
         post.setLikesCount(0);
         post.setCommentCount(0);
         post.setCreatedAt(LocalDateTime.now());
@@ -57,6 +67,7 @@ public class ForumPostService {
      * @param title Forum başlığı
      * @param description Forum açıklaması
      * @param mediaFiles Yüklenecek medya dosyaları (en fazla 10 adet)
+     * @param categoryId Kategori ID (opsiyonel)
      * @param creatorId Oluşturan kullanıcı ID
      * @param creatorType Oluşturan kullanıcı tipi
      * @return Oluşturulan forum gönderisi
@@ -64,7 +75,8 @@ public class ForumPostService {
      * @throws IllegalArgumentException Geçersiz argüman durumunda
      */
     public ForumPost createForumPostWithMedia(String title, String description, 
-                                             List<MultipartFile> mediaFiles, 
+                                             List<MultipartFile> mediaFiles,
+                                             Integer categoryId,
                                              int creatorId, CreatorType creatorType) 
                                              throws IOException, IllegalArgumentException {
         
@@ -76,6 +88,13 @@ public class ForumPostService {
         ForumPost post = new ForumPost();
         post.setTitle(title);
         post.setDescription(description);
+        
+        // Kategori ataması
+        if (categoryId != null) {
+            ForumCategory category = findCategoryById(categoryId);
+            post.setCategory(category);
+        }
+        
         post.setLikesCount(0);
         post.setCommentCount(0);
         post.setCreatedAt(LocalDateTime.now());
@@ -251,5 +270,59 @@ public class ForumPostService {
         
         // Kullanıcının oluşturduğu postları getir
         return forumPostRepository.findByCreatedByAndCreatedByType(userId, creatorType);
+    }
+
+    /**
+     * Metin içeriğine göre forum gönderilerini arar
+     * 
+     * @param searchText Arama metni
+     * @return Bulunan forum gönderileri listesi
+     */
+    public List<ForumPost> searchPosts(String searchText) {
+        if (searchText == null || searchText.trim().isEmpty()) {
+            return getAllPosts();
+        }
+        return forumPostRepository.findByTitleOrDescriptionContainingIgnoreCase(searchText.trim());
+    }
+
+    /**
+     * Kategori bazlı filtreleme yapar
+     * 
+     * @param categoryId Kategori ID
+     * @return Kategori ile filtrelenmiş forum gönderileri listesi
+     */
+    public List<ForumPost> getPostsByCategory(int categoryId) {
+        ForumCategory category = findCategoryById(categoryId);
+        return forumPostRepository.findByCategory(category);
+    }
+
+    /**
+     * Metin içeriğine ve kategoriye göre forum gönderilerini arar
+     * 
+     * @param searchText Arama metni
+     * @param categoryId Kategori ID
+     * @return Bulunan forum gönderileri listesi
+     */
+    public List<ForumPost> searchPostsByCategoryAndText(String searchText, int categoryId) {
+        ForumCategory category = findCategoryById(categoryId);
+        
+        if (searchText == null || searchText.trim().isEmpty()) {
+            return forumPostRepository.findByCategory(category);
+        }
+        
+        return forumPostRepository.findByCategoryAndTitleOrDescriptionContainingIgnoreCase(category, searchText.trim());
+    }
+
+    /**
+     * Kategori ID'sine göre kategori bulur
+     * 
+     * @param categoryId Kategori ID
+     * @return Kategori
+     * @throws EntityNotFoundException Kategori bulunamazsa
+     */
+    private ForumCategory findCategoryById(int categoryId) {
+        // ForumCategoryRepository'den kategori bulma
+        return forumCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with ID: " + categoryId));
     }
 }

@@ -18,4 +18,6 @@ public class CreateForumPostRequest {
     private String description;
 
     private List<String> mediaList = new ArrayList<>();
+    
+    private Integer categoryId;
 }

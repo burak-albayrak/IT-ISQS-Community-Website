@@ -43,6 +43,10 @@ public class ForumPost {
     @Column(name = "comment_count")
     private int commentCount = 0;
 
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private ForumCategory category;
+
     @Column(name = "created_by")
     private int createdBy;
 
