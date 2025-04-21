@@ -39,5 +39,8 @@ public class Admin {
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$", message = "Passwordmust contain at least one uppercase letter, one lowercase letter, and onedigit.")
     @NotBlank(message = "Password cannot be blank.")
     private String password;
-
+    
+    // Profil resmi için alan ekleniyor
+    @Column(name = "picture")
+    private String picture;
 }

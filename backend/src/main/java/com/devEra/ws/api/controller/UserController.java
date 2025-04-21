@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,6 +33,7 @@ import com.devEra.ws.entity.Forum.ForumPost;
 import com.devEra.ws.exception.NotUniqueEmailException;
 import com.devEra.ws.service.UserService;
 import com.devEra.ws.service.S3Service;
+import com.devEra.ws.config.security.JwtTokenService;
 
 @RestController
 public class UserController {
@@ -42,6 +44,8 @@ public class UserController {
     @Autowired
     S3Service s3Service;
 
+    @Autowired
+    com.devEra.ws.config.security.JwtTokenService jwtTokenService;
 
     @PostMapping("/api/v1/users")
     GenericMessage createUser(@Valid @RequestBody User user) {
@@ -85,6 +89,40 @@ public class UserController {
             @PathVariable int userId,
             @RequestParam CreatorType creatorType) {
         return userService.getSavedForumPosts(userId, creatorType);
+    }
+
+    /**
+     * Giriş yapmış kullanıcının kaydettiği forum postlarını getirir
+     * 
+     * @param tokenHeader Yetkilendirme token'ı
+     * @return Kullanıcının kaydettiği forum postları listesi
+     */
+    @GetMapping("/api/v1/users/me/saved-posts")
+    public ResponseEntity<?> getMyUserSavedPosts(
+            @RequestHeader("Authorization") String tokenHeader) {
+        try {
+            // Token'dan kullanıcı bilgilerini al
+            String token = tokenHeader.replace("Bearer ", "");
+            Integer userId;
+            CreatorType creatorType;
+            
+            if (jwtTokenService.isAdminToken(token)) {
+                userId = jwtTokenService.getAdminIdFromToken(token);
+                creatorType = CreatorType.ADMIN;
+            } else {
+                userId = jwtTokenService.getUserIdFromToken(token);
+                creatorType = CreatorType.USER;
+            }
+            
+            List<ForumPost> savedPosts = userService.getSavedForumPosts(userId, creatorType);
+            return ResponseEntity.ok(savedPosts);
+        } catch (Exception e) {
+            ApiError error = new ApiError();
+            error.setStatus(401);
+            error.setMessage("Invalid or missing token: " + e.getMessage());
+            error.setPath("/api/v1/users/me/saved-posts");
+            return ResponseEntity.status(401).body(error);
+        }
     }
 
     /**

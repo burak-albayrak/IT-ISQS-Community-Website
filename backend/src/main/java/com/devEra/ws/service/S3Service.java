@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -60,6 +61,47 @@ public class S3Service {
 
         // Dosyanın S3 URL'ini döndür
         return "https://" + bucketName + ".s3.amazonaws.com/" + fileName;
+    }
+    
+    /**
+     * Herhangi bir dosyayı S3 bucket'a yükler ve URL'ini döndürür
+     * 
+     * @param file Yüklenecek dosya
+     * @param key S3'de kullanılacak dosya anahtarı (key)
+     * @return Yüklenen dosyanın URL'i
+     * @throws IOException dosya işleme hatası durumunda
+     */
+    public String uploadFile(MultipartFile file, String key) throws IOException {
+        // Dosya boyutunu kontrol et (10MB'dan küçük olmalı)
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new IllegalArgumentException("File size exceeds maximum limit of 10MB");
+        }
+
+        // S3'e dosyayı yükle
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(file.getContentType())
+                .build();
+
+        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
+
+        // Dosyanın S3 URL'ini döndür
+        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
+    }
+    
+    /**
+     * S3'ten dosya siler
+     * 
+     * @param key Silinecek dosyanın S3 anahtarı
+     */
+    public void deleteFile(String key) {
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+                
+        s3Client.deleteObject(deleteObjectRequest);
     }
 
     private String getFileExtension(String fileName) {
