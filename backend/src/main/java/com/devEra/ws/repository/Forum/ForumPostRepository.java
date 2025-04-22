@@ -39,4 +39,12 @@ public interface ForumPostRepository extends JpaRepository<ForumPost,Integer>{
     // Kategori bazlı filtreleme ve metin araması
     @Query("SELECT p FROM ForumPost p WHERE p.category = :category AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :searchText, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :searchText, '%')))")
     List<ForumPost> findByCategoryAndTitleOrDescriptionContainingIgnoreCase(@Param("category") ForumCategory category, @Param("searchText") String searchText);
+
+    /**
+     * Finds the most recent N forum posts ordered by creation date descending.
+     *
+     * @param count The maximum number of posts to return.
+     * @return A list of the most recent forum posts.
+     */
+    List<ForumPost> findTop3ByOrderByCreatedAtDesc(); // Finds top 3 posts
 }

@@ -18,18 +18,21 @@
   flex: 1;
   min-width: 300px;
   max-width: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-left: 1rem;
 }
 
 .footer-logo {
   display: flex;
   align-items: center;
-  margin-bottom: 1.5rem;
 }
 
 .footer-logo-img {
   height: 150px;
   width: auto;
-  margin-bottom: 0.5rem;
+  margin-left: 4rem;
   object-fit: contain;
 }
 
@@ -43,6 +46,7 @@
   font-size: 0.85rem;
   line-height: 1.5;
   color: #555;
+  margin-top: -3.5rem;
 }
 
 /* Links Section */

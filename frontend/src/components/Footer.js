@@ -15,7 +15,9 @@ const Footer = () => {
             <img src={logo} alt="IT-ISQS Logo" className="footer-logo-img" />
           </div>
           <p className="footer-description">
-            Lorem ipsum dolor sit amet consectetur. Blandit metus sit a ultrices facilisis id netus in id. Varius non tristique integer eget quis mauris arcu sagittis suspendisse. Proin etiam non euismod et id. Adipiscing id vestibulum luctus nec nisi sem massa.
+            Developed within the framework of the Erasmus+ Programme (KA220-HED).
+            Learn more about our mission to promote international software quality standards.
+            For inquiries, please contact us.
           </p>
         </div>
 
