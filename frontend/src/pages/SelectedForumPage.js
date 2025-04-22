@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend } from 'react-icons/fi';
+import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft } from 'react-icons/fi';
 import axios from 'axios';
 import defaultProfilePic from '../assets/defaultpp.jpg';
+import TextareaAutosize from 'react-textarea-autosize';
 
 // Global style to ensure consistent page layout
 const GlobalStyle = createGlobalStyle`
@@ -26,15 +27,20 @@ const SelectedForumPage = () => {
   const [commentError, setCommentError] = useState(null); // Add error state for comments
   const [newComment, setNewComment] = useState('');
   const [forumPosts, setForumPosts] = useState([]); // For popular posts sidebar
-  const [savedForumPosts, setSavedForumPosts] = useState([]); // For saved posts sidebar
+  const [savedForumPosts, setSavedForumPosts] = useState([]); // <-- Bu state artık kullanılmayacak
+  const [userSavedPosts, setUserSavedPosts] = useState([]); // <-- Yeni state
+  const [categoryColorMap, setCategoryColorMap] = useState({});
+  const [zoomedImageUrl, setZoomedImageUrl] = useState(null);
 
   // New function to fetch comments
   const fetchComments = async (currentPostId) => {
     setCommentsLoading(true);
     setCommentError(null);
     try {
-      // Assuming the backend endpoint for getting comments by post ID is like this
-      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}`);
+      // Use postId as a query parameter
+      // const response = await axios.get(`http://localhost:8080/api/v1/forum-comments?postId=${currentPostId}`);
+      // Corrected endpoint based on ForumCommentController
+      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}/main`);
       if (response && response.data) {
         // Format comments based on backend response structure
         const formattedComments = response.data.map(comment => ({
@@ -43,7 +49,7 @@ const SelectedForumPage = () => {
           createdAt: comment.createdAt,
           timeAgo: getTimeAgo(comment.createdAt),
           userName: comment.creatorName || 'Anonymous', // Adjust based on backend response
-          userProfilePic: comment.creatorProfilePic || defaultProfilePic, // Adjust based on backend response
+          userProfilePic: comment.creatorPicture || defaultProfilePic, // Correct field name from backend DTO
           replies: comment.replies ? comment.replies.map(/* Need to format replies if backend sends them nested */) : [] // Handle replies if needed
         }));
         setComments(formattedComments);
@@ -59,38 +65,57 @@ const SelectedForumPage = () => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/forum-categories');
+        if (response && response.data) {
+          const colorMap = response.data.reduce((acc, category) => {
+            if (category.name && category.color) {
+              acc[category.name] = category.color;
+            }
+            return acc;
+          }, {});
+          setCategoryColorMap(colorMap);
+        } else {
+          setCategoryColorMap({});
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategoryColorMap({}); // Reset map on error
+      }
+    };
+
+    const fetchPostData = async () => {
       setLoading(true);
       setError(null);
       
       try {
         console.log('Fetching post with ID:', postId);
-        // Get the specific forum post by ID
         const response = await axios.get(`http://localhost:8080/api/v1/forum-posts/${postId}`);
-        
         console.log('Forum post response:', response);
         
         if (response && response.data) {
-          // Format the post data
           const postData = response.data;
-          console.log('Post data:', postData);
+          console.log('Raw post data received from backend:', postData);
           
           setPost({
             id: postData.forumPostID,
             title: postData.title,
             description: postData.description,
-            media: postData.mediaList || [], // Assuming media is in mediaList
+            media: postData.mediaList || [],
             likesCount: postData.likesCount || 0,
-            commentCount: postData.commentCount || 0, // Use comment count from post if available
+            commentCount: postData.commentCount || 0,
             createdBy: postData.createdBy,
             createdByType: postData.createdByType,
             createdAt: postData.createdAt,
             formattedDate: formatDate(postData.createdAt),
             timeAgo: getTimeAgo(postData.createdAt),
             updatedAt: postData.updatedAt,
-            tags: postData.category ? [postData.category.name] : [], // Assuming category is an object with name
-            userName: postData.creatorName || 'Anonymous', // Adjust if backend provides creator name
-            userProfilePic: postData.creatorProfilePic || defaultProfilePic // Adjust if backend provides pic
+            tags: postData.category ? [postData.category.name] : [],
+            userName: postData.creatorName || 'Anonymous',
+            userProfilePic: postData.creatorProfilePic || defaultProfilePic,
+            isLiked: postData.isLikedByUser || false,
+            isSaved: postData.isSavedByUser || false
           });
           
           // Fetch comments separately using the function
@@ -108,7 +133,7 @@ const SelectedForumPage = () => {
                 commentCount: post.commentCount || 0,
                 createdAt: post.createdAt,
                 timeAgo: getTimeAgo(post.createdAt),
-                userName: post.userName || post.ownerName || 'Anonymous'
+                userName: post.creatorName || 'Anonymous'
               }));
               
               // Get popular posts
@@ -157,8 +182,49 @@ const SelectedForumPage = () => {
       }
     };
     
-    fetchData();
+    fetchCategories(); // Fetch categories when component mounts
+    fetchPostData();   // Fetch post data when component mounts or postId changes
   }, [postId, navigate]);
+
+  // Fetch saved posts for logged-in user
+  useEffect(() => {
+    const fetchSavedPosts = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+          setUserSavedPosts([]); // Clear saved posts if not logged in
+          return; 
+      }
+
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/users/me/saved-posts', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response && response.data) {
+          // Filter out the currently viewed post from the saved list
+          const filteredSavedPosts = response.data.filter(p => p.forumPostID !== parseInt(postId));
+          
+          // Format the saved posts
+          const formattedSavedPosts = filteredSavedPosts.map(post => ({
+            id: post.forumPostID,
+            title: post.title,
+            userName: post.creatorName || 'Anonymous',
+            commentCount: post.commentCount || 0,
+            likesCount: post.likesCount || 0,
+          }));
+          setUserSavedPosts(formattedSavedPosts);
+        } else {
+           setUserSavedPosts([]);
+        }
+      } catch (err) {
+        console.error("Error fetching saved posts:", err);
+        setUserSavedPosts([]); // Set empty on error
+      }
+    };
+
+    // Fetch saved posts when postId changes (to filter correctly) or user potentially saves/unsaves
+    fetchSavedPosts(); 
+    // Dependency array could include a refresh trigger if available, or just postId
+  }, [postId]); 
 
   const handleLikePost = async () => {
     // Check if post data is available
@@ -382,12 +448,12 @@ const SelectedForumPage = () => {
                   <SidebarPostItem 
                     key={sidebarPost.id} 
                     onClick={() => navigate(`/forum/post/${sidebarPost.id}`)}
-                    isActive={sidebarPost.id === parseInt(postId)}
+                    $isActive={sidebarPost.id === parseInt(postId)}
                   >
+                    <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
                       {sidebarPost.userName}
                     </SidebarPostAuthor>
-                    <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
                     <SidebarPostStats>
                       <span>{sidebarPost.commentCount} comments</span> • <span>{sidebarPost.likesCount} likes</span>
                     </SidebarPostStats>
@@ -396,36 +462,36 @@ const SelectedForumPage = () => {
               ) : (
                 <EmptyStateMessage style={{ padding: '20px 0' }}>No popular posts yet</EmptyStateMessage>
               )}
-              {forumPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/popular')}>View All</ViewAllLink>}
             </SidebarPostsList>
             
             <SavedPostsTitle>Saved Forum Posts</SavedPostsTitle>
             <SidebarPostsList>
-              {savedForumPosts.length > 0 ? (
-                savedForumPosts.map((sidebarPost) => (
+              {userSavedPosts.length > 0 ? (
+                userSavedPosts.map((sidebarPost) => (
                   <SidebarPostItem 
                     key={`saved-${sidebarPost.id}`} 
                     onClick={() => navigate(`/forum/post/${sidebarPost.id}`)}
-                    isActive={sidebarPost.id === parseInt(postId)}
                   >
+                    <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
                       {sidebarPost.userName}
                     </SidebarPostAuthor>
-                    <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
                     <SidebarPostStats>
                       <span>{sidebarPost.commentCount} comments</span> • <span>{sidebarPost.likesCount} likes</span>
                     </SidebarPostStats>
                   </SidebarPostItem>
                 ))
               ) : (
-                <EmptyStateMessage style={{ padding: '20px 0' }}>No saved posts yet</EmptyStateMessage>
+                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <EmptyStateMessage style={{ padding: '20px 0' }}>No saved posts yet</EmptyStateMessage>
+                </div>
               )}
-              {savedForumPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/saved')}>View All</ViewAllLink>}
+              {userSavedPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/saved')}>View All</ViewAllLink>}
             </SidebarPostsList>
           </LeftSidebar>
 
           <RightContent>
-            <BackLink onClick={() => navigate('/forum')}>← Back to Forum</BackLink>
+            <BackLink onClick={() => navigate('/forum')}><FiArrowLeft size={16} /> Back to Forum</BackLink>
             
             <DetailedPost>
               <DetailedPostHeader>
@@ -451,7 +517,12 @@ const SelectedForumPage = () => {
                 <DetailedPostTags>
                   {post.tags && post.tags.length > 0 ? (
                     post.tags.map((tag, tagIndex) => (
-                      <CategoryTag key={tagIndex}>{tag}</CategoryTag>
+                      <CategoryTag 
+                        key={tagIndex} 
+                        $categoryColor={categoryColorMap[tag] || null}
+                      >
+                        {tag}
+                      </CategoryTag>
                     ))
                   ) : (
                     <CategoryTag>General</CategoryTag>
@@ -471,9 +542,14 @@ const SelectedForumPage = () => {
                     {post.media.map((mediaUrl, index) => (
                       // Render img or video based on file type (simple check)
                       mediaUrl.match(/\.(jpeg|jpg|gif|png)$/) != null
-                      ? <DetailedPostMedia key={index} src={mediaUrl} alt={`Post media ${index + 1}`} />
+                      ? <DetailedPostMedia 
+                          key={index} 
+                          src={mediaUrl} 
+                          alt={`Post media ${index + 1}`} 
+                          onClick={() => setZoomedImageUrl(mediaUrl)}
+                        />
                       : mediaUrl.match(/\.(mp4|webm|ogg)$/) != null
-                        ? <DetailedPostVideo key={index} src={mediaUrl} controls />
+                        ? <DetailedPostVideo key={index} src={mediaUrl} controls preload="none" />
                         : null // Handle other types or show placeholder if needed
                     ))}
                   </MediaContainer>
@@ -490,10 +566,6 @@ const SelectedForumPage = () => {
                     {post.isLiked ? <FiHeart size={16} fill="#E94A65" color="#E94A65" /> : <FiHeart size={16} />}
                     <span>{post.likesCount}</span>
                   </DetailedPostStat>
-                  <DetailedPostStat>
-                    <FiEye size={16} />
-                    <span>{500}</span>
-                  </DetailedPostStat>
                 </DetailedPostStats>
               </DetailedPostFooter>
             </DetailedPost>
@@ -504,8 +576,10 @@ const SelectedForumPage = () => {
                   placeholder="Write a comment..." 
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
+                  minRows={1}
+                  maxRows={20}
                 />
-                <CommentSubmitButton type="submit">
+                <CommentSubmitButton type="submit" disabled={!newComment.trim()}>
                   <FiSend />
                 </CommentSubmitButton>
               </CommentForm>
@@ -526,17 +600,36 @@ const SelectedForumPage = () => {
                           <CommentTime>{comment.timeAgo}</CommentTime>
                         </CommentAuthor>
                         <CommentText>{comment.content}</CommentText>
+                        <CommentActionsContainer>
+                          <CommentAction>
+                            <FiHeart size={14} />
+                            <span>{comment.likes || 0}</span>
+                          </CommentAction>
+                          {!comment.parentCommentID && (
+                            <CommentAction>
+                              Reply
+                            </CommentAction>
+                          )}
+                        </CommentActionsContainer>
                       </CommentContent>
                     </CommentItem>
                   ))
                 ) : (
-                  !commentError && <EmptyCommentsMessage>No comments yet. Be the first to comment!</EmptyCommentsMessage>
+                  !commentError && <EmptyCommentsMessage><FiMessageSquare size={18} /> No comments yet. Be the first to comment!</EmptyCommentsMessage>
                 )}
               </CommentList>
             </CommentsSection>
           </RightContent>
         </ForumContent>
       </ForumContainer>
+
+      {/* --- Image Zoom Modal --- */} 
+      {zoomedImageUrl && (
+        <ZoomOverlay onClick={() => setZoomedImageUrl(null)}>
+          <ZoomedImage src={zoomedImageUrl} alt="Zoomed post media" />
+        </ZoomOverlay>
+      )}
+      {/* --- End of Image Zoom Modal --- */}
     </>
   );
 };
@@ -597,10 +690,10 @@ const SidebarPostItem = styled.div`
   border-bottom: 1px solid #F2F4F7;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: ${props => props.isActive ? '#F0F4FF' : '#fff'};
+  background-color: ${props => props.$isActive ? '#F0F4FF' : '#fff'};
   
   &:hover {
-    background-color: ${props => props.isActive ? '#F0F4FF' : '#F9FAFB'};
+    background-color: ${props => props.$isActive ? '#F0F4FF' : '#F9FAFB'};
     box-shadow: 0 2px 4px rgba(16, 24, 40, 0.1);
     transform: translateY(-1px);
     z-index: 1;
@@ -656,12 +749,21 @@ const BackLink = styled.button`
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  padding: 0;
+  padding: 6px 10px;
   margin-bottom: 20px;
-  display: inline-block;
-  
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+
   &:hover {
-    text-decoration: underline;
+    background-color: #EFF6FF;
+    color: #172554;
+  }
+
+  &:active {
+      transform: translateY(1px);
   }
 `;
 
@@ -695,6 +797,7 @@ const AuthorAvatar = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    loading: lazy;
   }
 `;
 
@@ -721,11 +824,31 @@ const DetailedPostTags = styled.div`
 `;
 
 const CategoryTag = styled.span`
-  background-color: #F0F4FF;
-  color: #1849A9;
   font-size: 12px;
+  font-weight: 400; /* Match Forum.js style */
+  padding: 4px 10px;
   border-radius: 16px;
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  /* Apply colors based on categoryColor prop - MATCH Forum.js */
+  color: ${props => props.$categoryColor || '#475467'}; 
+  background-color: ${props => 
+    props.$categoryColor 
+      ? props.$categoryColor + '33' /* Alpha ~20% */ 
+      : '#e9ecef' 
+  };
+
+  &:hover {
+    background-color: ${props => 
+      props.$categoryColor 
+        ? props.$categoryColor + '55' /* Alpha ~33% */
+        : '#d8dde1'
+    };
+    transform: translateY(-1px);
+  }
 `;
 
 const SaveButton = styled.button`
@@ -763,15 +886,29 @@ const DetailedPostText = styled.div`
   white-space: pre-line;
 `;
 
-const DetailedPostMedia = styled.img`
-  max-width: 100%;
+const DetailedPostMedia = styled.img.attrs({
+  loading: 'lazy'
+})`
+  max-width: 70%;
+  height: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
   border-radius: 8px;
   margin-top: 10px;
-  display: block; // Ensure image takes its own line
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+
+  &:hover {
+      /* Optional: slight zoom on hover */
+      /* transform: scale(1.02); */
+  }
 `;
 
 // Add styled component for video if needed
-const DetailedPostVideo = styled.video`
+const DetailedPostVideo = styled.video.attrs({
+  preload: 'none'
+})`
   max-width: 100%;
   border-radius: 8px;
   margin-top: 10px;
@@ -814,14 +951,27 @@ const DetailedPostStat = styled.button`
   align-items: center;
   gap: 6px;
   font-size: 14px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+
+  svg {
+    transition: fill 0.2s ease, color 0.2s ease;
+  }
   
   &:hover {
     color: #101828;
+    background-color: #F2F4F7;
+  }
+
+  &:active {
+    transform: scale(0.95);
+    background-color: #E4E7EC;
   }
 `;
 
 const CommentsSection = styled.div`
-  margin-top: 30px;
+  margin-top: 40px;
 `;
 
 const CommentForm = styled.form`
@@ -831,18 +981,26 @@ const CommentForm = styled.form`
   gap: 8px;
 `;
 
-const CommentInput = styled.textarea`
+const CommentInput = styled(TextareaAutosize)`
   flex-grow: 1;
   padding: 10px 15px;
   border: 1px solid #d0d5dd;
   border-radius: 8px;
   font-size: 14px;
-  resize: vertical;
+  resize: none;
   min-height: 40px;
+  line-height: 1.4;
+
   &:focus {
     outline: none;
     border-color: #1570EF;
     box-shadow: 0 0 0 2px rgba(21, 112, 239, 0.2);
+  }
+
+  &:disabled {
+      color: #98A2B3;
+      cursor: not-allowed;
+      background-color: transparent;
   }
 `;
 
@@ -852,15 +1010,28 @@ const CommentSubmitButton = styled.button`
   color: #1570EF;
   cursor: pointer;
   padding: 8px;
-  margin-left: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
   height: 40px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: #0d5ecb;
+    background-color: #F2F4F7;
+  }
+
+  &:active:not(:disabled) {
+      transform: scale(0.95);
+      background-color: #E4E7EC;
+  }
+
+  &:disabled {
+      color: #98A2B3; // Gray out when disabled
+      cursor: not-allowed;
+      background: none !important; // Force no background when disabled, overriding hover/focus
   }
 `;
 
@@ -868,23 +1039,23 @@ const CommentsTitle = styled.h2`
   font-size: 18px;
   font-weight: 600;
   color: #101828;
-  margin: 0 0 20px 0;
+  margin: 30px 0 25px 0;
 `;
 
 const CommentList = styled.div`
   margin-top: 20px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 `;
 
 const CommentItem = styled.div`
-  border: 1px solid #F2F4F7;
+  border: 1px solid #E4E7EC;
   border-radius: 8px;
-  padding: 15px;
+  padding: 20px;
   background-color: #fff;
   display: flex;
-  gap: 12px;
+  gap: 15px;
 `;
 
 const CommentAvatar = styled.div`
@@ -898,6 +1069,7 @@ const CommentAvatar = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    loading: lazy;
   }
 `;
 
@@ -908,7 +1080,7 @@ const CommentContent = styled.div`
 const CommentAuthor = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   gap: 8px;
 `;
 
@@ -927,14 +1099,55 @@ const CommentText = styled.p`
   margin: 0;
   font-size: 14px;
   color: #344054;
-  line-height: 1.5;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  white-space: pre-line;
+`;
+
+// Container for action buttons
+const CommentActionsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+// New styled component for comment action buttons (Like, Reply)
+const CommentAction = styled.button`
+  background: none;
+  border: none;
+  color: #667085; // Default gray color
+  cursor: pointer;
+  display: inline-flex; // Align icon and text
+  align-items: center;
+  gap: 4px;
+  font-size: 12px; // Smaller font size
+  font-weight: 500;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: #F2F4F7; // Light gray background on hover
+    color: #101828;
+  }
+
+  // Style for liked state (can be added later)
+  &.liked {
+      color: #E94A65; // Red color when liked
+      font-weight: 600;
+  }
 `;
 
 const EmptyCommentsMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
   text-align: center;
   padding: 30px 0;
   color: #667085;
   font-size: 14px;
+  font-weight: 500;
   border: 1px dashed #E4E7EC;
   border-radius: 8px;
 `;
@@ -954,10 +1167,10 @@ const LoadingContainer = styled.div`
 `;
 
 const Spinner = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border: 4px solid #E4E7EC;
-  border-top: 4px solid #1570EF;
+  border-top: 4px solid #1E40AF;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 
@@ -993,5 +1206,28 @@ const BackButton = styled.button`
     background-color: #0d5ecb;
   }
 `;
+
+// --- Add styles for Image Zoom Modal ---
+const ZoomOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100; // Ensure it's above other elements
+  cursor: pointer;
+`;
+
+const ZoomedImage = styled.img`
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  cursor: default; // Prevent overlay cursor on the image itself
+`;
+// --- End of Image Zoom Modal styles ---
 
 export default SelectedForumPage;
