@@ -125,38 +125,49 @@ public class ForumPostService {
         return post;
     }
 
+    /**
+     * Populates the transient creator details (name and profile picture) for a given post.
+     * @param post The ForumPost entity to populate.
+     */
+    private void populateCreatorDetails(ForumPost post) {
+        if (post == null) return; // Avoid NullPointerException
+
+        try {
+            if (post.getCreatedByType() == CreatorType.USER) {
+                User creator = userRepository.findById(post.getCreatedBy()).orElse(null);
+                if (creator != null) {
+                    post.setCreatorName(creator.getFirstName() + " " + creator.getLastName());
+                    post.setCreatorProfilePic(creator.getPicture());
+                } else {
+                    post.setCreatorName("Unknown User");
+                    // Keep default profile pic or set a specific one for unknown
+                }
+            } else if (post.getCreatedByType() == CreatorType.ADMIN) {
+                Admin creator = adminRepository.findById(post.getCreatedBy()).orElse(null);
+                if (creator != null) {
+                    post.setCreatorName(creator.getFirstName() + " " + creator.getLastName());
+                    post.setCreatorProfilePic(creator.getPicture());
+                } else {
+                    post.setCreatorName("Unknown Admin");
+                    // Keep default profile pic or set a specific one for unknown
+                }
+            }
+        } catch (Exception e) {
+             // Log the error and set default names
+             System.err.println("Error fetching creator details for post ID " + post.getForumPostID() + ": " + e.getMessage());
+             post.setCreatorName("Error Loading Name");
+             // Set default profile picture (handled by frontend if null)
+             post.setCreatorProfilePic(null); 
+        }
+    }
+
     public List<ForumPost> getAllPosts() {
         // Fetch all posts
         List<ForumPost> posts = forumPostRepository.findAll();
         
         // Iterate through posts and populate creator details
         for (ForumPost post : posts) {
-            try {
-                if (post.getCreatedByType() == CreatorType.USER) {
-                    User creator = userRepository.findById(post.getCreatedBy()).orElse(null);
-                    if (creator != null) {
-                        post.setCreatorName(creator.getFirstName() + " " + creator.getLastName()); // Or just username if preferred
-                        post.setCreatorProfilePic(creator.getPicture()); // Use getPicture() instead of getProfilePictureUrl()
-                    } else {
-                        post.setCreatorName("Unknown User");
-                        // Keep default profile pic or set a specific one for unknown
-                    }
-                } else if (post.getCreatedByType() == CreatorType.ADMIN) {
-                    Admin creator = adminRepository.findById(post.getCreatedBy()).orElse(null);
-                    if (creator != null) {
-                        post.setCreatorName(creator.getFirstName() + " " + creator.getLastName()); // Adjust field names if needed
-                        post.setCreatorProfilePic(creator.getPicture()); // Use getPicture() instead of getProfilePictureUrl()
-                    } else {
-                        post.setCreatorName("Unknown Admin");
-                        // Keep default profile pic or set a specific one for unknown
-                    }
-                }
-            } catch (Exception e) {
-                 // Log the error and set default names
-                 System.err.println("Error fetching creator details for post ID " + post.getForumPostID() + ": " + e.getMessage());
-                 post.setCreatorName("Error Loading Name");
-                 // Set default profile picture
-            }
+           populateCreatorDetails(post); // Call helper method
         }
         
         return posts;
@@ -165,8 +176,15 @@ public class ForumPostService {
     public ForumPost getPostById(int id) {
         ForumPost post = forumPostRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Forum post not found"));
-        post.setUpdatedAt(LocalDateTime.now());
-        return forumPostRepository.save(post);
+        
+        populateCreatorDetails(post); // Populate creator details before returning
+
+        // Note: Updating updatedAt might not be necessary here unless explicitly required
+        // If needed, uncomment the lines below, but consider if fetching details should trigger an update.
+        // post.setUpdatedAt(LocalDateTime.now()); 
+        // return forumPostRepository.save(post); 
+
+        return post; // Return the post with populated details
     }
 
     /**

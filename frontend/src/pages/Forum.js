@@ -22,6 +22,7 @@ const Forum = () => {
   const [forumPosts, setForumPosts] = useState([]);
   const [recentForumPosts, setRecentForumPosts] = useState([]);
   const [savedForumPosts, setSavedForumPosts] = useState([]);
+  const [userSavedPosts, setUserSavedPosts] = useState([]);
   const [allPosts, setAllPosts] = useState([]); // Store all posts for filtering
   const [categories, setCategories] = useState(['Research', 'Frameworks', 'Tools', 'Software Development']);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -39,6 +40,7 @@ const Forum = () => {
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostCategoryId, setNewPostCategoryId] = useState('');
   const [backendCategories, setBackendCategories] = useState([]); // State for ALL categories fetched from backend
+  const [categoryColorMap, setCategoryColorMap] = useState({}); // <-- Add state for category color map
   const [displayCategories, setDisplayCategories] = useState([]); // State for filtered categories to display in dropdown
   const [selectedFiles, setSelectedFiles] = useState([]);
   const fileInputRef = useRef(null);
@@ -117,7 +119,7 @@ const Forum = () => {
               formattedDate: formatDate(post.createdAt),
               timeAgo: getTimeAgo(post.createdAt),
               updatedAt: post.updatedAt,
-              // Use category object if available from backend response
+              // Use category object if available from backend
               tags: post.category ? [post.category.name] : ['General'], 
               // Use creatorName and creatorProfilePic if available from backend
               userName: post.creatorName || 'Anonymous', 
@@ -172,6 +174,42 @@ const Forum = () => {
     // Add refreshKey to dependency array
   }, [currentPage, refreshKey]);
 
+  // Fetch saved posts for logged-in user
+  useEffect(() => {
+    const fetchSavedPosts = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+          setUserSavedPosts([]); // Clear saved posts if not logged in
+          return; 
+      }
+
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/users/me/saved-posts', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response && response.data) {
+          // Format the saved posts (ensure necessary fields like creatorName are handled)
+          const formattedSavedPosts = response.data.map(post => ({
+            id: post.forumPostID,
+            title: post.title,
+            userName: post.creatorName || 'Anonymous', // creatorName might be null from this endpoint
+            commentCount: post.commentCount || 0,
+            likesCount: post.likesCount || 0,
+          }));
+          setUserSavedPosts(formattedSavedPosts);
+        } else {
+           setUserSavedPosts([]);
+        }
+      } catch (err) {
+        console.error("Error fetching saved posts:", err);
+        setUserSavedPosts([]); // Set empty on error
+        // Optionally handle error display for saved posts section
+      }
+    };
+
+    fetchSavedPosts();
+  }, [refreshKey]); // Re-fetch when refreshKey changes (e.g., after save/unsave)
+
   // Fetch categories from backend and filter them
   useEffect(() => {
     const fetchAndFilterCategories = async () => {
@@ -179,10 +217,22 @@ const Forum = () => {
         const response = await axios.get('http://localhost:8080/api/v1/forum-categories');
         let fetchedCategories = [];
         if (response && response.data) {
-          fetchedCategories = response.data; // Assuming response.data is an array of { categoryId, name, ... }
+          fetchedCategories = response.data; // Assuming response.data is an array of { categoryId, name, color, ... }
           setBackendCategories(fetchedCategories);
+
+          // <-- Create the category color map here
+          const colorMap = fetchedCategories.reduce((acc, category) => {
+            if (category.name && category.color) {
+              acc[category.name] = category.color;
+            }
+            return acc;
+          }, {});
+          setCategoryColorMap(colorMap);
+          // --> End of color map creation
+
         } else {
           setBackendCategories([]);
+          setCategoryColorMap({}); // <-- Reset map if fetch fails
         }
 
         // Filter fetched categories based on the allowed names
@@ -199,6 +249,7 @@ const Forum = () => {
         console.error('Error fetching or filtering categories:', error);
         setBackendCategories([]);
         setDisplayCategories([]); // Set empty on error
+        setCategoryColorMap({}); // <-- Reset map on error
       }
     };
 
@@ -574,6 +625,31 @@ const Forum = () => {
       return;
     }
 
+    // --- Optimistic UI Update --- 
+    // Helper function to update state immediately
+    const updatePostInListOptimistic = (postList) => {
+      return postList.map(post => {
+        if (post.id === postId) {
+          // Toggle like state and count immediately
+          const isLiked = post.isLiked || false;
+          return {
+            ...post,
+            isLiked: !isLiked,
+            likesCount: isLiked ? (post.likesCount || 1) - 1 : (post.likesCount || 0) + 1
+          };
+        }
+        return post;
+      });
+    };
+
+    // Update state immediately
+    setAllPosts(updatePostInListOptimistic(allPosts));
+    setRecentForumPosts(updatePostInListOptimistic(recentForumPosts));
+    setForumPosts(updatePostInListOptimistic(forumPosts));
+    setSavedForumPosts(updatePostInListOptimistic(savedForumPosts)); // Ensure saved list is also updated if like affects it visually
+    // -----------------------------
+
+    // Perform API call in the background
     try {
       await axios.post(
         `http://localhost:8080/api/v1/forum-posts/like/${postId}`,
@@ -584,30 +660,17 @@ const Forum = () => {
           }
         }
       );
-
-      // Update liked post in state
-      const updatePostInList = (postList) => {
-        return postList.map(post => {
-          if (post.id === postId) {
-            // Toggle like state and count
-            const isLiked = post.isLiked || false;
-            return {
-              ...post,
-              isLiked: !isLiked,
-              likesCount: isLiked ? post.likesCount - 1 : post.likesCount + 1
-            };
-          }
-          return post;
-        });
-      };
-
-      setAllPosts(updatePostInList(allPosts));
-      setRecentForumPosts(updatePostInList(recentForumPosts));
-      setForumPosts(updatePostInList(forumPosts));
-      setSavedForumPosts(updatePostInList(savedForumPosts));
+      // No need to update state again here unless API returns new data we need
 
     } catch (error) {
-      console.error('Error liking post:', error);
+      console.error('Error liking post (API call failed):', error);
+      // **Important:** In a real app, revert the optimistic UI update here
+      // For now, we just log the error
+      // Example revert (would need previous state or refetch):
+      // setAllPosts(previousAllPostsState);
+      // setRecentForumPosts(previousRecentPostsState);
+      // setForumPosts(previousForumPostsState);
+      // setSavedForumPosts(previousSavedPostsState);
     }
   };
 
@@ -619,6 +682,42 @@ const Forum = () => {
       return;
     }
 
+    // --- Optimistic UI Update --- 
+    // Helper function to update state immediately
+    const updatePostInListOptimisticSave = (postList) => {
+      return postList.map(post => {
+        if (post.id === postId) {
+          // Toggle saved state immediately
+          const isSaved = post.isSaved || false;
+          return {
+            ...post,
+            isSaved: !isSaved
+          };
+        }
+        return post;
+      });
+    };
+
+    // Update state immediately
+    setAllPosts(updatePostInListOptimisticSave(allPosts));
+    setRecentForumPosts(updatePostInListOptimisticSave(recentForumPosts));
+    setForumPosts(updatePostInListOptimisticSave(forumPosts));
+
+    // Also update the dedicated saved posts list optimistically
+    const postToUpdate = allPosts.find(p => p.id === postId); // Find the post
+    if(postToUpdate) {
+        const isCurrentlySaved = postToUpdate.isSaved || false;
+        if (!isCurrentlySaved) { // If it was *not* saved, now it is, so remove from list
+             setSavedForumPosts(savedForumPosts.filter(p => p.id !== postId));
+        } else { // If it *was* saved, now it is not, so add it back (if not already present)
+            if (!savedForumPosts.some(p => p.id === postId)) {
+                setSavedForumPosts([...savedForumPosts, { ...postToUpdate, isSaved: true }]); // Add with isSaved=true because we just toggled it to false in main lists
+            }
+        }
+    }
+    // -----------------------------
+
+    // Perform API call in the background
     try {
       await axios.post(
         `http://localhost:8080/api/v1/forum-posts/${postId}/save`,
@@ -629,39 +728,12 @@ const Forum = () => {
           }
         }
       );
-
-      // Update saved post in state
-      const updatePostInList = (postList) => {
-        return postList.map(post => {
-          if (post.id === postId) {
-            // Toggle saved state
-            const isSaved = post.isSaved || false;
-            
-            // If unsaving, remove from saved list
-            if (isSaved) {
-              setSavedForumPosts(savedForumPosts.filter(p => p.id !== postId));
-            } else {
-              // If saving, add to saved list if not already there
-              if (!savedForumPosts.some(p => p.id === postId)) {
-                setSavedForumPosts([...savedForumPosts, post]);
-              }
-            }
-            
-            return {
-              ...post,
-              isSaved: !isSaved
-            };
-          }
-          return post;
-        });
-      };
-
-      setAllPosts(updatePostInList(allPosts));
-      setRecentForumPosts(updatePostInList(recentForumPosts));
-      setForumPosts(updatePostInList(forumPosts));
+      // No need to update state again here
 
     } catch (error) {
-      console.error('Error saving post:', error);
+      console.error('Error saving post (API call failed):', error);
+      // **Important:** In a real app, revert the optimistic UI update here
+      // Example revert would be more complex for save state
     }
   };
 
@@ -702,10 +774,10 @@ const Forum = () => {
               {forumPosts.length > 0 ? (
                 forumPosts.map((post) => (
                   <SidebarPostItem key={post.id} onClick={() => navigate(`/forum/post/${post.id}`)}>
+                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
                       {post.userName}
                     </SidebarPostAuthor>
-                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
                     <SidebarPostStats>
                       <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
                     </SidebarPostStats>
@@ -714,27 +786,28 @@ const Forum = () => {
               ) : (
                 <EmptyStateMessage style={{ padding: '20px 0' }}>No popular posts yet</EmptyStateMessage>
               )}
-              {forumPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/popular')}>View All</ViewAllLink>}
             </SidebarPostsList>
             
             <SavedPostsTitle>Saved Forum Posts</SavedPostsTitle>
             <SidebarPostsList>
-              {savedForumPosts.length > 0 ? (
-                savedForumPosts.map((post) => (
+              {userSavedPosts.length > 0 ? (
+                userSavedPosts.map((post) => (
                   <SidebarPostItem key={`saved-${post.id}`} onClick={() => navigate(`/forum/post/${post.id}`)}>
+                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
                       {post.userName}
                     </SidebarPostAuthor>
-                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
                     <SidebarPostStats>
                       <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
                     </SidebarPostStats>
                   </SidebarPostItem>
                 ))
               ) : (
-                <EmptyStateMessage style={{ padding: '20px 0' }}>No saved posts yet</EmptyStateMessage>
+                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <EmptyStateMessage style={{ padding: '20px 0' }}>No saved posts yet</EmptyStateMessage>
+                </div>
               )}
-              {savedForumPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/saved')}>View All</ViewAllLink>}
+              {userSavedPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/saved')}>View All</ViewAllLink>}
             </SidebarPostsList>
           </LeftSidebar>
 
@@ -838,6 +911,7 @@ const Forum = () => {
                               e.target.onerror = null;
                               e.target.src = defaultProfilePic;
                             }}
+                            loading="lazy"
                           />
                         </AuthorAvatar>
                         <DetailedPostAuthorInfo>
@@ -847,22 +921,25 @@ const Forum = () => {
                           <DetailedPostTime>{post.timeAgo}</DetailedPostTime>
                         </DetailedPostAuthorInfo>
                       </DetailedPostAuthorSection>
-                      
-                      <DetailedPostTags>
-                        {post.tags && post.tags.length > 0 ? (
-                          post.tags.map((tag, tagIndex) => (
-                            <CategoryTag key={tagIndex}>{tag}</CategoryTag>
-                          ))
-                        ) : (
-                          <CategoryTag>General</CategoryTag>
-                        )}
+
+                      {/* Container for buttons on the right */}
+                      <HeaderActions>
+                        {/* Like Display (Non-interactive) - MOVED TO FOOTER */}
+                        {/* 
+                        <LikeDisplay>
+                          <FiHeart size={16} color="#667085" />
+                          <span>{post.likesCount}</span>
+                        </LikeDisplay> 
+                        */}
+
+                        {/* Save Button (Interactive) */}
                         <SaveButton onClick={(e) => {
                           e.stopPropagation();
                           handleSavePost(post.id);
                         }}>
                           {post.isSaved ? <FiBookmark size={16} fill="#1E40AF" color="#1E40AF" /> : <FiBookmark size={16} />}
                         </SaveButton>
-                      </DetailedPostTags>
+                      </HeaderActions>
                     </DetailedPostHeader>
                     
                     <DetailedPostContent>
@@ -876,28 +953,41 @@ const Forum = () => {
                     </DetailedPostContent>
                     
                     <DetailedPostFooter>
-                      <DetailedPostComments>
-                        {post.commentCount} comment{post.commentCount !== 1 ? 's' : ''}
-                      </DetailedPostComments>
-                      
-                      <DetailedPostStats>
-                        <DetailedPostStat onClick={(e) => {
-                          e.stopPropagation();
-                          handleLikePost(post.id);
-                        }}>
-                          {post.isLiked ? <FiHeart size={16} fill="#E94A65" color="#E94A65" /> : <FiHeart size={16} />}
+                      {/* NEW: Container for stats (likes and comments) */}
+                      <PostStatsContainer>
+                        {/* Comments count first */}
+                        <DetailedPostComments>
+                          {post.commentCount} comment{post.commentCount !== 1 ? 's' : ''}
+                        </DetailedPostComments>
+                        
+                        {/* Likes count second */}
+                        <LikeDisplay>
+                          <FiHeart size={16} color="#667085" />
                           <span>{post.likesCount}</span>
-                        </DetailedPostStat>
-                      </DetailedPostStats>
+                        </LikeDisplay>
+                      </PostStatsContainer>
+                      
+                      {/* Tags remain on the right */}
+                      <DetailedPostTags>
+                        {post.tags && post.tags.length > 0 ? (
+                          post.tags.map((tag, tagIndex) => (
+                            <CategoryTag 
+                              key={tagIndex} 
+                              categoryColor={categoryColorMap[tag] || null}
+                            >
+                              {tag}
+                            </CategoryTag>
+                          ))
+                        ) : (
+                          <CategoryTag>General</CategoryTag>
+                        )}
+                      </DetailedPostTags>
                     </DetailedPostFooter>
                   </DetailedPostItem>
                 ))
               ) : (
                 <EmptyStateContainer>
                   <EmptyStateMessage>No forum posts available</EmptyStateMessage>
-                  <CreatePostButton onClick={handleCreatePost}>
-                    Create your first post
-                  </CreatePostButton>
                 </EmptyStateContainer>
               )}
             </DetailedPostsList>
@@ -1305,18 +1395,18 @@ const SidebarPostItem = styled.div`
   }
 `;
 
-const SidebarPostAuthor = styled.div`
-  font-size: 12px;
-  color: #667085;
-  margin-bottom: 6px;
-`;
-
 const SidebarPostTitle = styled.h3`
   font-size: 15px;
   font-weight: 500;
   color: #1849A9;
   margin: 0 0 8px 0;
   line-height: 1.3;
+`;
+
+const SidebarPostAuthor = styled.div`
+  font-size: 12px;
+  color: #667085;
+  margin-bottom: 6px;
 `;
 
 const SidebarPostStats = styled.div`
@@ -1349,10 +1439,14 @@ const DetailedPostHeader = styled.div`
   margin-bottom: 15px;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: center;
   
   @media (max-width: 576px) {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
   }
 `;
 
@@ -1371,6 +1465,7 @@ const AuthorAvatar = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    loading: lazy;
   }
 `;
 
@@ -1391,11 +1486,10 @@ const DetailedPostTime = styled.div`
   color: #667085;
 `;
 
-const DetailedPostTags = styled.div`
+const HeaderActions = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 4px;
+  align-items: center;
+  gap: 10px;
 `;
 
 const DetailedPostContent = styled.div`
@@ -1418,41 +1512,39 @@ const DetailedPostText = styled.p`
 
 const DetailedPostFooter = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* Keeps stats left, tags right */
   align-items: center;
   margin-top: 15px;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: 15px; /* Add gap between lines if wrapping */
 `;
 
-const DetailedPostComments = styled.div`
+// NEW: Container for stats
+const PostStatsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Space between likes and comments */
   font-size: 12px;
   color: #667085;
 `;
 
-const DetailedPostStats = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 15px;
+const DetailedPostComments = styled.div`
+  /* Styles moved to PostStatsContainer, keep specific overrides if needed */
 `;
 
-const DetailedPostStat = styled.div`
+const DetailedPostTags = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+`;
+
+// Style for the non-interactive like display (Now used in Footer)
+const LikeDisplay = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
-  color: #667085;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  
-  &:hover {
-    background-color: #f2f4f7;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
+  font-size: inherit; /* Inherit size from container */
+  color: inherit; /* Inherit color from container */
 `;
 
 const LoadingContainer = styled.div`
@@ -1519,8 +1611,8 @@ const EmptyStateContainer = styled.div`
 const EmptyStateMessage = styled.p`
   font-size: 16px;
   color: #667085;
-  margin-bottom: 20px;
   text-align: center;
+  font-style: italic;
 `;
 
 // Helper function to get readable sort label
@@ -1786,7 +1878,9 @@ const SubmitButton = styled.button`
   }
 `;
 
-const ForumLogo = styled.img`
+const ForumLogo = styled.img.attrs({
+  loading: 'lazy'
+})`
   height: 130px;
   margin-left: auto;
   margin-top: -90px;
@@ -1804,17 +1898,27 @@ const ForumLogo = styled.img`
 
 const CategoryTag = styled.span`
   font-size: 12px;
-  font-weight: 500;
-  color: #1E40AF;
-  background-color: #EFF4FF;
+  font-weight: 400;
   padding: 4px 10px;
   border-radius: 16px;
   display: inline-flex;
   align-items: center;
   transition: all 0.2s ease;
+  white-space: nowrap;
+
+  color: ${props => props.categoryColor || '#475467'};
+  background-color: ${props => 
+    props.categoryColor 
+      ? props.categoryColor + '33'
+      : '#e9ecef'
+  };
 
   &:hover {
-    background-color: #DBE4FF;
+    background-color: ${props => 
+      props.categoryColor 
+        ? props.categoryColor + '55'
+        : '#d8dde1'
+    };
     transform: translateY(-1px);
   }
 `;
@@ -1824,7 +1928,7 @@ const SaveButton = styled.button`
   border: none;
   color: #667085;
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1833,12 +1937,11 @@ const SaveButton = styled.button`
   transition: background-color 0.2s ease, transform 0.1s ease;
   
   &:hover {
-    background-color: #F0F7FF;
-    transform: translateY(-1px);
+    background-color: #f2f4f7;
   }
 
   &:active {
-    transform: scale(0.90);
+    transform: scale(0.85);
   }
 `;
 
