@@ -2,11 +2,64 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import homeImage from '../assets/home.png';
+import home2Image from '../assets/home2.png';
+import ourImage from '../assets/our.png';
+import cankayaLogo from '../assets/cankaya-logo.png';
+import tedLogo from '../assets/ted-logo.png';
+import ufvLogo from '../assets/fufdv-logo.png';
+import openLogo from '../assets/open-logo.png';
 import { useAuth } from '../contexts/AuthContext';
-import { FiArrowRight } from 'react-icons/fi';
+import { FiArrowRight, FiMapPin, FiPhone, FiMail, FiGlobe } from 'react-icons/fi';
 import axios from 'axios';
 import defaultBlogImage from '../assets/defaultblog.png';
 import { useNavigate } from 'react-router-dom';
+
+const partnerUniversities = [
+  {
+    id: 1,
+    logo: cankayaLogo,
+    name: 'Cankaya Universitesi',
+    country: 'Turkiye',
+    role: 'Project Coordinator',
+    address: 'Yukariyurtcu Mahallesi Mimar Sinan Caddesi No:4, 06815, Etimesgut/ANKARA',
+    phone: '+90 312 233 10 00',
+    email: 'webadmin@cankaya.edu.tr',
+    website: 'https://www.cankaya.edu.tr/index_en.php',
+  },
+  {
+    id: 2,
+    logo: tedLogo,
+    name: 'TED Universitesi',
+    country: 'Turkiye',
+    role: null,
+    address: 'Ziya Gökalp Caddesi No:48 06420, Kolej Çankaya/ANKARA',
+    phone: '+90 (312) 585 00 00',
+    email: 'info@tedu.edu.tr',
+    website: 'https://www.tedu.edu.tr/en',
+  },
+  {
+    id: 3,
+    logo: ufvLogo,
+    name: 'Fundacion Universidad Francisco De Vitoria',
+    country: 'Spain',
+    role: null,
+    address: 'Ctra. Pozuelo-Majadahonda KM 1.800, 28223 Pozuelo de Alarcón (Madrid)',
+    phone: '+34 91 709 14 00',
+    email: 'info@ufv.es',
+    website: 'https://www.ufv.es/en/',
+  },
+  {
+    id: 4,
+    logo: openLogo,
+    name: 'Open Universiteit',
+    country: 'Netherlands',
+    role: null,
+    address: 'Valkenburgerweg 177, 6419 AT Heerlen',
+    phone: '+31 (0)45 576 28 88',
+    email: 'info@ou.nl',
+    website: 'https://www.ou.nl/en',
+  },
+];
 
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -147,13 +200,12 @@ const Home = () => {
             <WhiteTitle>IT-ISQS!</WhiteTitle>
           </HeroTitle>
           <HeroText>
-            Lorem ipsum dolor sit amet consectetur. In magna non bibendum a proin commodo. Odio consectetur viverra blandit amet at
-            vulputate etiam consequat purus. Habitant urna dolor enim quisque interdum pharetra interdum. Lobortis leo penatibus pretium etiam
-            pellentesque nibh sed vel diam. Dignissim ut purus nunc ligula nisl. Nunc ultrices cursus quam dignissim. Dui dictum varius diam
-            facilisis eu arcu posuere malesuada. Commodo neque commodo at penatibus mattis convallis.
-            Neque condimentium sit nisl suspendisse. Et commodo suspendisse est cursus felis faucibus massa morbi. Facilisis lacus volutpat
-            consectetur donec leo. Nunc a pulvinar magna aliquet tortor. Ornare volutpat sed egestas tellus. Porta amet ornare scelerisque fringilla
-            sed.
+            Empowering the Future of Software Engineering through International Quality Standards
+
+            The Innovative Training for International Software Quality Standards (IT-ISQS) project, supported by Erasmus+, is dedicated to reshaping software engineering education by embedding internationally recognized quality standards into academic curricula. In an age where software reliability is vital for sectors like healthcare, finance, mobility, and education, we believe that quality should not be an afterthought — it should be a foundation.
+
+
+            Join us in building a future where software is not only innovative — but also reliable, robust, and safe.
           </HeroText>
           {!isAuthenticated && (
             <JoinButton to="/login?signup=true">Join us! sign up</JoinButton>
@@ -166,7 +218,7 @@ const Home = () => {
         <SectionHeader>
           <SectionTitle>Recent Blog Posts</SectionTitle>
           <ViewAllLink to="/blog">
-            View all posts <FiArrowRight />
+            View All Blog Posts <FiArrowRight />
           </ViewAllLink>
         </SectionHeader>
         
@@ -234,7 +286,7 @@ const Home = () => {
         <ForumSectionHeader>
           <ForumSectionTitle>Recent Forum Posts</ForumSectionTitle>
           <ViewAllLink to="/forum">
-            View All
+            View All Forum Posts <FiArrowRight />
           </ViewAllLink>
         </ForumSectionHeader>
         
@@ -281,6 +333,68 @@ const Home = () => {
           </ForumPostsContainer>
         )}
       </ForumSection>
+
+      {/* What Can You Do Section */}
+      <WhatCanYouDoSection>
+        <SectionImage src={home2Image} alt="Group discussion" />
+        <SectionContent>
+          <SectionTitleBlue>WHAT CAN YOU DO IN THIS WEBSITE?</SectionTitleBlue>
+          <SectionText>
+            This platform is designed to be more than just an information portal — it’s a collaborative space for learning, sharing, and growing within the field of international software quality standards.
+            <br /><br />
+            Explore Interactive Course Materials:
+            Dive into high-quality resources, including gamified exercises, real-life case studies, and AI-powered learning tools developed by leading experts and educators.
+            <br /><br />
+            Join the Forum:
+            Engage in discussions with students, academics, and professionals. Ask questions, exchange ideas, and find support as you learn more about ISO/IEC software quality standards.
+            <br /><br />
+            Read and Contribute to the Blog:
+            Stay up-to-date with the latest trends, best practices, and project updates. Our blog features articles from educators, developers, and researchers across Europe.
+            <br /><br />
+            Access Project Deliverables and Events:
+            View key documents, research findings, and updates from project meet-ups and multiplier events across Türkiye, Spain, and the Netherlands.
+            <br /><br />
+            Whether you're a student, an educator, or a software professional, this website is your gateway to a smarter, higher-quality future in software engineering.
+          </SectionText>
+        </SectionContent>
+      </WhatCanYouDoSection>
+
+      {/* Our Image Section */}
+      <OurImageSection>
+        <OurImage src={ourImage} alt="Our image" />
+      </OurImageSection>
+
+      {/* Partner Universities Section */}
+      <PartnersSection>
+        {partnerUniversities.map((uni) => (
+          <PartnerCard key={uni.id}>
+            <LogoColumn>
+              <a href={uni.website} target="_blank" rel="noopener noreferrer">
+                <PartnerLogo src={uni.logo} alt={`${uni.name} Logo`} />
+              </a>
+              <UniversityName>{uni.name} ({uni.country})</UniversityName>
+              {uni.role && <UniversityRole>{uni.role}</UniversityRole>}
+            </LogoColumn>
+            <ContactColumn>
+              <ContactInfo>
+                <FiMapPin /> {uni.address}
+              </ContactInfo>
+              <ContactInfo>
+                <FiPhone /> {uni.phone}
+              </ContactInfo>
+              <ContactInfo>
+                <FiMail /> {uni.email}
+              </ContactInfo>
+            </ContactColumn>
+            <WebsiteColumn>
+              <WebsiteLink href={uni.website} target="_blank" rel="noopener noreferrer">
+                <FiGlobe /> {uni.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+              </WebsiteLink>
+            </WebsiteColumn>
+          </PartnerCard>
+        ))}
+      </PartnersSection>
+
     </HomeContainer>
   );
 };
@@ -316,8 +430,8 @@ const Overlay = styled.div`
 `;
 
 const HeroContent = styled.div`
-  width: 50%;
-  padding: 50px;
+  width: 60%;
+  padding-left: 50px;
   position: relative;
   z-index: 2;
   
@@ -363,8 +477,7 @@ const HeroText = styled.p`
   color: white;
   font-size: 16px;
   line-height: 1.6;
-  margin-bottom: 30px;
-  max-width: 90%;
+  margin-top: 170px;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
 `;
 
@@ -397,6 +510,8 @@ const SectionHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #E4E7EC;
 `;
 
 const SectionTitle = styled.h2`
@@ -735,6 +850,184 @@ const StatValue = styled.span`
   font-size: 14px;
   color: #667085;
   font-weight: 500;
+`;
+
+// New Styled Components for "What Can You Do" Section
+const WhatCanYouDoSection = styled.section`
+  margin: 60px 0;
+  padding: 0 20px;
+  background-color: #ffffff; // White background for the section container
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const SectionImage = styled.img`
+  width: 100%;
+  height: auto; // Adjust height automatically
+  max-height: 400px; // Optional: set a max height if needed
+  object-fit: cover;
+  display: block; // Ensure image behaves as a block element
+  border-radius: 36px; // Add border-radius for rounded corners
+`;
+
+const SectionContent = styled.div`
+  padding: 30px 20px; // Add padding around the text content
+`;
+
+const SectionTitleBlue = styled.h2`
+  font-size: 28px; // Slightly larger font size for the title
+  font-weight: 700;
+  color: #1E40AF; // Blue color for the title
+  margin-bottom: 20px; // Space below the title
+  text-align: left; // Align title to the left
+`;
+
+const SectionText = styled.p`
+  font-size: 16px;
+  color: #475467; // Standard text color
+  line-height: 1.6;
+  text-align: left; // Align text to the left
+`;
+
+// New Styled Components for "Our Image" Section
+const OurImageSection = styled.section`
+  margin: 60px 0;
+  padding: 0 20px; // Consistent padding
+`;
+
+const OurImage = styled.img`
+  width: 50%; // Reduce width to make the image smaller
+  height: auto;
+  max-height: 500px; // Adjust as needed
+  object-fit: contain; // Use 'contain' to ensure the whole image is visible
+  display: block;
+  border-radius: 12px; // Add some rounding
+  margin: 0 auto; // Center the image
+`;
+
+// New Styled Components for Partner Universities Section
+const PartnersSection = styled.section`
+  margin: 60px 0;
+  padding: 0 20px;
+`;
+
+const PartnerCard = styled.div`
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  gap: 20px;
+
+  @media (max-width: 992px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const LogoColumn = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  a {
+    display: block; // Make the link a block element for centering
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 992px) {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+`;
+
+const PartnerLogo = styled.img`
+  width: 100px; // Adjust size as needed
+  height: 100px;
+  object-fit: contain;
+  border-radius: 8px; // Slightly rounded corners for logo
+  transition: transform 0.2s ease;
+
+  &:hover {
+      transform: scale(1.05);
+  }
+`;
+
+const UniversityName = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  color: #101828;
+  margin: 0;
+`;
+
+const UniversityRole = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+  color: #D9480F; // Example: Orange color for role
+  margin-top: 4px;
+`;
+
+const ContactColumn = styled.div`
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left: 1px solid #E4E7EC;
+  border-right: 1px solid #E4E7EC;
+  padding: 0 20px 0 40px;
+
+  @media (max-width: 992px) {
+    width: 100%;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid #E4E7EC;
+    border-bottom: 1px solid #E4E7EC;
+    padding: 15px 0;
+    margin-bottom: 15px;
+  }
+`;
+
+const ContactInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #475467;
+
+  svg {
+    min-width: 16px; // Ensure icons have consistent width
+  }
+`;
+
+const WebsiteColumn = styled.div`
+  flex: 1.5;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+
+  
+  @media (max-width: 992px) {
+     width: 100%;
+     justify-content: flex-start;
+  }
+`;
+
+const WebsiteLink = styled.a`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #1E40AF; // Blue link color
+  text-decoration: none;
+  word-break: break-all; // Break long URLs
+
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 export default Home; 
