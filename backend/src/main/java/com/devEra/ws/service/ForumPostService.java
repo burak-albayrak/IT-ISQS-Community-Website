@@ -376,4 +376,22 @@ public class ForumPostService {
         return forumCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found with ID: " + categoryId));
     }
+
+    /**
+     * Retrieves the most recent forum posts (e.g., top 3).
+     * Creator details are populated for each post.
+     *
+     * @return A list of the most recent ForumPost entities with creator details.
+     */
+    public List<ForumPost> getRecentPosts() {
+        // Fetch the top 3 recent posts using the new repository method
+        List<ForumPost> recentPosts = forumPostRepository.findTop3ByOrderByCreatedAtDesc();
+
+        // Populate creator details for each post
+        for (ForumPost post : recentPosts) {
+            populateCreatorDetails(post); // Reuse existing helper method
+        }
+
+        return recentPosts;
+    }
 }

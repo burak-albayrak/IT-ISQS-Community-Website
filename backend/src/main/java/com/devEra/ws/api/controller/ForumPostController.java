@@ -332,4 +332,27 @@ public class ForumPostController {
             return ResponseEntity.status(500).body(error);
         }
     }
+
+    /**
+     * Retrieves the most recent forum posts (e.g., top 3).
+     *
+     * @return ResponseEntity containing a list of recent ForumPost objects or an error.
+     */
+    @GetMapping("/recent")
+    public ResponseEntity<?> getRecentForumPosts() {
+        try {
+            List<ForumPost> recentPosts = forumPostService.getRecentPosts();
+            return ResponseEntity.ok(recentPosts);
+        } catch (Exception e) {
+            // Generic error handling, adjust if more specific errors are needed
+            ApiError error = new ApiError();
+            error.setStatus(500);
+            error.setMessage("Error retrieving recent forum posts: " + e.getMessage());
+            error.setPath("/api/v1/forum-posts/recent");
+            // Log the error server-side
+            System.err.println("Error in getRecentForumPosts: " + e.getMessage()); // Replace with proper logging
+            // e.printStackTrace(); // Optionally uncomment for detailed debugging during development
+            return ResponseEntity.status(500).body(error);
+        }
+    }
 }

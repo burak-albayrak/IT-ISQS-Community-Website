@@ -14,6 +14,30 @@ import axios from 'axios';
 import defaultBlogImage from '../assets/defaultblog.png';
 import { useNavigate } from 'react-router-dom';
 
+// Helper function for date formatting
+const formatRelativeTime = (dateString) => {
+  if (!dateString || dateString === 'N/A') return 'N/A'; // Handle invalid date string
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) { // Check if the date is valid
+      console.warn("Invalid date string received:", dateString);
+      return 'Invalid Date';
+  }
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  const diffInHours = Math.floor(diffInSeconds / 3600);
+
+  if (diffInHours < 1) {
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    return diffInMinutes < 1 ? "Just now" : `${diffInMinutes}m ago`;
+  } else if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  } else {
+    // Fallback to default date format if older than 24 hours
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+};
+
 const partnerUniversities = [
   {
     id: 1,
@@ -120,21 +144,49 @@ const Home = () => {
       setForumError(null);
       
       try {
-        // Replace with your actual API endpoint
-        const response = await axios.get(`http://localhost:8080/api/v1/forum/posts/recent`);
+        // Use the new backend endpoint for recent posts
+        const response = await axios.get(`http://localhost:8080/api/v1/forum-posts/recent`); // <-- Updated endpoint
         
         if (response && response.data) {
-          setRecentForumPosts(response.data);
+          // Check if the data is an array, as expected for posts
+          if (Array.isArray(response.data)) {
+             // Backend already sends the top 3, no need to slice here
+             // const limitedPosts = response.data.slice(0, 3); 
+
+             // Map data to match the frontend structure expected by ForumPostItem
+             // Use fields populated by the backend (creatorName, creatorProfilePic etc.)
+             const formattedPosts = response.data.map(post => ({
+                id: post.forumPostID || post.id, // Use forumPostID from backend
+                title: post.title || 'Untitled Post',
+                // Use the full description or limit if needed, backend sends full description
+                description: post.description ? post.description.substring(0, 100) + '...' : 'No description available.', 
+                author: post.creatorName || 'Anonymous', // Use creatorName from backend
+                authorAvatar: post.creatorProfilePic || '', // Use creatorProfilePic from backend
+                // Ensure correct field names for stats based on ForumPost.java (likesCount, commentCount)
+                likes: post.likesCount || 0, // Use likesCount from backend
+                replies: post.commentCount || 0, // Use commentCount from backend
+                // Pass the original ISO date string for formatting
+                createdAt: post.createdAt // Ensure backend sends ISO string or similar
+             }));
+
+             setRecentForumPosts(formattedPosts);
+          } else {
+              console.warn("API response for recent forum posts is not an array:", response.data);
+              setRecentForumPosts([]); // Set to empty if data format is unexpected
+          }
+
         } else {
-          // Fallback to mock data if API returns empty
-          setRecentForumPosts(getMockForumPosts());
+           console.warn("API response for recent forum posts is missing data.");
+          // Fallback to mock data if API returns empty // <-- Bu yorumu silebiliriz
+          // setRecentForumPosts(getMockForumPosts()); // <-- Bu satırı kaldır
+          setRecentForumPosts([]); // <-- Boş dizi ata
         }
-        
+
         setForumLoading(false);
       } catch (err) {
         console.error("Forum verilerini getirirken hata oluştu:", err);
-        // Don't set error, just use mock data for development
-        setRecentForumPosts(getMockForumPosts());
+        setForumError("Forum gönderileri yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+        setRecentForumPosts([]);
         setForumLoading(false);
       }
     };
@@ -299,8 +351,7 @@ const Home = () => {
         ) : (
           <ForumPostsContainer>
             <ForumTableHeader>
-              <ForumPostsColumn>Forum Posts</ForumPostsColumn>
-              <StatsColumn>Views</StatsColumn>
+              <ForumPostsColumn />
               <StatsColumn>Likes</StatsColumn>
               <StatsColumn>Replies</StatsColumn>
               <DateColumn>Date</DateColumn>
@@ -317,16 +368,13 @@ const Home = () => {
                   </ForumPostAuthor>
                 </ForumPostContent>
                 <ForumPostStats>
-                  <StatValue>{post.views}</StatValue>
-                </ForumPostStats>
-                <ForumPostStats>
                   <StatValue>{post.likes}</StatValue>
                 </ForumPostStats>
                 <ForumPostStats>
                   <StatValue>{post.replies}</StatValue>
                 </ForumPostStats>
                 <ForumPostDate>
-                  <StatValue>{post.date}</StatValue>
+                  <StatValue>{formatRelativeTime(post.createdAt)}</StatValue>
                 </ForumPostDate>
               </ForumPostItem>
             ))}
@@ -340,7 +388,7 @@ const Home = () => {
         <SectionContent>
           <SectionTitleBlue>WHAT CAN YOU DO IN THIS WEBSITE?</SectionTitleBlue>
           <SectionText>
-            This platform is designed to be more than just an information portal — it’s a collaborative space for learning, sharing, and growing within the field of international software quality standards.
+            This platform is designed to be more than just an information portal — it's a collaborative space for learning, sharing, and growing within the field of international software quality standards.
             <br /><br />
             Explore Interactive Course Materials:
             Dive into high-quality resources, including gamified exercises, real-life case studies, and AI-powered learning tools developed by leading experts and educators.
@@ -751,7 +799,7 @@ const ForumTableHeader = styled.div`
 `;
 
 const ForumPostsColumn = styled.div`
-  flex: 3;
+  flex: 4;
 `;
 
 const StatsColumn = styled.div`
@@ -764,7 +812,7 @@ const StatsColumn = styled.div`
 `;
 
 const DateColumn = styled.div`
-  flex: 1;
+  flex: 1.5;
   text-align: center;
   
   @media (max-width: 768px) {
@@ -831,6 +879,9 @@ const AuthorName = styled.span`
 const ForumPostStats = styled.div`
   flex: 1;
   text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   
   @media (max-width: 768px) {
     display: none;
