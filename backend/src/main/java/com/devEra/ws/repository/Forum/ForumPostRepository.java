@@ -40,4 +40,5 @@ public interface ForumPostRepository extends JpaRepository<ForumPost,Integer> {
     // Kategori ve başlık/açıklamaya göre arama
     List<ForumPost> findByCategoriesContainingAndTitleContainingOrDescriptionContaining(
             ForumCategory category, String titleQuery, String descriptionQuery);
+
 }

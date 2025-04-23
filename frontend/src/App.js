@@ -16,6 +16,9 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
+import Forum from './pages/Forum';
+import SelectedForumPage from './pages/SelectedForumPage';
+import Home from './pages/Home';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -26,12 +29,13 @@ function App() {
           <Header />
           <main className="main-content">
             <Routes>
-              <Route path="/" element={<div className="page">Home Page</div>} />
+              <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/syllabus" element={<Syllabus />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:id" element={<BlogDetail />} />
-              <Route path="/forum" element={<div className="page">Forum Page</div>} />
+              <Route path="/forum" element={<Forum />} />
+              <Route path="/forum/post/:postId" element={<SelectedForumPage />} />
               <Route path="/project-results" element={<ProjectResults />} />
               <Route path="/contact" element={<ContactUs />} />
               <Route path="/login" element={<Login />} />

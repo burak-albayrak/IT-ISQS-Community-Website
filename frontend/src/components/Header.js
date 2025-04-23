@@ -31,6 +31,9 @@ const Header = () => {
     if (path === '/blog') {
       return location.pathname === '/blog' || location.pathname.startsWith('/blog/');
     }
+    if (path === '/forum') {
+      return location.pathname === '/forum' || location.pathname.startsWith('/forum/');
+    }
     return location.pathname === path;
   };
 
@@ -44,7 +47,13 @@ const Header = () => {
       if (location.pathname.startsWith('/blog')) {
         const blogIndex = routes.findIndex(route => route.path === '/blog');
         setActiveIndex(blogIndex);
-      } else {
+      } 
+      // Forum sayfaları için özel kontrol
+      else if (location.pathname.startsWith('/forum')) {
+        const forumIndex = routes.findIndex(route => route.path === '/forum');
+        setActiveIndex(forumIndex);
+      }
+      else {
         const currentIndex = routes.findIndex(route => route.path === location.pathname);
         setActiveIndex(currentIndex >= 0 ? currentIndex : 0);
       }
@@ -117,6 +126,9 @@ const Header = () => {
                   className={({ isActive }) => {
                     if (route.path === '/blog') {
                       return (location.pathname === '/blog' || location.pathname.startsWith('/blog/')) && !isProfilePage ? "active" : "";
+                    }
+                    if (route.path === '/forum') {
+                      return (location.pathname === '/forum' || location.pathname.startsWith('/forum/')) && !isProfilePage ? "active" : "";
                     }
                     return isActive && !isProfilePage ? "active" : "";
                   }}

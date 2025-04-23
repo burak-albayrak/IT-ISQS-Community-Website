@@ -53,6 +53,7 @@ public class ForumPost {
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
+
     private LocalDateTime updatedAt;
     
     // Birden fazla kategori ile ilişki (maksimum 3 kategori)

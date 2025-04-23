@@ -395,6 +395,7 @@ public class ForumPostController {
             error.setStatus(500);
             error.setMessage("Error searching posts: " + e.getMessage());
             error.setPath("/api/v1/forum-posts/search");
+
             return ResponseEntity.status(500).body(error);
         }
     }

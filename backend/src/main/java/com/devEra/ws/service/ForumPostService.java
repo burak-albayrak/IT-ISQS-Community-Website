@@ -170,12 +170,22 @@ public class ForumPostService {
     }
 
     /**
+
      * Tüm forum gönderilerini getirir
      * 
      * @return Forum gönderileri listesi
      */
+
     public List<ForumPost> getAllPosts() {
-        return forumPostRepository.findAll();
+        // Fetch all posts
+        List<ForumPost> posts = forumPostRepository.findAll();
+        
+        // Iterate through posts and populate creator details
+        for (ForumPost post : posts) {
+           populateCreatorDetails(post); // Call helper method
+        }
+        
+        return posts;
     }
 
     /**
@@ -188,8 +198,15 @@ public class ForumPostService {
     public ForumPost getPostById(int id) {
         ForumPost post = forumPostRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Forum post not found"));
-        post.setUpdatedAt(LocalDateTime.now());
-        return forumPostRepository.save(post);
+        
+        populateCreatorDetails(post); // Populate creator details before returning
+
+        // Note: Updating updatedAt might not be necessary here unless explicitly required
+        // If needed, uncomment the lines below, but consider if fetching details should trigger an update.
+        // post.setUpdatedAt(LocalDateTime.now()); 
+        // return forumPostRepository.save(post); 
+
+        return post; // Return the post with populated details
     }
 
     /**
@@ -425,5 +442,23 @@ public class ForumPostService {
             // Ne kategori ne de arama sorgusu var, tüm gönderileri getir
             return getAllPosts();
         }
+    }
+
+    /**
+     * Retrieves the most recent forum posts (e.g., top 3).
+     * Creator details are populated for each post.
+     *
+     * @return A list of the most recent ForumPost entities with creator details.
+     */
+    public List<ForumPost> getRecentPosts() {
+        // Fetch the top 3 recent posts using the new repository method
+        List<ForumPost> recentPosts = forumPostRepository.findTop3ByOrderByCreatedAtDesc();
+
+        // Populate creator details for each post
+        for (ForumPost post : recentPosts) {
+            populateCreatorDetails(post); // Reuse existing helper method
+        }
+
+        return recentPosts;
     }
 }
