@@ -14,4 +14,7 @@ public interface ForumPostLikeRepository extends JpaRepository<ForumPostLike, In
 
     Optional<ForumPostLike> findByPostIdAndUserIdAndUserType(int postId, int userId, CreatorType userType);
     
+    long countByUserId(int userId);
+    
+    java.util.List<Integer> findForumPostIdByUserId(int userId);
 }

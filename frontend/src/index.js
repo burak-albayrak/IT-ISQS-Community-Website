@@ -5,11 +5,14 @@ import './styles/global.css';
 import './styles/Pages.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
   </React.StrictMode>
 );
 
