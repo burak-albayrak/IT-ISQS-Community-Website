@@ -17,7 +17,11 @@ public class CreateForumPostRequest {
     @NotBlank(message = "Description cannot be blank.")
     private String description;
 
-    private List<String> mediaList = new ArrayList<>();
+    private String mediaList;
     
+    // Tek kategori için
     private Integer categoryId;
+    
+    // Birden fazla kategori için (max 3)
+    private List<Integer> categoryIds = new ArrayList<>();
 }

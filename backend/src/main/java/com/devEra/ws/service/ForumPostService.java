@@ -14,6 +14,7 @@ import com.devEra.ws.repository.Forum.ForumPostLikeRepository;
 import com.devEra.ws.repository.Forum.ForumPostRepository;
 import com.devEra.ws.repository.Forum.ForumPostSaveRepository;
 import com.devEra.ws.repository.Forum.ForumCategoryRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -38,25 +39,58 @@ public class ForumPostService {
     private final AdminRepository adminRepository;
     private final S3Service s3Service;
     private final ForumCategoryRepository forumCategoryRepository;
+    private final MediaService mediaService;
+    private final ForumCategoryService categoryService;
 
+    /**
+     * JSON veri ile forum gönderisi oluşturur
+     * 
+     * @param request Oluşturma isteği
+     * @param creatorId Oluşturan kullanıcı ID
+     * @param creatorType Oluşturan kullanıcı tipi
+     * @return Oluşturulan forum gönderisi
+     */
     public ForumPost createForumPost(CreateForumPostRequest request, int creatorId, CreatorType creatorType) {
         ForumPost post = new ForumPost();
         post.setTitle(request.getTitle());
         post.setDescription(request.getDescription());
         post.setMediaList(request.getMediaList());
-        
-        // Kategori ataması
-        if (request.getCategoryId() != null) {
-            ForumCategory category = findCategoryById(request.getCategoryId());
-            post.setCategory(category);
-        }
-        
         post.setLikesCount(0);
         post.setCommentCount(0);
         post.setCreatedAt(LocalDateTime.now());
         post.setUpdatedAt(LocalDateTime.now());
         post.setCreatedBy(creatorId);
-        post.setCreatedByType(creatorType);
+        post.setCreatorType(creatorType);
+        
+        // Tekli kategori ataması (geriye dönük uyumluluk için)
+        if (request.getCategoryId() != null) {
+            try {
+                ForumCategory category = categoryService.getCategoryById(request.getCategoryId());
+                post.addCategory(category);
+            } catch (EntityNotFoundException e) {
+                // Kategori bulunamadıysa devam et
+            }
+        }
+        
+        // Çoklu kategori ataması (yeni)
+        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
+            // Kategori sayısı kontrolü
+            if (request.getCategoryIds().size() > 3) {
+                throw new IllegalArgumentException("Maximum 3 categories are allowed");
+            }
+            
+            for (Integer categoryId : request.getCategoryIds()) {
+                try {
+                    // Eğer zaten eklenmediyse (categoryId ile eklenmemiş ise) ekle
+                    if (categoryId != request.getCategoryId()) {
+                        ForumCategory category = categoryService.getCategoryById(categoryId);
+                        post.addCategory(category);
+                    }
+                } catch (EntityNotFoundException e) {
+                    // Kategori bulunamadıysa atlayıp devam et
+                }
+            }
+        }
 
         return forumPostRepository.save(post);
     }
@@ -67,7 +101,7 @@ public class ForumPostService {
      * @param title Forum başlığı
      * @param description Forum açıklaması
      * @param mediaFiles Yüklenecek medya dosyaları (en fazla 10 adet)
-     * @param categoryId Kategori ID (opsiyonel)
+     * @param categoryIds Kategori ID'leri (en fazla 3 adet)
      * @param creatorId Oluşturan kullanıcı ID
      * @param creatorType Oluşturan kullanıcı tipi
      * @return Oluşturulan forum gönderisi
@@ -75,60 +109,82 @@ public class ForumPostService {
      * @throws IllegalArgumentException Geçersiz argüman durumunda
      */
     public ForumPost createForumPostWithMedia(String title, String description, 
-                                             List<MultipartFile> mediaFiles,
-                                             Integer categoryId,
-                                             int creatorId, CreatorType creatorType) 
-                                             throws IOException, IllegalArgumentException {
+                                             List<MultipartFile> mediaFiles, List<Integer> categoryIds, 
+                                             Integer creatorId, CreatorType creatorType) throws IOException {
         
-        // En fazla 10 medya dosyası kontrolü
+        // Medya dosyası sayısı kontrolü
         if (mediaFiles != null && mediaFiles.size() > 10) {
-            throw new IllegalArgumentException("Maximum 10 media files are allowed per forum post.");
+            throw new IllegalArgumentException("Maximum 10 media files are allowed");
+        }
+        
+        // Kategori sayısı kontrolü
+        if (categoryIds != null && categoryIds.size() > 3) {
+            throw new IllegalArgumentException("Maximum 3 categories are allowed");
         }
         
         ForumPost post = new ForumPost();
         post.setTitle(title);
         post.setDescription(description);
-        
-        // Kategori ataması
-        if (categoryId != null) {
-            ForumCategory category = findCategoryById(categoryId);
-            post.setCategory(category);
-        }
-        
-        post.setLikesCount(0);
-        post.setCommentCount(0);
+        post.setCreatedBy(creatorId);
+        post.setCreatorType(creatorType);
         post.setCreatedAt(LocalDateTime.now());
         post.setUpdatedAt(LocalDateTime.now());
-        post.setCreatedBy(creatorId);
-        post.setCreatedByType(creatorType);
+        post.setLikesCount(0);
+        post.setCommentCount(0);
         
-        // Önce post'u kaydet (ID almak için)
-        post = forumPostRepository.save(post);
+        // Kategorileri ekle (maksimum 3)
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            for (Integer categoryId : categoryIds) {
+                try {
+                    ForumCategory category = categoryService.getCategoryById(categoryId);
+                    post.addCategory(category);
+                } catch (EntityNotFoundException e) {
+                    // Kategori bulunamadıysa atlayıp devam et
+                }
+            }
+        }
         
-        // Medya dosyaları varsa S3'e yükle
+        // Medya dosyalarını yükle
         if (mediaFiles != null && !mediaFiles.isEmpty()) {
-            List<String> mediaUrls = new ArrayList<>();
+            List<String> uploadedMediaUrls = new ArrayList<>();
             
             for (MultipartFile file : mediaFiles) {
                 if (!file.isEmpty()) {
-                    // S3'e dosyayı yükle
-                    String fileKey = "forum/" + post.getForumPostID() + "/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-                    String mediaUrl = s3Service.uploadFile(file, fileKey);
-                    mediaUrls.add(mediaUrl);
+                    String fileUrl = mediaService.uploadMedia(file, "forum");
+                    uploadedMediaUrls.add(fileUrl);
                 }
             }
             
-            post.setMediaList(mediaUrls);
-            post = forumPostRepository.save(post); // Güncellenmiş post'u kaydet
+            // Medya URL'lerini JSON olarak kaydet
+            if (!uploadedMediaUrls.isEmpty()) {
+                ObjectMapper mapper = new ObjectMapper();
+                try {
+                    post.setMediaList(mapper.writeValueAsString(uploadedMediaUrls));
+                } catch (Exception e) {
+                    throw new IOException("Error saving media URLs: " + e.getMessage());
+                }
+            }
         }
         
-        return post;
+        return forumPostRepository.save(post);
     }
 
+    /**
+     * Tüm forum gönderilerini getirir
+     * 
+     * @return Forum gönderileri listesi
+     */
     public List<ForumPost> getAllPosts() {
         return forumPostRepository.findAll();
     }
 
+    /**
+     * ID'ye göre forum gönderisi getirir
+     * 
+     * @param id Forum gönderisi ID
+     * @return Forum gönderisi
+     * @throws EntityNotFoundException Gönderi bulunamazsa
+     */
     public ForumPost getPostById(int id) {
         ForumPost post = forumPostRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Forum post not found"));
@@ -142,14 +198,15 @@ public class ForumPostService {
      * @param postId Silinecek gönderi ID
      * @param requesterId İsteği yapan kullanıcı ID
      * @param requesterType İsteği yapan kullanıcı tipi
-     * @return true ise silme başarılı
+     * @throws EntityNotFoundException Gönderi bulunamazsa
+     * @throws SecurityException Yetki hatası durumunda
      */
     @Transactional
     public void deletePost(int postId, int requesterId, CreatorType requesterType) {
         ForumPost post = forumPostRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Forum post not found"));
 
-        boolean isOwner = post.getCreatedBy() == requesterId && post.getCreatedByType() == requesterType;
+        boolean isOwner = post.getCreatedBy() == requesterId && post.getCreatorType() == requesterType;
         boolean isAdmin = requesterType == CreatorType.ADMIN;
 
         // Admin her zaman silebilir, normal kullanıcı sadece kendi postlarını silebilir
@@ -159,13 +216,20 @@ public class ForumPostService {
         
         // Eğer medya dosyaları varsa S3'ten sil
         if (post.getMediaList() != null && !post.getMediaList().isEmpty()) {
-            for (String mediaUrl : post.getMediaList()) {
-                try {
-                    s3Service.deleteFile(extractS3KeyFromUrl(mediaUrl));
-                } catch (Exception e) {
-                    // Silme hatalarını log'la ama işleme devam et
-                    System.err.println("Error deleting media file: " + mediaUrl + " - " + e.getMessage());
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                List<String> mediaUrls = mapper.readValue(post.getMediaList(), List.class);
+                
+                for (String mediaUrl : mediaUrls) {
+                    try {
+                        s3Service.deleteFile(extractS3KeyFromUrl(mediaUrl));
+                    } catch (Exception e) {
+                        // Silme hatalarını log'la ama işleme devam et
+                        System.err.println("Error deleting media file: " + mediaUrl + " - " + e.getMessage());
+                    }
                 }
+            } catch (Exception e) {
+                System.err.println("Error parsing media list: " + e.getMessage());
             }
         }
 
@@ -201,6 +265,14 @@ public class ForumPostService {
         return url;
     }
 
+    /**
+     * Forum gönderisine beğeni ekler veya kaldırır
+     * 
+     * @param postId Gönderi ID
+     * @param userId Kullanıcı ID
+     * @param userType Kullanıcı tipi
+     * @throws EntityNotFoundException Gönderi bulunamazsa
+     */
     public void toggleLikePost(int postId, int userId, CreatorType userType) {
         ForumPost post = forumPostRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Forum post not found"));
@@ -209,11 +281,9 @@ public class ForumPostService {
                 userType);
 
         if (existingLike.isPresent()) {
-
             forumPostLikeRepository.delete(existingLike.get());
             post.setLikesCount(post.getLikesCount() - 1);
         } else {
-
             ForumPostLike like = new ForumPostLike();
             like.setPostId(postId);
             like.setUserId(userId);
@@ -228,6 +298,15 @@ public class ForumPostService {
         forumPostRepository.save(post);
     }
 
+    /**
+     * Forum gönderisini kaydeder veya kaldırır
+     * 
+     * @param postId Gönderi ID
+     * @param userId Kullanıcı ID
+     * @param creatorType Kullanıcı tipi
+     * @return İşlem sonucu mesajı
+     * @throws EntityNotFoundException Gönderi bulunamazsa
+     */
     public String saveOrUnsavePost(int postId, int userId, CreatorType creatorType) {
         ForumPost post = forumPostRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Forum post not found"));
@@ -241,7 +320,7 @@ public class ForumPostService {
         }
     
         ForumPostSave save = new ForumPostSave();
-        save.setForumPost(post);  // ForumPost nesnesi burada set ediliyor
+        save.setForumPost(post);
         save.setSavedBy(userId);
         save.setSavedByType(creatorType);
         save.setSavedAt(LocalDateTime.now());
@@ -257,6 +336,7 @@ public class ForumPostService {
      * @param userId Kullanıcı ID'si
      * @param creatorType Kullanıcı tipi (USER veya ADMIN)
      * @return Kullanıcının oluşturduğu forum postları listesi
+     * @throws EntityNotFoundException Kullanıcı bulunamazsa
      */
     public List<ForumPost> getUserForumPosts(int userId, CreatorType creatorType) {
         // Kullanıcının var olduğunu kontrol et
@@ -269,7 +349,7 @@ public class ForumPostService {
         }
         
         // Kullanıcının oluşturduğu postları getir
-        return forumPostRepository.findByCreatedByAndCreatedByType(userId, creatorType);
+        return forumPostRepository.findByCreatedByAndCreatorType(userId, creatorType);
     }
 
     /**
@@ -282,7 +362,7 @@ public class ForumPostService {
         if (searchText == null || searchText.trim().isEmpty()) {
             return getAllPosts();
         }
-        return forumPostRepository.findByTitleOrDescriptionContainingIgnoreCase(searchText.trim());
+        return forumPostRepository.findByTitleContainingOrDescriptionContaining(searchText.trim(), searchText.trim());
     }
 
     /**
@@ -290,39 +370,60 @@ public class ForumPostService {
      * 
      * @param categoryId Kategori ID
      * @return Kategori ile filtrelenmiş forum gönderileri listesi
+     * @throws EntityNotFoundException Kategori bulunamazsa
      */
     public List<ForumPost> getPostsByCategory(int categoryId) {
-        ForumCategory category = findCategoryById(categoryId);
-        return forumPostRepository.findByCategory(category);
+        ForumCategory category = categoryService.getCategoryById(categoryId);
+        return forumPostRepository.findByCategoriesContaining(category);
     }
 
     /**
      * Metin içeriğine ve kategoriye göre forum gönderilerini arar
      * 
-     * @param searchText Arama metni
+     * @param searchQuery Arama metni
      * @param categoryId Kategori ID
      * @return Bulunan forum gönderileri listesi
+     * @throws EntityNotFoundException Kategori bulunamazsa
      */
-    public List<ForumPost> searchPostsByCategoryAndText(String searchText, int categoryId) {
-        ForumCategory category = findCategoryById(categoryId);
+    public List<ForumPost> searchPostsByCategoryAndText(String searchQuery, int categoryId) {
+        ForumCategory category = categoryService.getCategoryById(categoryId);
         
-        if (searchText == null || searchText.trim().isEmpty()) {
-            return forumPostRepository.findByCategory(category);
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            return forumPostRepository.findByCategoriesContaining(category);
         }
         
-        return forumPostRepository.findByCategoryAndTitleOrDescriptionContainingIgnoreCase(category, searchText.trim());
+        return forumPostRepository.findByCategoriesContainingAndTitleContainingOrDescriptionContaining(
+                category, searchQuery, searchQuery);
     }
 
     /**
-     * Kategori ID'sine göre kategori bulur
+     * Body parametreleri ile kategoriye göre ve içeriğe göre arama yapar
      * 
-     * @param categoryId Kategori ID
-     * @return Kategori
-     * @throws EntityNotFoundException Kategori bulunamazsa
+     * @param categoryId Kategori ID (opsiyonel)
+     * @param searchQuery Arama metni (opsiyonel)
+     * @return Bulunan forum gönderileri listesi
      */
-    private ForumCategory findCategoryById(int categoryId) {
-        // ForumCategoryRepository'den kategori bulma
-        return forumCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new EntityNotFoundException("Category not found with ID: " + categoryId));
+    public List<ForumPost> searchPostsWithBodyParams(Integer categoryId, String searchQuery) {
+        if (categoryId != null) {
+            try {
+                ForumCategory category = categoryService.getCategoryById(categoryId);
+                
+                if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+                    return forumPostRepository.findByCategoriesContainingAndTitleContainingOrDescriptionContaining(
+                            category, searchQuery, searchQuery);
+                } else {
+                    return forumPostRepository.findByCategoriesContaining(category);
+                }
+            } catch (EntityNotFoundException e) {
+                // Kategori bulunamadı, boş liste dön
+                return new ArrayList<>();
+            }
+        } else if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            // Sadece arama sorgusu var, kategori yok
+            return forumPostRepository.findByTitleContainingOrDescriptionContaining(searchQuery, searchQuery);
+        } else {
+            // Ne kategori ne de arama sorgusu var, tüm gönderileri getir
+            return getAllPosts();
+        }
     }
 }

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.devEra.ws.config.security.JwtTokenService;
-import com.devEra.ws.core.enums.CreatorType;
 import com.devEra.ws.core.error.ApiError;
 import com.devEra.ws.core.message.GenericMessage;
 import com.devEra.ws.entity.Forum.ForumCategory;

@@ -13,8 +13,10 @@ import com.devEra.ws.entity.Forum.ForumPost;
 import java.util.List;
 
 @Repository
-public interface ForumPostRepository extends JpaRepository<ForumPost,Integer>{
-    List<ForumPost> findByCreatedByAndCreatedByType(int createdBy, CreatorType createdByType);
+public interface ForumPostRepository extends JpaRepository<ForumPost,Integer> {
+    
+    // Kullanıcının oluşturduğu gönderiler
+    List<ForumPost> findByCreatedByAndCreatorType(Integer createdBy, CreatorType creatorType);
     
     // İlişkili kayıtları silmek için custom metotlar
     @Modifying
@@ -29,14 +31,13 @@ public interface ForumPostRepository extends JpaRepository<ForumPost,Integer>{
     @Query(value = "DELETE FROM forum_comments WHERE forum_post_id = :postId", nativeQuery = true)
     void deleteAllCommentsByPostId(@Param("postId") int postId);
     
-    // Metin içeriğine göre arama
-    @Query("SELECT p FROM ForumPost p WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :searchText, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :searchText, '%'))")
-    List<ForumPost> findByTitleOrDescriptionContainingIgnoreCase(@Param("searchText") String searchText);
+    // Başlık veya açıklamaya göre arama
+    List<ForumPost> findByTitleContainingOrDescriptionContaining(String titleQuery, String descriptionQuery);
     
-    // Kategori bazlı filtreleme
-    List<ForumPost> findByCategory(ForumCategory category);
+    // Kategori içeren postları bul
+    List<ForumPost> findByCategoriesContaining(ForumCategory category);
     
-    // Kategori bazlı filtreleme ve metin araması
-    @Query("SELECT p FROM ForumPost p WHERE p.category = :category AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :searchText, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :searchText, '%')))")
-    List<ForumPost> findByCategoryAndTitleOrDescriptionContainingIgnoreCase(@Param("category") ForumCategory category, @Param("searchText") String searchText);
+    // Kategori ve başlık/açıklamaya göre arama
+    List<ForumPost> findByCategoriesContainingAndTitleContainingOrDescriptionContaining(
+            ForumCategory category, String titleQuery, String descriptionQuery);
 }
