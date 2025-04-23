@@ -23,12 +23,7 @@ public class ForumCategory {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
     
-    @Column(name = "description")
-    private String description;
-    
     @Column(name = "color")
     private String color;
     
-    @Column(name = "icon")
-    private String icon;
 } 

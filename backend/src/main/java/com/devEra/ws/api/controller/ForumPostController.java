@@ -59,7 +59,7 @@ public class ForumPostController {
      * @param title Forum başlığı
      * @param description Forum açıklaması
      * @param mediaFiles Yüklenecek medya dosyaları (max 10 adet)
-     * @param categoryId Kategori ID
+     * @param categoryIds Kategori ID'leri (max 3 adet)
      * @param tokenHeader Yetkilendirme token'ı
      * @return Oluşturulan forum post'un ID'si veya hata mesajı
      */
@@ -68,7 +68,7 @@ public class ForumPostController {
             @RequestParam String title,
             @RequestParam String description,
             @RequestParam(required = false) List<MultipartFile> mediaFiles,
-            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) List<Integer> categoryIds,
             @RequestHeader("Authorization") String tokenHeader) {
         
         try {
@@ -86,13 +86,14 @@ public class ForumPostController {
             }
             
             // Forum gönderisi oluştur
-            ForumPost post = forumPostService.createForumPostWithMedia(title, description, mediaFiles, categoryId, userId, creatorType);
+            ForumPost post = forumPostService.createForumPostWithMedia(title, description, mediaFiles, categoryIds, userId, creatorType);
             
             // Yanıtı oluştur
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Forum post created successfully.");
             response.put("postId", post.getForumPostID());
-            response.put("mediaCount", post.getMediaList() != null ? post.getMediaList().size() : 0);
+            response.put("categoryCount", post.getCategories() != null ? post.getCategories().size() : 0);
+            response.put("mediaCount", post.getMediaList() != null ? post.getMediaList().length() : 0);
             
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -334,24 +335,67 @@ public class ForumPostController {
     }
 
     /**
-     * Retrieves the most recent forum posts (e.g., top 3).
-     *
-     * @return ResponseEntity containing a list of recent ForumPost objects or an error.
+     * Arama ve filtreleme (Body parametreleri ile)
+     * Hem kategori, hem metin ile veya ikisinden biriyle arama yapabilme
+     * 
+     * Desteklenen arama durumları:
+     * 1. Sadece kategori ile arama: {"categoryId": 1}
+     * 2. Sadece metin ile arama: {"searchQuery": "aranacak metin"}
+     * 3. Hem kategori hem metin ile arama: {"categoryId": 1, "searchQuery": "aranacak metin"}
+     * 4. Filtre olmadan tüm gönderileri listeleme: {}
+     * 
+     * @param searchParams Arama parametreleri (categoryId, searchQuery)
+     * @return Bulunan forum gönderileri
      */
-    @GetMapping("/recent")
-    public ResponseEntity<?> getRecentForumPosts() {
+    @PostMapping("/search")
+    public ResponseEntity<?> searchPostsWithBody(@RequestBody Map<String, Object> searchParams) {
         try {
-            List<ForumPost> recentPosts = forumPostService.getRecentPosts();
-            return ResponseEntity.ok(recentPosts);
+            Integer categoryId = null;
+            String searchQuery = null;
+            
+            // Kategori ID parametresi varsa al
+            if (searchParams.containsKey("categoryId") && searchParams.get("categoryId") != null) {
+                try {
+                    categoryId = Integer.valueOf(searchParams.get("categoryId").toString());
+                } catch (NumberFormatException e) {
+                    ApiError error = new ApiError();
+                    error.setStatus(400);
+                    error.setMessage("Invalid category ID format");
+                    error.setPath("/api/v1/forum-posts/search");
+                    return ResponseEntity.status(400).body(error);
+                }
+            }
+            
+            // Arama sorgusu parametresi varsa al
+            if (searchParams.containsKey("searchQuery") && searchParams.get("searchQuery") != null) {
+                searchQuery = searchParams.get("searchQuery").toString().trim();
+                // Boş string ise null olarak değerlendir
+                if (searchQuery.isEmpty()) {
+                    searchQuery = null;
+                }
+            }
+            
+            // Arama yap (kategori, metin veya her ikisi ile)
+            List<ForumPost> posts = forumPostService.searchPostsWithBodyParams(categoryId, searchQuery);
+            
+            // Sonuç sayısını da ekle
+            Map<String, Object> response = new HashMap<>();
+            response.put("posts", posts);
+            response.put("count", posts.size());
+            
+            // Create filters map separately instead of using anonymous inner class
+            Map<String, Object> filters = new HashMap<>();
+            filters.put("categoryId", categoryId);
+            filters.put("searchQuery", searchQuery);
+            response.put("filters", filters);
+            
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // Generic error handling, adjust if more specific errors are needed
             ApiError error = new ApiError();
             error.setStatus(500);
-            error.setMessage("Error retrieving recent forum posts: " + e.getMessage());
-            error.setPath("/api/v1/forum-posts/recent");
-            // Log the error server-side
-            System.err.println("Error in getRecentForumPosts: " + e.getMessage()); // Replace with proper logging
-            // e.printStackTrace(); // Optionally uncomment for detailed debugging during development
+            error.setMessage("Error searching posts: " + e.getMessage());
+            error.setPath("/api/v1/forum-posts/search");
+
             return ResponseEntity.status(500).body(error);
         }
     }
