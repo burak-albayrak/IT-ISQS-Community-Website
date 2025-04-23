@@ -461,4 +461,19 @@ public class ForumPostService {
 
         return recentPosts;
     }
+
+    /**
+     * Helper method to populate creator details for a forum post
+     * 
+     * @param post Forum post to populate creator details for
+     */
+    private void populateCreatorDetails(ForumPost post) {
+        if (post.getCreatorType() == CreatorType.USER) {
+            userRepository.findById(post.getCreatedBy())
+                .ifPresent(user -> post.setCreatorDetails(user.getFirstName() + " " + user.getLastName()));
+        } else if (post.getCreatorType() == CreatorType.ADMIN) {
+            adminRepository.findById(post.getCreatedBy())
+                .ifPresent(admin -> post.setCreatorDetails(admin.getFirstName() + " " + admin.getLastName()));
+        }
+    }
 }

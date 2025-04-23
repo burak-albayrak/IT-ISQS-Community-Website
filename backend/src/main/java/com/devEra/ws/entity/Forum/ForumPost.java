@@ -48,6 +48,10 @@ public class ForumPost {
     @Column(name = "creator_type")
     @Enumerated(EnumType.STRING)
     private CreatorType creatorType;
+    
+    // Oluşturucu bilgilerini saklamak için geçici alan (veritabanında tutulmaz)
+    @Transient
+    private String creatorDetails;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
