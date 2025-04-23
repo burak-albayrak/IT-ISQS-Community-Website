@@ -12,10 +12,16 @@ def check_toxicity(text):
         # Result contains probability in the score field
         toxicity_score = float(result[0]['score'] * 100)  # Convert to percentage and ensure it's float
         
+        # Threshold değeri 50 olarak belirlendi
+        # Eğer toxicity skoru 50'den büyükse metin toksik kabul edilir
+        TOXICITY_THRESHOLD = 50
+        
         response = {
             "toxic_score": toxicity_score,
-            "is_toxic": toxicity_score > 30,
-            "text": text
+            "is_toxic": toxicity_score >= TOXICITY_THRESHOLD,  # Düzeltilmiş mantık
+            "text": text,
+            "label": result[0]['label'],  # Modelin verdiği etiketi de ekleyelim
+            "threshold": TOXICITY_THRESHOLD  # Referans için threshold değerini de döndürelim
         }
         
         return response

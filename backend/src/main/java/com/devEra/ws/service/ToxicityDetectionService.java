@@ -2,7 +2,6 @@ package com.devEra.ws.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -13,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.nio.file.Paths;
 
 @Service
 public class ToxicityDetectionService {
@@ -24,6 +24,9 @@ public class ToxicityDetectionService {
 
     @Value("${python.executable:python3}")
     private String pythonExecutable;
+    
+    @Value("${user.dir:#{null}}")
+    private String projectRoot;
 
     private final ResourceLoader resourceLoader;
     private final ObjectMapper objectMapper;
@@ -44,9 +47,21 @@ public class ToxicityDetectionService {
 
         try {
             // Get the absolute path of the script
-            Resource resource = resourceLoader.getResource("classpath:" + pythonScriptPath);
-            File scriptFile = resource.getFile();
-            String scriptPath = scriptFile.getAbsolutePath();
+            String scriptPath;
+            if (projectRoot != null) {
+                // Use project root path
+                scriptPath = Paths.get(projectRoot, "IT-ISQS-Community-Website/backend", pythonScriptPath).toString();
+            } else {
+                // Fallback to working directory
+                scriptPath = Paths.get(System.getProperty("user.dir"), "IT-ISQS-Community-Website/backend", pythonScriptPath).toString();
+            }
+            
+            File scriptFile = new File(scriptPath);
+            if (!scriptFile.exists()) {
+                throw new RuntimeException("Python script not found at: " + scriptPath);
+            }
+            
+            logger.info("Using Python script at: {}", scriptPath);
             
             // Build command
             List<String> command = new ArrayList<>();
