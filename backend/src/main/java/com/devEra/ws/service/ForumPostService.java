@@ -35,7 +35,7 @@ public class ForumPostService {
         ForumPost post = new ForumPost();
         post.setTitle(request.getTitle());
         post.setDescription(request.getDescription());
-        post.setMedia(request.getMedia());
+        
         post.setLikesCount(0);
         post.setCommentCount(0);
         post.setCreatedAt(LocalDateTime.now());
@@ -79,11 +79,9 @@ public class ForumPostService {
                 userType);
 
         if (existingLike.isPresent()) {
-
             forumPostLikeRepository.delete(existingLike.get());
             post.setLikesCount(post.getLikesCount() - 1);
         } else {
-
             ForumPostLike like = new ForumPostLike();
             like.setPostId(postId);
             like.setUserId(userId);
@@ -111,7 +109,7 @@ public class ForumPostService {
         }
     
         ForumPostSave save = new ForumPostSave();
-        save.setForumPost(post);  // ForumPost nesnesi burada set ediliyor
+        save.setForumPost(post);
         save.setSavedBy(userId);
         save.setSavedByType(creatorType);
         save.setSavedAt(LocalDateTime.now());
@@ -120,5 +118,4 @@ public class ForumPostService {
     
         return "Post saved to profile.";
     }
-
 }
