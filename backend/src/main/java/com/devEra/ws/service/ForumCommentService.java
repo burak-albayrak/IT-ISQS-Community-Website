@@ -3,6 +3,7 @@ package com.devEra.ws.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,7 @@ public class ForumCommentService {
     private final ForumPostRepository postRepository;
     private final UserRepository userRepository;
     private final AdminRepository adminRepository;
+    private final ToxicityDetectionService toxicityDetectionService;
 
     /**
      * Yeni bir forum yorumu oluşturur
@@ -46,6 +48,15 @@ public class ForumCommentService {
      */
     @Transactional
     public int createComment(CreateForumCommentRequest request, int creatorId, CreatorType creatorType) {
+        // Toxic kelime kontrolü
+        Map<String, Object> toxicityResult = toxicityDetectionService.checkToxicity(request.getDescription());
+        boolean isToxic = (boolean) toxicityResult.get("is_toxic");
+        double toxicScore = ((Number) toxicityResult.get("toxic_score")).doubleValue();
+        
+        if (isToxic) {
+            throw new IllegalArgumentException("Comment contains inappropriate content. Toxicity score: " + toxicScore + "%");
+        }
+
         // Post'un var olduğunu kontrol et
         ForumPost post = postRepository.findById(request.getForumPostID())
                 .orElseThrow(() -> new EntityNotFoundException("Forum post not found"));
@@ -109,6 +120,15 @@ public class ForumCommentService {
         // Sadece yorum sahibi güncelleyebilir
         if (comment.getCreatedBy() != requesterId || comment.getCreatedByType() != requesterType) {
             throw new SecurityException("You are not authorized to update this comment");
+        }
+        
+        // Toxic kelime kontrolü
+        Map<String, Object> toxicityResult = toxicityDetectionService.checkToxicity(description);
+        boolean isToxic = (boolean) toxicityResult.get("is_toxic");
+        double toxicScore = ((Number) toxicityResult.get("toxic_score")).doubleValue();
+        
+        if (isToxic) {
+            throw new IllegalArgumentException("Comment contains inappropriate content. Toxicity score: " + toxicScore + "%");
         }
         
         comment.setDescription(description);

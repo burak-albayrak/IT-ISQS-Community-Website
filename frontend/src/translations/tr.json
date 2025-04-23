@@ -1,0 +1,26 @@
+{
+    "common": {
+        "welcome": "Hoş Geldiniz",
+        "login": "Giriş Yap",
+        "register": "Kayıt Ol",
+        "logout": "Çıkış Yap",
+        "profile": "Profil",
+        "settings": "Ayarlar"
+    },
+    "forum": {
+        "title": "Forum",
+        "newPost": "Yeni Gönderi",
+        "categories": "Kategoriler",
+        "posts": "Gönderiler",
+        "comments": "Yorumlar",
+        "reply": "Yanıtla",
+        "edit": "Düzenle",
+        "delete": "Sil"
+    },
+    "errors": {
+        "required": "Bu alan zorunludur",
+        "invalidEmail": "Geçersiz e-posta adresi",
+        "passwordMismatch": "Şifreler eşleşmiyor",
+        "toxicContent": "Uygunsuz içerik tespit edildi"
+    }
+} 

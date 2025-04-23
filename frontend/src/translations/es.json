@@ -1,0 +1,26 @@
+{
+    "common": {
+        "welcome": "Bienvenido",
+        "login": "Iniciar Sesión",
+        "register": "Registrarse",
+        "logout": "Cerrar Sesión",
+        "profile": "Perfil",
+        "settings": "Configuración"
+    },
+    "forum": {
+        "title": "Foro",
+        "newPost": "Nueva Publicación",
+        "categories": "Categorías",
+        "posts": "Publicaciones",
+        "comments": "Comentarios",
+        "reply": "Responder",
+        "edit": "Editar",
+        "delete": "Eliminar"
+    },
+    "errors": {
+        "required": "Este campo es obligatorio",
+        "invalidEmail": "Correo electrónico inválido",
+        "passwordMismatch": "Las contraseñas no coinciden",
+        "toxicContent": "Se detectó contenido inapropiado"
+    }
+} 

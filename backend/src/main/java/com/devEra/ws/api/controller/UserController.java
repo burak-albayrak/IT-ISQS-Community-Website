@@ -33,6 +33,7 @@ import com.devEra.ws.entity.Forum.ForumPost;
 import com.devEra.ws.exception.NotUniqueEmailException;
 import com.devEra.ws.service.UserService;
 import com.devEra.ws.service.S3Service;
+import com.devEra.ws.service.ImageModerationService;
 import com.devEra.ws.config.security.JwtTokenService;
 
 @RestController
@@ -43,6 +44,9 @@ public class UserController {
 
     @Autowired
     S3Service s3Service;
+
+    @Autowired
+    ImageModerationService imageModerationService;
 
     @Autowired
     com.devEra.ws.config.security.JwtTokenService jwtTokenService;
@@ -212,10 +216,20 @@ public class UserController {
             @RequestPart("file") MultipartFile file) {
         
         try {
-            // S3'e dosyayı yükle ve URL'ini al
+            // 1. Görsel moderasyon kontrolü yap
+            byte[] imageData = file.getBytes();
+            if (!imageModerationService.isImageSafe(imageData)) {
+                 ApiError error = new ApiError();
+                 error.setStatus(400);
+                 error.setMessage("Image contains inappropriate content.");
+                 error.setPath("/api/v1/users/" + userId + "/profile-picture");
+                 return ResponseEntity.badRequest().body(error);
+            }
+
+            // 2. Moderasyon başarılıysa S3'e yükle
             String pictureUrl = s3Service.uploadProfilePicture(file, userId);
             
-            // Kullanıcı profilini güncelle
+            // 3. Kullanıcı profilini güncelle
             UpdateProfileRequest updateRequest = new UpdateProfileRequest();
             updateRequest.setPicture(pictureUrl);
             userService.updateProfile(userId, updateRequest);
@@ -227,18 +241,26 @@ public class UserController {
             return ResponseEntity.ok(response);
             
         } catch (IOException e) {
-            ApiError error = new ApiError();
-            error.setStatus(500);
-            error.setMessage("Failed to upload profile picture: " + e.getMessage());
-            error.setPath("/api/v1/users/" + userId + "/profile-picture");
-            return ResponseEntity.status(500).body(error);
-        } catch (IllegalArgumentException e) {
+             ApiError error = new ApiError();
+             error.setStatus(500);
+             // Vision API hatasını veya dosya okuma hatasını ayırt et
+             if (e.getMessage() != null && e.getMessage().startsWith("Vision API Error:")) {
+                 error.setMessage("Image moderation failed: " + e.getMessage());
+             } else if (e.getMessage() != null && e.getMessage().startsWith("Unexpected error during image moderation")) {
+                 error.setMessage("An unexpected error occurred during image moderation.");
+             }
+              else {
+                 error.setMessage("Failed to process profile picture: " + e.getMessage());
+             }
+             error.setPath("/api/v1/users/" + userId + "/profile-picture");
+             return ResponseEntity.status(500).body(error);
+        } catch (IllegalArgumentException e) { // S3Service veya diğer validasyon hataları
             ApiError error = new ApiError();
             error.setStatus(400);
             error.setMessage(e.getMessage());
             error.setPath("/api/v1/users/" + userId + "/profile-picture");
             return ResponseEntity.badRequest().body(error);
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException e) { // UserService hatası
             ApiError error = new ApiError();
             error.setStatus(404);
             error.setMessage(e.getMessage());
