@@ -31,28 +31,40 @@ const SelectedForumPage = () => {
   const [userSavedPosts, setUserSavedPosts] = useState([]); // <-- Yeni state
   const [categoryColorMap, setCategoryColorMap] = useState({});
   const [zoomedImageUrl, setZoomedImageUrl] = useState(null);
+  const [replyingToCommentId, setReplyingToCommentId] = useState(null); // ID of the comment being replied to
+  const [replyInputValue, setReplyInputValue] = useState(''); // Input value for the reply form
 
   // New function to fetch comments
   const fetchComments = async (currentPostId) => {
     setCommentsLoading(true);
     setCommentError(null);
     try {
-      // Use postId as a query parameter
-      // const response = await axios.get(`http://localhost:8080/api/v1/forum-comments?postId=${currentPostId}`);
-      // Corrected endpoint based on ForumCommentController
-      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}/main`);
+      // Use the endpoint that fetches all comments hierarchically
+      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}/all`);
       if (response && response.data) {
         // Format comments based on backend response structure
+        // The structure might be nested now, adjust formatting if needed
         const formattedComments = response.data.map(comment => ({
-          id: comment.commentID, // Adjust based on actual backend response field name (e.g., commentId)
+          id: comment.commentId, // CORRECTED: Use commentId (lowercase d) based on DTO
           content: comment.description,
           createdAt: comment.createdAt,
           timeAgo: getTimeAgo(comment.createdAt),
           userName: comment.creatorName || 'Anonymous', // Adjust based on backend response
           userProfilePic: comment.creatorPicture || defaultProfilePic, // Correct field name from backend DTO
-          replies: comment.replies ? comment.replies.map(/* Need to format replies if backend sends them nested */) : [] // Handle replies if needed
+          // Assuming backend now sends replies nested within the comment DTO
+          replies: comment.replies ? comment.replies.map(reply => ({
+             id: reply.commentId, // CORRECTED: Use commentId here too
+             content: reply.description,
+             createdAt: reply.createdAt,
+             timeAgo: getTimeAgo(reply.createdAt),
+             userName: reply.creatorName || 'Anonymous',
+             userProfilePic: reply.creatorPicture || defaultProfilePic,
+             // Replies themselves won't have further replies in this structure based on backend logic
+             replies: [] 
+          })) : [] 
         }));
         setComments(formattedComments);
+        console.log('Formatted Comments:', formattedComments); // Check if replies are formatted
       } else {
         setComments([]);
       }
@@ -311,6 +323,21 @@ const SelectedForumPage = () => {
     }
   };
 
+  // --- Handler to start replying to a comment ---
+  const handleStartReply = (commentId) => {
+    setReplyingToCommentId(commentId);
+    setReplyInputValue(''); // Clear previous reply input
+    setCommentError(null); // Clear any previous errors specific to reply
+  };
+
+  // --- Handler to cancel replying ---
+  const handleCancelReply = () => {
+    setReplyingToCommentId(null);
+    setReplyInputValue('');
+    setCommentError(null);
+  };
+
+  // --- Handler to submit a MAIN comment (existing) ---
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -363,6 +390,57 @@ const SelectedForumPage = () => {
       }
       else {
          setCommentError('Failed to submit comment. Please check your connection and try again.');
+      }
+    }
+  };
+
+  // --- NEW Handler to submit a REPLY ---
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyInputValue.trim() || replyingToCommentId === null) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to reply' } });
+      return;
+    }
+    setCommentError(null); // Clear previous errors
+
+    try {
+      const response = await axios.post(
+        `http://localhost:8080/api/v1/forum-comments`,
+        {
+          forumPostID: parseInt(postId),
+          description: replyInputValue,
+          parentCommentID: replyingToCommentId // Include the parent comment ID
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Reply submitted successfully:', response.data);
+
+      // Clear reply state
+      handleCancelReply();
+
+      // Refresh comments to show the new reply
+      fetchComments(postId);
+
+      // Optionally update main post's comment count if backend doesn't handle nested counts
+      // setPost(prev => ({ ...prev, commentCount: (prev.commentCount || 0) + 1 }));
+
+    } catch (err) {
+      console.error('Error submitting reply:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+         setCommentError('Authentication error or insufficient permissions. Please log in again.');
+      } else if (err.response) {
+        setCommentError(`Reply Error: ${err.response.data?.message || 'Failed to submit reply.'}`);
+      } else {
+         setCommentError('Failed to submit reply. Please check your connection and try again.');
       }
     }
   };
@@ -446,7 +524,7 @@ const SelectedForumPage = () => {
               {forumPosts.length > 0 ? (
                 forumPosts.map((sidebarPost) => (
                   <SidebarPostItem 
-                    key={sidebarPost.id} 
+                    key={`popular-${sidebarPost.id}`} 
                     onClick={() => navigate(`/forum/post/${sidebarPost.id}`)}
                     $isActive={sidebarPost.id === parseInt(postId)}
                   >
@@ -591,9 +669,15 @@ const SelectedForumPage = () => {
                 {commentsLoading ? (
                   <LoadingContainer><Spinner /></LoadingContainer>
                 ) : comments.length > 0 ? (
-                  comments.map((comment) => (
-                    <CommentItem key={comment.id}>
-                      <CommentAvatar src={comment.userProfilePic || defaultProfilePic} alt={comment.userName} />
+                  comments.map((comment) => {
+                    // Log the props being passed to each CommentItem
+                    console.log('Rendering CommentItem props:', comment); 
+                    return (
+                    // --- Individual Comment Item --- 
+                    <CommentItem key={comment.id} $isReply={false}>
+                      <CommentAvatar>
+                         <img src={comment.userProfilePic || defaultProfilePic} alt={comment.userName} />
+                      </CommentAvatar>
                       <CommentContent>
                         <CommentAuthor>
                           <CommentAuthorName>{comment.userName}</CommentAuthorName>
@@ -601,19 +685,75 @@ const SelectedForumPage = () => {
                         </CommentAuthor>
                         <CommentText>{comment.content}</CommentText>
                         <CommentActionsContainer>
-                          <CommentAction>
+                          <CommentAction> {/* Add like functionality later */}
                             <FiHeart size={14} />
                             <span>{comment.likes || 0}</span>
                           </CommentAction>
-                          {!comment.parentCommentID && (
-                            <CommentAction>
+                          {/* --- Modify Reply Button --- */}
+                          {!comment.parentCommentID && replyingToCommentId !== comment.id && (
+                            <CommentAction onClick={() => handleStartReply(comment.id)}>
                               Reply
                             </CommentAction>
                           )}
+                          {replyingToCommentId === comment.id && (
+                            <CommentAction onClick={handleCancelReply} style={{ color: '#D9480F' }}>
+                              Cancel Reply
+                            </CommentAction>
+                          )}
                         </CommentActionsContainer>
+
+                        {/* Conditionally Render Reply Form */}
+                        {replyingToCommentId === comment.id && (
+                          <ReplyFormContainer onSubmit={handleReplySubmit}>
+                            <CommentInput 
+                              placeholder={`Replying to ${comment.userName}...`} 
+                              value={replyInputValue}
+                              onChange={(e) => setReplyInputValue(e.target.value)}
+                              minRows={1}
+                              maxRows={10} // Make reply input potentially smaller
+                              autoFocus // Focus when it appears
+                            />
+                            <CommentSubmitButton type="submit" disabled={!replyInputValue.trim()}>
+                              <FiSend />
+                            </CommentSubmitButton>
+                            {/* Display error specifically for this reply submission */} 
+                            {commentError && <ReplyErrorMessage>{commentError}</ReplyErrorMessage>}
+                          </ReplyFormContainer>
+                        )}
+
+                        {/* --- Render Replies Recursively/Nested --- */}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <RepliesContainer>
+                            {comment.replies.map(reply => (
+                              // Use a slightly different item for replies or reuse CommentItem with props
+                              <CommentItem key={reply.id} $isReply={true}>
+                                <CommentAvatar>
+                                  <img src={reply.userProfilePic || defaultProfilePic} alt={reply.userName} />
+                                </CommentAvatar>
+                                <CommentContent>
+                                  <CommentAuthor>
+                                    <CommentAuthorName>{reply.userName}</CommentAuthorName>
+                                    <CommentTime>{reply.timeAgo}</CommentTime>
+                                  </CommentAuthor>
+                                  <CommentText>{reply.content}</CommentText>
+                                  <CommentActionsContainer>
+                                    <CommentAction> {/* Add like functionality later */}
+                                      <FiHeart size={14} />
+                                      <span>{reply.likes || 0}</span>
+                                    </CommentAction>
+                                    {/* Replies cannot be replied to based on backend logic */}
+                                  </CommentActionsContainer>
+                                </CommentContent>
+                              </CommentItem>
+                            ))}
+                          </RepliesContainer>
+                        )}
+
                       </CommentContent>
                     </CommentItem>
-                  ))
+                    // --- End of Individual Comment Item --- 
+                   );
+                  })
                 ) : (
                   !commentError && <EmptyCommentsMessage><FiMessageSquare size={18} /> No comments yet. Be the first to comment!</EmptyCommentsMessage>
                 )}
@@ -623,7 +763,7 @@ const SelectedForumPage = () => {
         </ForumContent>
       </ForumContainer>
 
-      {/* --- Image Zoom Modal --- */} 
+      {/* --- Image Zoom Modal --- */}
       {zoomedImageUrl && (
         <ZoomOverlay onClick={() => setZoomedImageUrl(null)}>
           <ZoomedImage src={zoomedImageUrl} alt="Zoomed post media" />
@@ -1056,6 +1196,11 @@ const CommentItem = styled.div`
   background-color: #fff;
   display: flex;
   gap: 15px;
+  position: relative; // Needed for absolute positioning of potential reply form error
+  margin-left: ${props => props.$isReply ? '40px' : '0'}; // Indent replies using transient prop
+  border-left: ${props => props.$isReply ? '3px solid #D1E9FF' : '1px solid #E4E7EC'}; // Highlight reply indent using transient prop
+  border-top-left-radius: ${props => props.$isReply ? '0' : '8px'};
+  border-bottom-left-radius: ${props => props.$isReply ? '0' : '8px'};
 `;
 
 const CommentAvatar = styled.div`
@@ -1109,6 +1254,7 @@ const CommentActionsContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 8px; // Add margin top for spacing
 `;
 
 // New styled component for comment action buttons (Like, Reply)
@@ -1229,5 +1375,34 @@ const ZoomedImage = styled.img`
   cursor: default; // Prevent overlay cursor on the image itself
 `;
 // --- End of Image Zoom Modal styles ---
+
+// --- Add Styles for Reply Form --- 
+const ReplyFormContainer = styled.form`
+  display: flex;
+  align-items: flex-start;
+  margin-top: 15px; // Space between comment actions and reply form
+  gap: 8px;
+  padding-left: 51px; // Indent reply form (Avatar width + gap)
+  position: relative; // For error message positioning
+`;
+
+const ReplyErrorMessage = styled.div`
+  color: #d92d20;
+  font-size: 12px;
+  position: absolute; // Position below the input
+  bottom: -18px; // Adjust as needed
+  left: 51px; // Align with input start
+`;
+// --- End of Reply Form styles ---
+
+// Container for replies to visually group and indent them
+const RepliesContainer = styled.div`
+  margin-top: 15px;
+  padding-left: 10px; // Additional padding for the container itself
+  /* border-left: 2px solid #e0e0e0; // Optional: line to show connection */
+  display: flex;
+  flex-direction: column;
+  gap: 15px; // Space between replies
+`;
 
 export default SelectedForumPage;
