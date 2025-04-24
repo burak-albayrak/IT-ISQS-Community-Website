@@ -11,12 +11,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.config.http.SessionCreationPolicy;
 
 import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Autowired
+    private JwtAuthorizationFilter jwtAuthorizationFilter;
 
     @Bean
     @Order(1) // Bu filtreyi OAuth2SecurityConfig'ten önce çalıştır
@@ -26,9 +31,17 @@ public class SecurityConfig {
             .securityMatcher("/api/v1/**") // Sadece API endpointleri için bu yapılandırmayı uygula
             .cors().configurationSource(apiCorsConfigurationSource()).and()
             .csrf().disable()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
             .authorizeHttpRequests()
-                .requestMatchers("/api/v1/**").permitAll() // Tüm API endpointlerini public yap
-                .anyRequest().authenticated();
+                .requestMatchers("/api/v1/users/login", "/api/v1/users/register", "/api/v1/users/verify", 
+                            "/api/v1/users/forgot-password", "/api/v1/users/reset-password").permitAll()
+                .requestMatchers("/api/v1/forum/posts").permitAll()
+                .requestMatchers("/api/v1/forum/categories").permitAll()
+                .requestMatchers("/api/v1/admins/login").permitAll()
+                .anyRequest().authenticated()
+            .and()
+            .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
                 
         return http.build();
     }
