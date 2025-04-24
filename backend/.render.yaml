@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: it-isqs-backend
-    env: java
-    buildCommand: ./mvnw package
-    startCommand: java -jar target/ws-0.0.1-SNAPSHOT.jar
-    rootDir: backend
