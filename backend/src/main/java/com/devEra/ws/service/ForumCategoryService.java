@@ -68,9 +68,7 @@ public class ForumCategoryService {
         ForumCategory existingCategory = getCategoryById(categoryId);
         
         existingCategory.setName(updatedCategory.getName());
-        existingCategory.setDescription(updatedCategory.getDescription());
         existingCategory.setColor(updatedCategory.getColor());
-        existingCategory.setIcon(updatedCategory.getIcon());
         
         return categoryRepository.save(existingCategory);
     }

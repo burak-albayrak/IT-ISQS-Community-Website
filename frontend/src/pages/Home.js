@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FiArrowRight, FiMapPin, FiPhone, FiMail, FiGlobe } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import defaultProfilePic from '../assets/defaultpp.jpg';
 
 // Helper function for date formatting
 const formatRelativeTime = (dateString) => {

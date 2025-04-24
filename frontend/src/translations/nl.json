@@ -1,0 +1,26 @@
+{
+    "common": {
+        "welcome": "Welkom",
+        "login": "Inloggen",
+        "register": "Registreren",
+        "logout": "Uitloggen",
+        "profile": "Profiel",
+        "settings": "Instellingen"
+    },
+    "forum": {
+        "title": "Forum",
+        "newPost": "Nieuwe Post",
+        "categories": "Categorieën",
+        "posts": "Posts",
+        "comments": "Reacties",
+        "reply": "Antwoorden",
+        "edit": "Bewerken",
+        "delete": "Verwijderen"
+    },
+    "errors": {
+        "required": "Dit veld is verplicht",
+        "invalidEmail": "Ongeldig e-mailadres",
+        "passwordMismatch": "Wachtwoorden komen niet overeen",
+        "toxicContent": "Ongepaste inhoud gedetecteerd"
+    }
+} 

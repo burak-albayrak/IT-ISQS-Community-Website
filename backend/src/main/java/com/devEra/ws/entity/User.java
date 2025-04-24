@@ -3,6 +3,7 @@ package com.devEra.ws.entity;
 import com.devEra.ws.core.enums.Role;
 import com.devEra.ws.core.enums.Gender;
 import com.devEra.ws.core.validation.UniqueEmail;
+import com.devEra.ws.core.enums.AuthProvider;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -62,4 +63,27 @@ public class User {
     
     @Column(name = "picture")
     private String picture;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider")
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+    
+    @Column(name = "provider_id")
+    private String providerId;
+
+    public AuthProvider getAuthProvider() {
+        return authProvider;
+    }
+
+    public void setAuthProvider(AuthProvider authProvider) {
+        this.authProvider = authProvider;
+    }
+
+    public String getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(String providerId) {
+        this.providerId = providerId;
+    }
 }

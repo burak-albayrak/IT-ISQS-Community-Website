@@ -47,7 +47,7 @@ public class AuthenticationController {
         } catch (IllegalStateException e) {
             ApiError error = new ApiError();
             error.setStatus(403);
-            error.setMessage("Please verify your email before logging in.");
+            error.setMessage(e.getMessage());
             error.setPath("/api/v1/users/login");
             return ResponseEntity.status(403).body(error);
 
@@ -120,5 +120,34 @@ public class AuthenticationController {
 
         return ResponseEntity.ok(new GenericMessage("Password has been successfully reset."));
     }
-
+    
+    @PostMapping("/api/v1/users/resend-verification")
+    public ResponseEntity<?> resendVerificationCode(@RequestBody ForgotPasswordRequest request) {
+        boolean result = authenticationService.resendVerificationCode(request.getEmail());
+        
+        if (result) {
+            return ResponseEntity.ok(new GenericMessage("Verification code has been resent to your email."));
+        } else {
+            ApiError apiError = new ApiError();
+            apiError.setPath("/api/v1/users/resend-verification");
+            apiError.setMessage("Email is not registered or already verified.");
+            apiError.setStatus(400);
+            return ResponseEntity.badRequest().body(apiError);
+        }
+    }
+    
+    @PostMapping("/api/v1/users/resend-reset-code")
+    public ResponseEntity<?> resendResetCode(@RequestBody ForgotPasswordRequest request) {
+        boolean result = forgotPasswordService.sendResetCode(request.getEmail());
+        
+        if (result) {
+            return ResponseEntity.ok(new GenericMessage("Password reset code has been resent to your email."));
+        } else {
+            ApiError apiError = new ApiError();
+            apiError.setPath("/api/v1/users/resend-reset-code");
+            apiError.setMessage("No user registered with this email address.");
+            apiError.setStatus(404);
+            return ResponseEntity.status(404).body(apiError);
+        }
+    }
 }

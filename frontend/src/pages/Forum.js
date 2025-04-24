@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { FiSearch, FiArrowRight, FiFilter, FiChevronDown, FiMoreHorizontal, FiX, FiImage, FiSend, FiTag, FiHeart, FiEye, FiBookmark } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
@@ -73,6 +73,48 @@ const Forum = () => {
     'WebDevelopment'
   ];
 
+  // Helper function to apply filters and sort
+  const applyFiltersAndSort = useCallback((posts, category, query, sort) => {
+    let processedPosts = [...posts]; // Start with a copy
+
+    // Apply Category Filter
+    if (category) {
+      processedPosts = processedPosts.filter(post =>
+        post.tags && post.tags.includes(category)
+      );
+    }
+
+    // Apply Search Filter
+    if (query) {
+      const searchLower = query.toLowerCase();
+      processedPosts = processedPosts.filter(post =>
+        (post.title && post.title.toLowerCase().includes(searchLower)) ||
+        (post.description && post.description.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Apply Sorting
+    switch (sort) {
+      case 'newest':
+        processedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case 'oldest':
+        processedPosts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case 'most-liked':
+        processedPosts.sort((a, b) => b.likesCount - a.likesCount);
+        break;
+      case 'most-commented':
+        processedPosts.sort((a, b) => b.commentCount - a.commentCount);
+        break;
+      default:
+        // Default sort (fetch already sorts by newest)
+        break;
+    }
+
+    return processedPosts;
+  }, []); // Empty dependency array as it uses state passed as args
+
   // Fetch forum data when page loads or refreshKey changes
   useEffect(() => {
     const fetchData = async () => {
@@ -94,19 +136,10 @@ const Forum = () => {
                 .flatMap(post => post.tags)
             )];
             
-            if (uniqueCategories.length > 0) {
-              setCategories(uniqueCategories);
-            }
+            // setCategories(uniqueCategories); // Categories are now fetched separately
             
-            // Sort posts by creation date (newest first)
-            const sortedPosts = [...posts].sort((a, b) => {
-              const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
-              const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
-              return dateB - dateA;
-            });
-            
-            // Format posts for display
-            const formattedPosts = sortedPosts.map(post => ({
+            // Backend already sorts by newest, just format
+            const formattedPosts = posts.map(post => ({
               id: post.forumPostID,
               title: post.title,
               description: post.description,
@@ -130,35 +163,37 @@ const Forum = () => {
             
             // Save all posts for filtering
             setAllPosts(formattedPosts);
+
+            // Apply initial filters/sorts to the fetched data
+            const initialProcessedPosts = applyFiltersAndSort(formattedPosts, selectedCategory, searchQuery, sortOption);
             
-            // Set recent posts
-            setRecentForumPosts(formattedPosts.slice(0, 5));
+            // Set recent posts based on initial page (0)
+            setRecentForumPosts(initialProcessedPosts.slice(0, 5));
             
-            // Get popular posts for the Popular section
-            const popularPosts = [...formattedPosts]
+            // Get popular posts for the Popular section (apply sort)
+            const popularPosts = [...initialProcessedPosts]
               .sort((a, b) => b.likesCount - a.likesCount)
               .slice(0, 4);
             setForumPosts(popularPosts);
             
-            // Get saved posts for the current user
-            // In a real app, this would be fetched from a separate endpoint
-            setSavedForumPosts(formattedPosts.slice(0, 3));
+            // Get saved posts for the current user (fetched separately)
+            // setSavedForumPosts(initialProcessedPosts.filter(p => p.isSaved).slice(0, 3)); // Example, actual fetch is separate
             
-            // Set pagination
-            setTotalPages(Math.ceil(formattedPosts.length / 10));
+            // Set pagination based on the *filtered* length
+            setTotalPages(Math.ceil(initialProcessedPosts.length / 5)); 
           } else {
             // No posts found
             setAllPosts([]);
             setForumPosts([]);
             setRecentForumPosts([]);
             setSavedForumPosts([]);
-            setError("No forum posts found.");
+            setTotalPages(0);
+            // setError("No forum posts found."); // Avoid setting error for empty results
           }
         } else {
           throw new Error('Invalid response format');
         }
         
-        setLoading(false);
       } catch (err) {
         console.error("Error fetching forum posts:", err);
         setError("Failed to load forum posts. Please try again later.");
@@ -166,13 +201,14 @@ const Forum = () => {
         setForumPosts([]);
         setRecentForumPosts([]);
         setSavedForumPosts([]);
-        setLoading(false);
+        setTotalPages(0);
+      } finally {
+          setLoading(false);
       }
     };
 
     fetchData();
-    // Add refreshKey to dependency array
-  }, [currentPage, refreshKey]);
+  }, [refreshKey, applyFiltersAndSort, selectedCategory, searchQuery, sortOption]); // Only re-fetch on refreshKey, but re-process if filters/sort change
 
   // Fetch saved posts for logged-in user
   useEffect(() => {
@@ -313,70 +349,37 @@ const Forum = () => {
   // Handle search functionality
   const handleSearch = (e) => {
     e.preventDefault();
-    
-    if (!searchQuery.trim()) {
-      // If search is empty, reset to show all posts
-      setRecentForumPosts(allPosts.slice(0, 5));
-      
-      // Reset popular posts
-      const popularPosts = [...allPosts]
-        .sort((a, b) => b.likesCount - a.likesCount)
-        .slice(0, 4);
-      setForumPosts(popularPosts);
-      
-      return;
-    }
-    
-    // Filter posts by search query
-    const filteredPosts = allPosts.filter(post => {
-      const searchLower = searchQuery.toLowerCase();
-      return (
-        (post.title && post.title.toLowerCase().includes(searchLower)) ||
-        (post.description && post.description.toLowerCase().includes(searchLower))
-      );
-    });
-    
-    // Update recent posts with filtered results
-    setRecentForumPosts(filteredPosts.slice(0, 5));
-    
-    // Update popular posts with filtered results
-    const filteredPopular = [...filteredPosts]
+    setCurrentPage(0); // Reset to first page on new search
+
+    const processedList = applyFiltersAndSort(allPosts, selectedCategory, searchQuery, sortOption);
+
+    setRecentForumPosts(processedList.slice(0, 5));
+    setTotalPages(Math.ceil(processedList.length / 5));
+
+    // Update popular posts
+    const popularPosts = [...processedList]
       .sort((a, b) => b.likesCount - a.likesCount)
       .slice(0, 4);
-    setForumPosts(filteredPopular);
+    setForumPosts(popularPosts);
   };
 
   // Handle category change
   const handleCategoryChange = (e) => {
     const category = e.target.value;
     setSelectedCategory(category);
-    
-    if (!category) {
-      // If no category selected, show all posts
-      setRecentForumPosts(allPosts.slice(0, 5));
-      
-      // Reset popular posts
-      const popularPosts = [...allPosts]
-        .sort((a, b) => b.likesCount - a.likesCount)
-        .slice(0, 4);
-      setForumPosts(popularPosts);
-      
-      return;
-    }
-    
-    // Filter posts by selected category
-    const filteredPosts = allPosts.filter(post => 
-      post.tags && post.tags.includes(category)
-    );
-    
-    // Update recent posts with filtered results
-    setRecentForumPosts(filteredPosts.slice(0, 5));
-    
-    // Update popular posts with filtered results
-    const filteredPopular = [...filteredPosts]
+    setShowCategoryDropdown(false); // Close dropdown after selection
+    setCurrentPage(0); // Reset to first page on category change
+
+    const processedList = applyFiltersAndSort(allPosts, category, searchQuery, sortOption);
+
+    setRecentForumPosts(processedList.slice(0, 5));
+    setTotalPages(Math.ceil(processedList.length / 5));
+
+    // Update popular posts
+    const popularPosts = [...processedList]
       .sort((a, b) => b.likesCount - a.likesCount)
       .slice(0, 4);
-    setForumPosts(filteredPopular);
+    setForumPosts(popularPosts);
   };
 
   // Handle page change
@@ -386,35 +389,16 @@ const Forum = () => {
       return;
     }
     
-    setCurrentPage(newPage);
+    setCurrentPage(newPage); // Update page state
     
-    // Update recent posts for the selected page
+    // Apply current filters and sorting to the master list
+    const sourceList = applyFiltersAndSort(allPosts, selectedCategory, searchQuery, sortOption);
+    
+    // Calculate the slice for the new page
     const startIndex = newPage * 5;
-    let postsToShow = [];
+    const postsToShow = sourceList.slice(startIndex, startIndex + 5);
     
-    // If filtering by category
-    if (selectedCategory) {
-      const filteredPosts = allPosts.filter(post => 
-        post.tags && post.tags.includes(selectedCategory)
-      );
-      postsToShow = filteredPosts.slice(startIndex, startIndex + 5);
-    } 
-    // If filtering by search
-    else if (searchQuery) {
-      const filteredPosts = allPosts.filter(post => {
-        const searchLower = searchQuery.toLowerCase();
-        return (
-          (post.title && post.title.toLowerCase().includes(searchLower)) ||
-          (post.description && post.description.toLowerCase().includes(searchLower))
-        );
-      });
-      postsToShow = filteredPosts.slice(startIndex, startIndex + 5);
-    }
-    // No filters, show all posts
-    else {
-      postsToShow = allPosts.slice(startIndex, startIndex + 5);
-    }
-    
+    // Update the displayed posts
     setRecentForumPosts(postsToShow);
   };
 
@@ -422,36 +406,22 @@ const Forum = () => {
   const handleSortChange = (option) => {
     setSortOption(option);
     setShowSortDropdown(false);
-    
-    // Create a copy of posts to sort
-    let sortedRecentPosts = [...recentForumPosts];
-    let sortedPopularPosts = [...forumPosts];
-    
-    // Apply sorting based on selected option
-    switch (option) {
-      case 'newest':
-        sortedRecentPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        sortedPopularPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
-      case 'oldest':
-        sortedRecentPosts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        sortedPopularPosts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        break;
-      case 'most-liked':
-        sortedRecentPosts.sort((a, b) => b.likesCount - a.likesCount);
-        sortedPopularPosts.sort((a, b) => b.likesCount - a.likesCount);
-        break;
-      case 'most-commented':
-        sortedRecentPosts.sort((a, b) => b.commentCount - a.commentCount);
-        sortedPopularPosts.sort((a, b) => b.commentCount - a.commentCount);
-        break;
-      default:
-        break;
-    }
-    
-    // Update state with sorted posts
-    setRecentForumPosts(sortedRecentPosts);
-    setForumPosts(sortedPopularPosts);
+    setCurrentPage(0); // Reset to first page on sort change
+
+    // Apply filters and the new sort to the master list
+    const processedList = applyFiltersAndSort(allPosts, selectedCategory, searchQuery, option);
+
+    // Update displayed posts for the first page
+    setRecentForumPosts(processedList.slice(0, 5));
+
+    // Update total pages based on the processed list length
+    setTotalPages(Math.ceil(processedList.length / 5));
+
+    // Also update popular posts based on the new sort (if needed)
+    const popularPosts = [...processedList]
+      .sort((a, b) => b.likesCount - a.likesCount) // Keep popular sorted by likes
+      .slice(0, 4);
+    setForumPosts(popularPosts);
   };
 
   // Handle outside click for modal
