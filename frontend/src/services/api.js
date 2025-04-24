@@ -14,10 +14,17 @@ const api = axios.create({
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+    // Önce adminToken için kontrol et, eğer yoksa normal token'ı kontrol et
+    const adminToken = localStorage.getItem('adminToken');
+    const userToken = localStorage.getItem('token');
+    
+    // Admin token varsa onu kullan, yoksa user token'ı kullan
+    if (adminToken) {
+      config.headers['Authorization'] = `Bearer ${adminToken}`;
+    } else if (userToken) {
+      config.headers['Authorization'] = `Bearer ${userToken}`;
     }
+    
     return config;
   },
   (error) => {
@@ -38,7 +45,13 @@ api.interceptors.response.use(
     
     // Handle 401 Unauthorized errors
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
+      // URL'e göre token temizleme
+      if (error.config.url.includes('/admins/')) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('admin');
+      } else {
+        localStorage.removeItem('token');
+      }
       // Redirect to login page can be implemented here
     }
     

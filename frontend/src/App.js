@@ -43,7 +43,7 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/sys-management/auth" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/privacy-policy" element={<div className="page">Privacy & Policy Page</div>} />
               <Route path="/terms" element={<div className="page">Terms of Service Page</div>} />

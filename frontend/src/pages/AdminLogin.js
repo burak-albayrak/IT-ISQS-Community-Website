@@ -104,11 +104,36 @@ const AdminLogin = () => {
     setError('');
     
     try {
+      console.log('Attempting admin login with credentials:', { email: credentials.email });
       await adminLogin(credentials);
+      console.log('Admin login successful');
       navigate('/admin/dashboard');
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.message || 'Login failed. Please check your credentials and try again.');
+      
+      // Sunucudan gelen hata mesajını işleme
+      let errorMessage = 'Login failed. Please check your credentials and try again.';
+      
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.status) {
+        // Farklı hata kodlarına göre özelleştirilmiş mesajlar
+        switch (err.status) {
+          case 404:
+            errorMessage = 'Admin account not found with this email.';
+            break;
+          case 401:
+            errorMessage = 'Invalid email or password.';
+            break;
+          case 403:
+            errorMessage = 'Your account is blocked or disabled.';
+            break;
+          default:
+            errorMessage = err.message || 'An error occurred during login.';
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -116,7 +141,7 @@ const AdminLogin = () => {
 
   return (
     <LoginContainer>
-      <Title>Admin Login</Title>
+      <Title>System Login</Title>
       
       {error && <ErrorMessage>{error}</ErrorMessage>}
       

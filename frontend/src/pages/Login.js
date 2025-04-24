@@ -9,6 +9,7 @@ import personIcon from '../assets/person.png'; // Person ikonunu import ediyoruz
 import lockIcon from '../assets/lock.png'; // Lock ikonunu import ediyoruz
 import { login, register, getUserByEmail } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
+import { adminLogin } from '../services/adminService';
 
 // Formda yan yana koyacağımız girdi alanları için stil ekleyelim
 const FormRow = styled.div`
@@ -29,6 +30,94 @@ const LoginGoogleButton = styled(S.GoogleButton)`
     width: 80%;
     margin-left: auto;
     margin-right: auto;
+`;
+
+const LoginContainer = styled.div`
+  max-width: 450px;
+  margin: 50px auto;
+  padding: 30px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+`;
+
+const Title = styled.h1`
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 30px;
+  cursor: pointer;
+  user-select: none;
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Label = styled.label`
+  font-weight: 600;
+  margin-bottom: 8px;
+`;
+
+const Input = styled.input`
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  transition: border-color 0.3s;
+  
+  &:focus {
+    outline: none;
+    border-color: #3498db;
+  }
+`;
+
+const Button = styled.button`
+  padding: 12px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 10px;
+  
+  &:hover {
+    background-color: #2980b9;
+  }
+  
+  &:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+  }
+`;
+
+const ErrorMessage = styled.div`
+  background-color: #e74c3c;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+`;
+
+const AdminModeIndicator = styled.div`
+  background-color: #2c3e50;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 12px;
+  z-index: 100;
 `;
 
 const Login = () => {
@@ -54,6 +143,8 @@ const Login = () => {
     const [fieldErrors, setFieldErrors] = useState({});
     const navigate = useNavigate();
     const { login: authLogin } = useAuth();
+    const [titleClickCount, setTitleClickCount] = useState(0);
+    const [isAdminMode, setIsAdminMode] = useState(false);
 
     // Add countries array before the component logic
     const countries = [
@@ -91,6 +182,38 @@ const Login = () => {
             setIsLogin(true); // Giriş formunu göster
         }
     }, [location.search]);
+
+    // Klavye kısayolu için event listener
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Ctrl+Shift+A kombinasyonu için kontrol
+            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+                toggleAdminMode();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
+
+    const toggleAdminMode = () => {
+        setIsAdminMode(!isAdminMode);
+        setLoginData({ email: '', password: '' });
+        setError('');
+    };
+
+    const handleTitleClick = () => {
+        const newCount = titleClickCount + 1;
+        setTitleClickCount(newCount);
+        
+        // Başlığa 3 kez tıklandığında admin modunu aç/kapat
+        if (newCount === 3) {
+            toggleAdminMode();
+            setTitleClickCount(0);
+        }
+    };
 
     const handleLoginChange = (e) => {
         setLoginData({
@@ -159,18 +282,23 @@ const Login = () => {
         }
 
         try {
-            // Login API isteği
-            const response = await login(loginData);
-            console.log('Login successful:', response);
-            
-            if (response.user) {
-                // Kullanıcı bilgilerini AuthContext'e aktar
-                authLogin(response.user);
-                
-                // Başarılı giriş sonrası yönlendirme
-                navigate('/');
+            if (isAdminMode) {
+                // Admin girişi
+                await adminLogin(loginData);
+                navigate('/admin/dashboard');
             } else {
-                throw new Error('Login response did not contain user data');
+                // Kullanıcı bilgilerini AuthContext'e aktar
+                const response = await login(loginData);
+                console.log('Login successful:', response);
+                
+                if (response.user) {
+                    authLogin(response.user);
+                    
+                    // Başarılı giriş sonrası yönlendirme
+                    navigate('/');
+                } else {
+                    throw new Error('Login response did not contain user data');
+                }
             }
         } catch (err) {
             console.error('Login error:', err);
