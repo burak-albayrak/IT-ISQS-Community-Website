@@ -33,6 +33,36 @@ const Blog = () => {
   const sortRef = useRef(null);
   const navigate = useNavigate();
 
+  // Add category states similar to Forum.js
+  const [backendCategories, setBackendCategories] = useState([]); // State for ALL categories fetched from backend
+  const [categoryColorMap, setCategoryColorMap] = useState({}); // State for category color map
+  const [displayCategories, setDisplayCategories] = useState([]); // State for filtered categories to display in dropdown
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const categoryRef = useRef(null);
+
+  // Define allowed category names for blogs (Adjust as needed)
+  // Assuming same categories as Forum for now
+  const allowedBlogCategoryNames = [
+    'ARVR',
+    'Blockchain',
+    'CloudComputing',
+    'Cybersecurity',
+    'DataScience',
+    'DatabaseManagement',
+    'DevOps',
+    'EmbeddedSystems',
+    'GameDevelopment',
+    'MachineLearning',
+    'MobileDevelopment',
+    'OpenSource',
+    'ProjectManagement',
+    'QAStandards',
+    'SoftwareArchitecture',
+    'SoftwareTesting',
+    'TestPlanning',
+    'WebDevelopment'
+  ];
+
   // Blog verileri için sayfa yüklendiğinde çalışacak efekt
   useEffect(() => {
     const fetchData = async () => {
@@ -96,7 +126,7 @@ const Blog = () => {
             setTotalPages(Math.ceil(blogs.length / 10));
           } else {
             // No blogs found
-            setError("Henüz blog yazısı bulunmamaktadır.");
+            setError("No blog posts available yet.");
             setRecentBlogPosts([]);
             setAllBlogPosts([]);
             setCategories(['Uncategorized']);
@@ -121,11 +151,60 @@ const Blog = () => {
     fetchData();
   }, [currentPage]);
 
-  // Dropdown dışına tıklayınca kapanmasını sağlayan effect
+  // Fetch categories from backend and filter them (Copied from Forum.js)
+  useEffect(() => {
+    const fetchAndFilterCategories = async () => {
+      try {
+        // Assuming blog categories are fetched from the same endpoint as forum
+        const response = await axios.get('http://localhost:8080/api/v1/forum-categories'); 
+        let fetchedCategories = [];
+        if (response && response.data) {
+          fetchedCategories = response.data;
+          setBackendCategories(fetchedCategories);
+
+          const colorMap = fetchedCategories.reduce((acc, category) => {
+            if (category.name && category.color) {
+              acc[category.name] = category.color;
+            }
+            return acc;
+          }, {});
+          setCategoryColorMap(colorMap);
+
+        } else {
+          setBackendCategories([]);
+          setCategoryColorMap({});
+        }
+
+        // Filter fetched categories based on the allowed names for blogs
+        const filtered = fetchedCategories.filter(category =>
+          allowedBlogCategoryNames.includes(category.name)
+        );
+
+        // Sort the filtered categories alphabetically by name for display
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+        setDisplayCategories(filtered);
+
+      } catch (error) {
+        console.error('Error fetching or filtering categories for blog:', error);
+        setBackendCategories([]);
+        setDisplayCategories([]);
+        setCategoryColorMap({});
+      }
+    };
+
+    fetchAndFilterCategories();
+  }, []); // Fetch categories once when component mounts
+
+  // Dropdown dışına tıklayınca kapanmasını sağlayan effect (Updated to include categoryRef)
   useEffect(() => {
     function handleClickOutside(event) {
       if (sortRef.current && !sortRef.current.contains(event.target)) {
         setShowSortDropdown(false);
+      }
+      // Add check for category dropdown
+      if (categoryRef.current && !categoryRef.current.contains(event.target)) {
+        setShowCategoryDropdown(false);
       }
     }
 
@@ -133,7 +212,7 @@ const Blog = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [sortRef]);
+  }, [sortRef, categoryRef]); // Add categoryRef dependency
 
   // Sayfa değiştiğinde çalışacak fonksiyon
   const handlePageChange = (newPage) => {
@@ -164,7 +243,7 @@ const Blog = () => {
         });
         
         if (filteredBlogs.length === 0) {
-          setError("Arama sonucunda blog bulunamadı.");
+          setError("No blogs found matching your search criteria.");
         } else {
           setError(null);
         }
@@ -191,80 +270,26 @@ const Blog = () => {
     }
   };
 
-  const handleCategoryChange = async (e) => {
-    const category = e.target.value;
-    setSelectedCategory(category);
+  // Update handleCategoryChange to check for empty results and set error
+  const handleCategoryChange = (categoryName) => {
+    setSelectedCategory(categoryName);
+    setShowCategoryDropdown(false); // Close dropdown after selection
 
-    if (!category) {
-      // Kategori seçilmemişse, tüm blogları göster
-      try {
-        const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
-        
-        if (response && response.data) {
-          const blogs = response.data;
-          
-          // Format all blogs for display
-          const formattedBlogs = blogs.map(blog => ({
-            id: blog.blogID,
-            title: blog.title,
-            summary: blog.description.substring(0, 150) + '...',
-            categories: [blog.category || 'Uncategorized'],
-            date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
-            author: blog.owner || blog.createdBy || 'Anonymous',
-            imageUrl: blog.media
-          }));
-          
-          setAllBlogPosts(formattedBlogs);
-          setTotalPages(Math.ceil(formattedBlogs.length / 10));
-        setCurrentPage(0);
-          setError(null);
-        }
-      } catch (err) {
-        console.error("Blogları getirirken hata oluştu:", err);
-        setError("Blogları getirirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-      }
-      return;
+    // Check if filtering by this category yields results
+    const filteredPosts = allBlogPosts.filter(post => 
+      !categoryName || (post.categories && post.categories.includes(categoryName))
+    );
+
+    if (categoryName && filteredPosts.length === 0) {
+      // Set error if a category is selected and no posts are found
+      setError(`No blogs found in the "${categoryName}" category.`);
+    } else {
+      // Clear error if "All Categories" is selected or if the selected category has posts
+      setError(null); 
     }
 
-    // Seçilen kategoriye göre blogları client-side'da filtrele
-    try {
-      const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
-      
-      if (response && response.data) {
-        const blogs = response.data;
-        
-        // Filter blogs by category
-        const filteredBlogs = blogs.filter(blog => 
-          blog.category && blog.category.toLowerCase() === category.toLowerCase()
-        );
-        
-        if (filteredBlogs.length === 0) {
-          setError(`"${category}" kategorisinde blog bulunamadı.`);
-        } else {
-          setError(null);
-        }
-        
-        // Format the filtered blogs
-        const formattedBlogs = filteredBlogs.map(blog => ({
-          id: blog.blogID,
-          title: blog.title,
-          summary: blog.description.substring(0, 150) + '...',
-          categories: [blog.category || 'Uncategorized'],
-          date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
-          author: blog.owner || blog.createdBy || 'Anonymous',
-          imageUrl: blog.media
-        }));
-        
-        setAllBlogPosts(formattedBlogs);
-        setTotalPages(Math.ceil(formattedBlogs.length / 10));
-      setCurrentPage(0);
-      } else {
-        throw new Error('Invalid response format');
-      }
-    } catch (err) {
-      console.error("Kategori filtrelemesi yaparken hata oluştu:", err);
-      setError("Kategori filtrelemesi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
-    }
+    // Reset pagination to the first page when category changes
+    setCurrentPage(0);
   };
 
   const handleBlogClick = (postId) => {
@@ -322,14 +347,6 @@ const Blog = () => {
         <LoadingContainer>
           <Spinner />
         </LoadingContainer>
-      </BlogContainer>
-    );
-  }
-
-  if (error) {
-    return (
-      <BlogContainer>
-        <ErrorMessage>{error}</ErrorMessage>
       </BlogContainer>
     );
   }
@@ -394,121 +411,157 @@ const Blog = () => {
             )}
           </SortButtonContainer>
           
-          <CategorySelectContainer>
-        <CategorySelect 
-          value={selectedCategory}
-          onChange={handleCategoryChange}
-        >
-          <option value="">Categories</option>
-          {categories.map((category, index) => (
-            <option key={index} value={category}>{category}</option>
-          ))}
-        </CategorySelect>
-            <CategorySelectIcon>
-              <FiChevronDown />
-            </CategorySelectIcon>
-          </CategorySelectContainer>
+          {/* Use the renamed CustomCategorySelectContainer */}
+          <CustomCategorySelectContainer ref={categoryRef}>
+            <CategoryButton onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}>
+              <span>{selectedCategory || 'Categories'}</span> 
+              <FiChevronDown size={16} />
+            </CategoryButton>
+            
+            {showCategoryDropdown && (
+              <CategoryDropdown>
+                <CategoryOption 
+                  selected={selectedCategory === ''} 
+                  onClick={() => handleCategoryChange('')}
+                >
+                  All Categories
+                </CategoryOption>
+                {displayCategories.map((category) => (
+                  <CategoryOption 
+                    key={category.categoryId} 
+                    selected={selectedCategory === category.name}
+                    onClick={() => handleCategoryChange(category.name)}
+                  >
+                    {category.name}
+                  </CategoryOption>
+                ))}
+              </CategoryDropdown>
+            )}
+          </CustomCategorySelectContainer>
           
           <BlogLogo src={blogBannerLogo} alt="Blog Logo" />
       </SearchSection>
 
-      <BlogSection>
-          <SectionTitle>Recently added blog posts</SectionTitle>
-          <RecentBlogsGrid>
-            {recentBlogPosts.length > 0 && (
-              <FeaturedBlog onClick={() => handleBlogClick(recentBlogPosts[0].id)}>
-                <FeaturedBlogImage src={getImageUrl(recentBlogPosts[0])} alt={recentBlogPosts[0].title} />
-                <FeaturedBlogContent>
-                  <FeaturedBlogAuthor>{recentBlogPosts[0].author} • {recentBlogPosts[0].date}</FeaturedBlogAuthor>
-                  <FeaturedBlogTitle>{recentBlogPosts[0].title}</FeaturedBlogTitle>
-                  <FeaturedBlogDescription>{recentBlogPosts[0].summary}</FeaturedBlogDescription>
-                  <CategoryTags>
-                    {recentBlogPosts[0].categories && recentBlogPosts[0].categories.map((category, idx) => (
-                      <CategoryTag key={idx}>{category}</CategoryTag>
-                    ))}
-                  </CategoryTags>
-                </FeaturedBlogContent>
-              </FeaturedBlog>
-            )}
-            
-            <SideBlogsContainer>
-              {recentBlogPosts.slice(1, 3).map((blog) => (
-                <SideBlog key={blog.id} onClick={() => handleBlogClick(blog.id)}>
-                  <SideBlogImage src={getImageUrl(blog)} alt={blog.title} />
-                  <SideBlogContent>
-                    <SideBlogAuthor>{blog.author} • {blog.date}</SideBlogAuthor>
-                    <SideBlogTitle>{blog.title}</SideBlogTitle>
-                    <SideBlogDescription>{blog.summary}</SideBlogDescription>
-                <CategoryTags>
-                      {blog.categories && blog.categories.map((category, idx) => (
-                    <CategoryTag key={idx}>{category}</CategoryTag>
-                  ))}
-                </CategoryTags>
-                  </SideBlogContent>
-                </SideBlog>
-          ))}
-            </SideBlogsContainer>
-          </RecentBlogsGrid>
-      </BlogSection>
+      {/* Conditionally render the Recent Blogs Section - Added !error check */}
+      {sortOption === 'newest' && !selectedCategory && !searchQuery.trim() && !error && (
+        <BlogSection>
+            <SectionTitle>Recently added blog posts</SectionTitle>
+            <RecentBlogsGrid>
+              {recentBlogPosts.length > 0 && (
+                <FeaturedBlog onClick={() => handleBlogClick(recentBlogPosts[0].id)}>
+                  <FeaturedBlogImage src={getImageUrl(recentBlogPosts[0])} alt={recentBlogPosts[0].title} />
+                  <FeaturedBlogContent>
+                    <FeaturedBlogAuthor>{recentBlogPosts[0].author} • {recentBlogPosts[0].date}</FeaturedBlogAuthor>
+                    <FeaturedBlogTitle>{recentBlogPosts[0].title}</FeaturedBlogTitle>
+                    <FeaturedBlogDescription>{recentBlogPosts[0].summary}</FeaturedBlogDescription>
+                    <CategoryTags>
+                      {recentBlogPosts[0].categories && recentBlogPosts[0].categories.map((category, idx) => (
+                        <CategoryTag key={idx} $categoryColor={categoryColorMap[category] || null}>
+                          {category}
+                        </CategoryTag>
+                      ))}
+                    </CategoryTags>
+                  </FeaturedBlogContent>
+                </FeaturedBlog>
+              )}
+              
+              <SideBlogsContainer>
+                {recentBlogPosts.slice(1, 3).map((blog) => (
+                  <SideBlog key={blog.id} onClick={() => handleBlogClick(blog.id)}>
+                    <SideBlogImage src={getImageUrl(blog)} alt={blog.title} />
+                    <SideBlogContent>
+                      <SideBlogAuthor>{blog.author} • {blog.date}</SideBlogAuthor>
+                      <SideBlogTitle>{blog.title}</SideBlogTitle>
+                      <SideBlogDescription>{blog.summary}</SideBlogDescription>
+                      <CategoryTags>
+                        {blog.categories && blog.categories.map((category, idx) => (
+                          <CategoryTag key={idx} $categoryColor={categoryColorMap[category] || null}>
+                            {category}
+                          </CategoryTag>
+                        ))}
+                      </CategoryTags>
+                    </SideBlogContent>
+                  </SideBlog>
+                ))}
+              </SideBlogsContainer>
+            </RecentBlogsGrid>
+        </BlogSection>
+      )}
+      {/* End of Conditional Rendering */}
 
       <BlogSection>
         <SectionTitle>All blog posts</SectionTitle>
-        <AllPostsGrid>
-          {allBlogPosts.map((post) => (
-            <BlogCard 
-              key={post.id}
-              onClick={() => handleBlogClick(post.id)}
-            >
-              <BlogCardImage 
-                className="blog-card-image" 
-                src={getImageUrl(post)} 
-                alt={post.title} 
-              />
-              <BlogCardContent>
-                <BlogAuthor>{post.author} • {post.date}</BlogAuthor>
-                <BlogTitle>{post.title}</BlogTitle>
-                <BlogSummary>{post.summary}</BlogSummary>
-                <CategoryTags>
-                  {post.categories.map((category, idx) => (
-                    <CategoryTag key={idx}>{category}</CategoryTag>
-                  ))}
-                </CategoryTags>
-              </BlogCardContent>
-            </BlogCard>
-          ))}
-        </AllPostsGrid>
+        {/* Show error message if error state is set, otherwise show grid */}
+        {error ? (
+          <ErrorMessage>{error}</ErrorMessage>
+        ) : (
+          <AllPostsGrid>
+            {/* Filter allBlogPosts based on selectedCategory before mapping */}
+            {allBlogPosts
+              .filter(post => !selectedCategory || (post.categories && post.categories.includes(selectedCategory)))
+              // Add pagination logic here if needed for client-side filtering
+              .slice(currentPage * 10, (currentPage + 1) * 10) // Example pagination slice
+              .map((post) => (
+              <BlogCard 
+                key={post.id}
+                onClick={() => handleBlogClick(post.id)}
+              >
+                <BlogCardImage 
+                  className="blog-card-image" 
+                  src={getImageUrl(post)} 
+                  alt={post.title} 
+                />
+                <BlogCardContent>
+                  <BlogAuthor>{post.author} • {post.date}</BlogAuthor>
+                  <BlogTitle>{post.title}</BlogTitle>
+                  <BlogSummary>{post.summary}</BlogSummary>
+                  <CategoryTags>
+                    {post.categories.map((category, idx) => (
+                      <CategoryTag key={idx} $categoryColor={categoryColorMap[category] || null}>
+                        {category}
+                      </CategoryTag>
+                    ))}
+                  </CategoryTags>
+                </BlogCardContent>
+              </BlogCard>
+            ))}
+          </AllPostsGrid>
+        )}
       </BlogSection>
 
-      <Pagination>
-        <PaginationLink 
-          to="#" 
-          className="prev" 
-          onClick={() => handlePageChange(currentPage - 1)}
-          style={{ visibility: currentPage > 0 ? 'visible' : 'hidden' }}
-        >
-            <FiArrowRight style={{ transform: 'rotate(180deg)', marginRight: '4px' }} /> Previous
-        </PaginationLink>
-        <PageNumbers>
-          {[...Array(totalPages).keys()].map(page => (
-            <PageNumber 
-              key={page} 
-              to="#" 
-              className={currentPage === page ? 'active' : ''}
-              onClick={() => handlePageChange(page)}
-            >
-              {page + 1}
-            </PageNumber>
-          ))}
-        </PageNumbers>
-        <PaginationLink 
-          to="#" 
-          className="next"
-          onClick={() => handlePageChange(currentPage + 1)}
-          style={{ visibility: currentPage < totalPages - 1 ? 'visible' : 'hidden' }}
-        >
-            Next <FiArrowRight style={{ marginLeft: '4px' }} />
-        </PaginationLink>
-      </Pagination>
+      {/* Conditionally render Pagination only if there is no error and there are posts to paginate */}
+      {!error && allBlogPosts.filter(post => !selectedCategory || (post.categories && post.categories.includes(selectedCategory))).length > 0 && (
+        <Pagination>
+          <PaginationLink 
+            to="#" 
+            className="prev" 
+            onClick={() => handlePageChange(currentPage - 1)}
+            style={{ visibility: currentPage > 0 ? 'visible' : 'hidden' }}
+          >
+              <FiArrowRight style={{ transform: 'rotate(180deg)', marginRight: '4px' }} /> Previous
+          </PaginationLink>
+          <PageNumbers>
+            {[...Array(totalPages).keys()].map(page => (
+              <PageNumber 
+                key={page} 
+                to="#" 
+                className={currentPage === page ? 'active' : ''}
+                onClick={() => handlePageChange(page)}
+              >
+                {page + 1}
+              </PageNumber>
+            ))}
+          </PageNumbers>
+          <PaginationLink 
+            to="#" 
+            className="next"
+            onClick={() => handlePageChange(currentPage + 1)}
+            style={{ visibility: currentPage < totalPages - 1 ? 'visible' : 'hidden' }}
+          >
+              Next <FiArrowRight style={{ marginLeft: '4px' }} />
+          </PaginationLink>
+        </Pagination>
+      )}
     </BlogContainer>
     </>
   );
@@ -652,43 +705,61 @@ const SortOption = styled.div`
   }
 `;
 
-const CategorySelectContainer = styled.div`
+const CustomCategorySelectContainer = styled.div`
   position: relative;
-  background-color: #f2f4f7;
-  border-radius: 25px;
-  padding: 8px 16px;
-  min-width: 130px;
-  height: 39px;
+  margin: 0 4px;
+`;
+
+const CategoryButton = styled.button`
   display: flex;
   align-items: center;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-  }
-`;
-
-const CategorySelect = styled.select`
-  width: 100%;
-  padding: 2px 24px 2px 2px;
+  justify-content: center;
+  gap: 4px;
+  background-color: #f2f4f7;
   border: none;
-  background: transparent;
-  font-size: 15px;
+  border-radius: 25px;
+  padding: 8px 10px;
+  height: 39px; // Match SortButton height
   color: #667085;
-  appearance: none;
+  font-size: 15px;
   cursor: pointer;
+  min-width: 130px; // Ensure some minimum width
   
-  &:focus {
-    outline: none;
+  &:hover {
+    background-color: #e4e7ec;
   }
 `;
 
-const CategorySelectIcon = styled.div`
+const CategoryDropdown = styled.div`
   position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #667085;
-  pointer-events: none;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  margin-top: 8px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  overflow: hidden;
+  max-height: 310px; // Match Forum.js
+  overflow-y: auto;
+`;
+
+const CategoryOption = styled.div`
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+
+  ${({ selected }) => selected && `
+    background-color: #EFF6FF;
+    color: #1E40AF;
+    font-weight: 500;
+  `}
+  
+  &:hover:not(${({ selected }) => selected && '&'}) {
+    background-color: #F2F4F7;
+  }
 `;
 
 const BlogSection = styled.section`
@@ -828,10 +899,29 @@ const CategoryTags = styled.div`
 
 const CategoryTag = styled.span`
   font-size: 12px;
-  color: #1E40AF;
-  background-color: #EFF6FF;
-  padding: 3px 8px;
-  border-radius: 12px;
+  font-weight: 400;
+  padding: 4px 10px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  color: ${props => props.$categoryColor || '#475467'};
+  background-color: ${props => 
+    props.$categoryColor 
+      ? props.$categoryColor + '33'
+      : '#e9ecef' 
+  };
+
+  &:hover {
+    background-color: ${props => 
+      props.$categoryColor 
+        ? props.$categoryColor + '55'
+        : '#d8dde1'
+    };
+    transform: translateY(-1px);
+  }
 `;
 
 const Pagination = styled.div`

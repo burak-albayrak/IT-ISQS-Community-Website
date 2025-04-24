@@ -4,6 +4,7 @@ import contactUsImg from '../assets/contactus.png';
 import locationIcon from '../assets/location.png';
 import phoneIcon from '../assets/phone.png';
 import emailIcon from '../assets/email.png';
+import axios from 'axios';
 
 // Basitleştirilmiş stil bileşenleri
 const PageWrapper = styled.div`
@@ -116,7 +117,7 @@ const FormSectionWrapper = styled.div`
   display: flex;
   justify-content: center;
   padding: 0 2rem;
-  margin-top: -5rem;
+  margin-top: -2rem;
   position: relative;
   
   @media (max-width: 768px) {
@@ -259,24 +260,33 @@ const ContactUs = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Form submitted:', formData);
-      // Reset form after submission
-      setFormData({
-        name: '',
-        surname: '',
-        email: '',
-        subject: '',
-        message: ''
-      });
+    try {
+      const response = await axios.post('http://localhost:8080/api/v1/contact', formData);
+
+      if (response.status === 200 || response.status === 201) {
+        setFormData({
+          name: '',
+          surname: '',
+          email: '',
+          subject: '',
+          message: ''
+        });
+        alert('Your message has been sent successfully!');
+      } else {
+        console.error("Unexpected response status:", response.status);
+        alert('Failed to send message. Unexpected response from server.');
+      }
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to send message. Please try again later.';
+      alert(`Error: ${errorMessage}`);
+    } finally {
       setIsSubmitting(false);
-      alert('Your message has been sent successfully!');
-    }, 1500);
+    }
   };
 
   return (
@@ -296,7 +306,7 @@ const ContactUs = () => {
                     <ContactIcon src={locationIcon} alt="Location" /> Location
                   </ContactText>
                   <ContactDivider />
-                  <ContactText>6391 Elgin St. Celina, Delaware 10299</ContactText>
+                  <ContactText>Yukariyurtcu Mahallesi Mimar Sinan Caddesi No:4, 06815, Etimesgut/ANKARA</ContactText>
                 </div>
               </ContactItem>
               
@@ -306,7 +316,7 @@ const ContactUs = () => {
                     <ContactIcon src={phoneIcon} alt="Phone" /> Phone
                   </ContactText>
                   <ContactDivider />
-                  <ContactText>(603) 555-0123</ContactText>
+                  <ContactText>+90 312 233 10 00</ContactText>
                 </div>
               </ContactItem>
               
@@ -316,7 +326,7 @@ const ContactUs = () => {
                     <ContactIcon src={emailIcon} alt="Email" /> E-mail
                   </ContactText>
                   <ContactDivider />
-                  <ContactText>blabla@edu</ContactText>
+                  <ContactText>it.isqs.cankaya@gmail.com</ContactText>
                 </div>
               </ContactItem>
             </ContactInfoSection>

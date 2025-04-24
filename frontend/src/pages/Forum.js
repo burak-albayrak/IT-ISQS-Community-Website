@@ -122,7 +122,7 @@ const Forum = () => {
               // Use category object if available from backend
               tags: post.category ? [post.category.name] : ['General'], 
               // Use creatorName and creatorProfilePic if available from backend
-              userName: post.creatorName || 'Anonymous', 
+              userName: post.creatorName || 'Anonymous', // Revert back to creatorName
               userProfilePic: post.creatorProfilePic || defaultProfilePic, 
               isLiked: post.isLikedByUser || false, // Assume backend provides like status
               isSaved: post.isSavedByUser || false // Assume backend provides save status
@@ -192,7 +192,7 @@ const Forum = () => {
           const formattedSavedPosts = response.data.map(post => ({
             id: post.forumPostID,
             title: post.title,
-            userName: post.creatorName || 'Anonymous', // creatorName might be null from this endpoint
+            userName: post.creatorName || 'Anonymous', // Revert back to creatorName
             commentCount: post.commentCount || 0,
             likesCount: post.likesCount || 0,
           }));
@@ -776,7 +776,8 @@ const Forum = () => {
                   <SidebarPostItem key={post.id} onClick={() => navigate(`/forum/post/${post.id}`)}>
                     <SidebarPostTitle>{post.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
-                      {post.userName}
+                      {/* {post.userName} */}
+                      {post.userName /* This now uses creatorName again */}
                     </SidebarPostAuthor>
                     <SidebarPostStats>
                       <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
@@ -795,7 +796,8 @@ const Forum = () => {
                   <SidebarPostItem key={`saved-${post.id}`} onClick={() => navigate(`/forum/post/${post.id}`)}>
                     <SidebarPostTitle>{post.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
-                      {post.userName}
+                      {/* {post.userName} */}
+                       {post.userName /* This now uses creatorName again */}
                     </SidebarPostAuthor>
                     <SidebarPostStats>
                       <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
@@ -916,7 +918,8 @@ const Forum = () => {
                         </AuthorAvatar>
                         <DetailedPostAuthorInfo>
                           <DetailedPostAuthorName>
-                            {post.userName}
+                            {/* {post.userName} */}
+                            {post.userName /* This now uses creatorName again */}
                           </DetailedPostAuthorName>
                           <DetailedPostTime>{post.timeAgo}</DetailedPostTime>
                         </DetailedPostAuthorInfo>
@@ -973,7 +976,7 @@ const Forum = () => {
                           post.tags.map((tag, tagIndex) => (
                             <CategoryTag 
                               key={tagIndex} 
-                              categoryColor={categoryColorMap[tag] || null}
+                              $categoryColor={categoryColorMap[tag] || null}
                             >
                               {tag}
                             </CategoryTag>
@@ -1094,7 +1097,7 @@ const Forum = () => {
             <ModalFooter>
               <UploadButton onClick={handleUploadButtonClick} disabled={isSubmitting}>
                 <FiImage />
-                Add Media (Max 10)
+                Add Media (Max 5)
               </UploadButton>
               <SubmitButton
                 onClick={submitNewPost}
@@ -1906,17 +1909,17 @@ const CategoryTag = styled.span`
   transition: all 0.2s ease;
   white-space: nowrap;
 
-  color: ${props => props.categoryColor || '#475467'};
+  color: ${props => props.$categoryColor || '#475467'};
   background-color: ${props => 
-    props.categoryColor 
-      ? props.categoryColor + '33'
+    props.$categoryColor 
+      ? props.$categoryColor + '33'
       : '#e9ecef'
   };
 
   &:hover {
     background-color: ${props => 
-      props.categoryColor 
-        ? props.categoryColor + '55'
+      props.$categoryColor 
+        ? props.$categoryColor + '55'
         : '#d8dde1'
     };
     transform: translateY(-1px);

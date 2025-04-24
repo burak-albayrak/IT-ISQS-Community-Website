@@ -14,28 +14,34 @@ const About = () => {
         <h1 className="about-heading">ABOUT IT-ISQS</h1>
         <div className="about-text">
           <p>
-            Lorem ipsum dolor sit amet consectetur. Odio tortor quam in habitant nunc volutpat ut consequat. Eget pellentesque gravida leo lorem vehicula cursus eu cum. Vitae tortor ac, blandit a sollicitudin. Et venenatis tempus porttitor torturstultricies sit. Porttitor condimentum interdum amet pellentesque non sit. Auctor mi interdum ornare non pellentesque vestibulum non. Vel amet congue ut amet viverra sem. Nibh ultrices non quisque. Odio eu commodo eu, faucibus dictum sed vestibulum. At arcu quam pulvinar at efficitur ultrices non viverra.
+            Innovative Training for International Software Quality Standards (IT-ISQS) is an Erasmus+ cooperation partnership project that aims to address the global lack of awareness and educational coverage regarding international software quality standards (ISQS). Despite the growing dependence on software in nearly all aspects of modern life—from healthcare to finance, education, and entertainment—most software engineering curricula around the world still provide limited exposure to ISO/IEC standards, which are essential for ensuring software quality, reliability, and safety.
           </p>
           <p>
-            Feugiat magna id vehicula sapien. Ultrices nec efficitur quis non turpis. Imperdiet imperdiet morbi commodo congue placerat blandid. Vivere volutpat porttitor pulvinar consequat amet quam. Pellentesque morbi egestas lectus.
+            The IT-ISQS project seeks to close this educational gap by integrating ISQS more deeply into higher education programs. This course will include gamified learning elements, real-life case studies, AI-supported tools, and interactive exercises that reflect real industry practices and challenges.
           </p>
           <p>
-            Hendrerit varius nec sed mecus convallis. Commodo lacinia blandit et porttitor mauris posuere ut. Tincidunt lorem pellentesque nunc dictumst id. Eu nulla maurrarius nec pulvinareleifend performance sed. Semper dapibus aenea blandit curabitur. Egestas erat elementum. Dignissim gravida lorem nibh urna dignissim ultrices. Velit aliquet elit cursitor morbi nunc duis. 
+            The project methodology includes a comprehensive literature review, stakeholder surveys, expert interviews, and statistical analyses to define the challenges in current educational practices. Based on these findings, the consortium will co-develop a modern course design and pilot test it in partner institutions. Feedback from students, professors, and industry representatives will guide the refinement of the content and teaching methods.
           </p>
           <p>
-            Nisi in viverra ac ipsum. Molestie odio in pellentesque gravida risus. Et proin dictum porttitor sed facilisis. Quisque ac lacus faucet et eu phasellus. Amet non suscipit aenean feugiat quis. Egestas non posuere nec varius id. Justo sapien et enim sem eget ac. Leo nisi fermentum jsto eget. Ac vulputate ultrices vel etiam. Ut sit convallis vulputate phaselllus fermentum sed amet ut. Euismod non ultricies faucibus.
+            Ultimately, IT-ISQS aims to:
           </p>
           <p>
-            Ultricies ut phasellus duis diam velit. Amet sollicitudin quisque porttitor. Amet risuc id vel mauris morbi ultries. Curaset erutrum integer nulla nec amet sis. Pulvinar pellentesque augue sed at bibendum amet non. Aliquet. Eget sit congue orci scelerisque velit suscipit vel. Nisl quis gravida laoreet idscelerisque.
+            - Improve the quality and relevance of engineering education
           </p>
           <p>
-            A bibendum dus fusce commodo fusce rhoncus cursus. Adipiscing blandits eduismod. Id, suspendisse netus ultrices aliquam amet id. Neque pellentesque justo, risus iaculis vel tortor egesti ut pellentesque at nunc. Pellentesque arcu sem dignissim duis ornare. In sed aliquam, in pellentesque justo. Praesefont aliquam.
+            - Enhance students’ readiness for the software industry
           </p>
           <p>
-            Egestas maecenas velit qua sagittis faucibus nulla. Odio blandit et rullam egestas vel honcus unc. Sed nec sollicitudin sed. Tortor dictum elementum vitae phasellus purus.
+            - Promote awareness and understanding of ISO/IEC standards
           </p>
           <p>
-            Congus velit vestibulum porttitor nequgue pharetra, lectur eget. Amet viverra aliquam sed suscipio sit. Volutpat aut urna suscipit. Volutpat conubia nascetler.
+            - Support continuous education for software professionals
+          </p>
+          <p>
+            - Encourage international cooperation and exchange of best practices
+          </p>
+          <p>
+            - Through its academic and societal impact, IT-ISQS contributes to building a more knowledgeable, skilled, and globally connected community of software engineers.
           </p>
         </div>
 
@@ -46,13 +52,19 @@ const About = () => {
         
         <div className="about-text">
           <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullae, dignissim est. Maecenas nec mi, neque adipiscing habitasse id dapibus et iaculis. Purus vel sed et odio. Massa convallis, amet id interdum ac euismod, nec ante. Vitae at nunc faucibus mauris, arcu sagittis eu tincidunt, leo, quis donec et. Proin vehicula nec turpis. Urna viverra ipsum elementum.
+            The success and impact of the IT-ISQS project are rooted in its strong international partnership model, bringing together distinguished institutions with a shared commitment to advancing software quality education. Coordinated by Çankaya University (Turkey), the consortium includes:
           </p>
           <p>
-            Semper pretium eros keb tortor, accumsan eleifend consequat. Pellentesque phaeletra maecenas sed amet, viverra at. Ultricies adipiscing vel accumsans. Morbi vitae et eros ut ullamcorper. Sit et donec dui semper qui ante uis keb. Ultricen adipiscing uti stus. Laoreet sed maeceenas montes. Ut commodo diam erat facilisis quis sit amet pellentesque solli vel adipiscing lorem.
+            - TED University (Ankara, Turkey)
           </p>
           <p>
-            Diam augue bib diam tincidun. Ullamcorper phasletra elementum et teb bibh alate tincidun. Shas srut pellentesque dik sed tincidunt ad mopepe. Vesreus et vitus turge bipis maximus, tincidunt. Dsans conqat juste maximus. Denex congue vetus uis ac sed ipsum.
+            - Universidad Francisco de Vitoria (Madrid, Spain)
+          </p>
+          <p>
+            - Open Universiteit (Heerlen, Netherlands)
+          </p>
+          <p>
+            Each partner plays a critical role in contributing academic expertise, pedagogical innovation, and regional perspectives to ensure the project’s excellence and international relevance. This collaborative framework enables joint curriculum development, mutual capacity building, and the integration of ISO/IEC standards into engineering education through state-of-the-art teaching methodologies.
           </p>
         </div>
       </div>

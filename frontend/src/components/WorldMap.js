@@ -30,9 +30,7 @@ const CustomTooltipContent = ({ type, data }) => {
             <h3 className="tooltip-title">Cankaya University (Türkiye)</h3>
             <p className="tooltip-subtitle">(Project Coordinator)</p>
             <p className="tooltip-description">
-              Founded in 1997, Çankaya University is a leading institution for technology and innovation in Turkey. 
-              As the project coordinator, the university leads research initiatives in information technology 
-              and software quality standards across Europe.
+                Çankaya University, serving as the project coordinator, is a leading private institution in Ankara, Türkiye. Known for its emphasis on research, innovation, and quality education, the university plays a key role in the strategic and operational management of the project. Its extensive experience in international collaborations ensures smooth coordination and impactful outcomes.
             </p>
           </div>
         </div>
@@ -47,10 +45,7 @@ const CustomTooltipContent = ({ type, data }) => {
           <div className="tooltip-content">
             <h3 className="tooltip-title">Open Universiteit (Netherlands)</h3>
             <p className="tooltip-description">
-              Lorem ipsum dolor sit amet consectetur. Sagittis cursus nibh dolor placerat ac velit suscipit ligula ac. Viverra morbi interdum nunc sed duis. Morbi morbi euismod dui aliquet. Tristique euismod elementum sed tincidunt malesuada libero. Varius lacinia sed morbi risus fermentum semper rutrum diam sagittis.
-            </p>
-            <p className="tooltip-description">
-              Molestie molestie est consequat purus mus risus turpis sit neque. Nam pretium aenean suspendisse netus lectus nullam. Duis pellentesque egestas lacinia pellentesque turpis est.
+                Open Universiteit, based in Heerlen, the Netherlands, is renowned for its pioneering role in distance education and digital learning. As a partner, it provides critical expertise in online education tools and methodologies, helping the project reach wider audiences and foster flexible, inclusive learning environments.
             </p>
           </div>
         </div>
@@ -66,10 +61,7 @@ const CustomTooltipContent = ({ type, data }) => {
             <h3 className="tooltip-title">Fundacion Universidad</h3>
             <h3 className="tooltip-title">Francisco De Vitoria (Spain)</h3>
             <p className="tooltip-description">
-              Lorem ipsum dolor sit amet consectetur. Sagittis cursus nibh dolor placerat ac velit suscipit ligula ac. Viverra morbi interdum nunc sed duis. Morbi morbi euismod dui aliquet. Tristique euismod elementum sed tincidunt malesuada libero. Varius lacinia sed morbi risus fermentum semper rutrum diam sagittis.
-            </p>
-            <p className="tooltip-description">
-              Molestie molestie est consequat purus mus risus turpis sit neque. Nam pretium aenean suspendisse netus lectus nullam. Duis pellentesque egestas lacinia pellentesque turpis est.
+                Located in Madrid, Spain, Universidad Francisco de Vitoria is a prestigious university recognized for its commitment to ethical values and academic excellence. Its participation enriches the project through deep-rooted experience in educational reform, international mobility, and cultural integration.
             </p>
           </div>
         </div>
@@ -84,10 +76,7 @@ const CustomTooltipContent = ({ type, data }) => {
           <div className="tooltip-content">
             <h3 className="tooltip-title">TED University (Türkiye)</h3>
             <p className="tooltip-description">
-              Lorem ipsum dolor sit amet consectetur. Sagittis cursus nibh dolor placerat ac velit suscipit ligula ac. Viverra morbi interdum nunc sed duis. Morbi morbi euismod dui aliquet. Tristique euismod elementum sed tincidunt malesuada libero. Varius lacinia sed morbi risus fermentum semper rutrum diam sagittis.
-            </p>
-            <p className="tooltip-description">
-              Molestie molestie est consequat purus mus risus turpis sit neque. Nam pretium aenean suspendisse netus lectus nullam. Duis pellentesque egestas lacinia pellentesque turpis est.
+                TED University, based in Ankara, Türkiye, is a progressive and dynamic institution dedicated to liberal education and student-centered learning. With its strong focus on pedagogy and interdisciplinary approaches, TEDU brings valuable insights to the development of innovative teaching methodologies within the project.
             </p>
           </div>
         </div>

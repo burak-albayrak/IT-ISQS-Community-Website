@@ -75,7 +75,7 @@ const Syllabus = () => {
         {/* Açıklayıcı metin */}
         <div className="syllabus-text">
           <p>
-            Lorem ipsum dolor sit amet consectetur. Odio enim quam in volutpat nunc volutpat ut consequat. Enim pellentesque gravida faucibus venenatis cursus mi cum. Vitae tristique ac porttitor a sollicitudin. Sit viverra a ultrices gravida tincidunt tristique et. Nibh cras quam suscipit quisque nunc. Lectus gravida ipsum lectus id purus consectetur lectus nisi. Senectus enim ut nullam iaculis convallis massa quam. Orci enim sed elit volutpat velit pellentesque in nec orci. Fermentum massa risus mattis urna. Et sociis magna aenean commodo mauris tincidunt si purus non non velit viverra in vel sodales sodales nisi ultricies phasellus. Pellentesque eget mauris pulvinar at facilisi.
+            The IT-ISQS course syllabus is designed to offer a comprehensive and innovative approach to teaching international software quality standards (ISQS). Developed through collaboration between academia and industry, the syllabus incorporates gamified learning, real-life case studies, interactive exercises, and AI-supported tools. It aims to equip students with practical skills and theoretical knowledge aligned with ISO/IEC standards, preparing them to meet the quality expectations of modern software engineering.
           </p>
         </div>
 

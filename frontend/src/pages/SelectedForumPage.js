@@ -42,13 +42,20 @@ const SelectedForumPage = () => {
       // Corrected endpoint based on ForumCommentController
       const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}/main`);
       if (response && response.data) {
+        // >>> DEBUG LOGGING START <<<
+        // console.log("Raw comments received:", response.data);
+        // response.data.forEach((comment, index) => {
+        //   console.log(`Comment ${index} creatorPicture:`, comment.creatorPicture);
+        // });
+        // >>> DEBUG LOGGING END <<<
+
         // Format comments based on backend response structure
         const formattedComments = response.data.map(comment => ({
           id: comment.commentID, // Adjust based on actual backend response field name (e.g., commentId)
           content: comment.description,
           createdAt: comment.createdAt,
           timeAgo: getTimeAgo(comment.createdAt),
-          userName: comment.creatorName || 'Anonymous', // Adjust based on backend response
+          userName: comment.creatorName || 'Anonymous', // Use creatorName
           userProfilePic: comment.creatorPicture || defaultProfilePic, // Correct field name from backend DTO
           replies: comment.replies ? comment.replies.map(/* Need to format replies if backend sends them nested */) : [] // Handle replies if needed
         }));
@@ -112,7 +119,7 @@ const SelectedForumPage = () => {
             timeAgo: getTimeAgo(postData.createdAt),
             updatedAt: postData.updatedAt,
             tags: postData.category ? [postData.category.name] : [],
-            userName: postData.creatorName || 'Anonymous',
+            userName: postData.creatorName || 'Anonymous', // Use creatorName
             userProfilePic: postData.creatorProfilePic || defaultProfilePic,
             isLiked: postData.isLikedByUser || false,
             isSaved: postData.isSavedByUser || false
@@ -133,7 +140,7 @@ const SelectedForumPage = () => {
                 commentCount: post.commentCount || 0,
                 createdAt: post.createdAt,
                 timeAgo: getTimeAgo(post.createdAt),
-                userName: post.creatorName || 'Anonymous'
+                userName: post.creatorName || 'Anonymous' // Use creatorName
               }));
               
               // Get popular posts
@@ -207,7 +214,7 @@ const SelectedForumPage = () => {
           const formattedSavedPosts = filteredSavedPosts.map(post => ({
             id: post.forumPostID,
             title: post.title,
-            userName: post.creatorName || 'Anonymous',
+            userName: post.creatorName || 'Anonymous', // Use creatorName
             commentCount: post.commentCount || 0,
             likesCount: post.likesCount || 0,
           }));
@@ -452,7 +459,7 @@ const SelectedForumPage = () => {
                   >
                     <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
-                      {sidebarPost.userName}
+                      {sidebarPost.userName /* Uses creatorName again */}
                     </SidebarPostAuthor>
                     <SidebarPostStats>
                       <span>{sidebarPost.commentCount} comments</span> • <span>{sidebarPost.likesCount} likes</span>
@@ -474,7 +481,7 @@ const SelectedForumPage = () => {
                   >
                     <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
-                      {sidebarPost.userName}
+                      {sidebarPost.userName /* Uses creatorName again */}
                     </SidebarPostAuthor>
                     <SidebarPostStats>
                       <span>{sidebarPost.commentCount} comments</span> • <span>{sidebarPost.likesCount} likes</span>
@@ -508,7 +515,7 @@ const SelectedForumPage = () => {
                   </AuthorAvatar>
                   <DetailedPostAuthorInfo>
                     <DetailedPostAuthorName>
-                      {post.userName}
+                      {post.userName /* Uses creatorName again */}
                     </DetailedPostAuthorName>
                     <DetailedPostTime>{post.timeAgo}</DetailedPostTime>
                   </DetailedPostAuthorInfo>
@@ -593,10 +600,19 @@ const SelectedForumPage = () => {
                 ) : comments.length > 0 ? (
                   comments.map((comment) => (
                     <CommentItem key={comment.id}>
-                      <CommentAvatar src={comment.userProfilePic || defaultProfilePic} alt={comment.userName} />
+                      <CommentAvatar>
+                        <img 
+                          src={comment.userProfilePic || defaultProfilePic} 
+                          alt={comment.userName} 
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = defaultProfilePic;
+                          }}
+                        />
+                      </CommentAvatar>
                       <CommentContent>
                         <CommentAuthor>
-                          <CommentAuthorName>{comment.userName}</CommentAuthorName>
+                          <CommentAuthorName>{comment.userName /* Uses creatorName again */}</CommentAuthorName>
                           <CommentTime>{comment.timeAgo}</CommentTime>
                         </CommentAuthor>
                         <CommentText>{comment.content}</CommentText>
@@ -605,11 +621,13 @@ const SelectedForumPage = () => {
                             <FiHeart size={14} />
                             <span>{comment.likes || 0}</span>
                           </CommentAction>
+                          {/*
                           {!comment.parentCommentID && (
                             <CommentAction>
                               Reply
                             </CommentAction>
                           )}
+                          */}
                         </CommentActionsContainer>
                       </CommentContent>
                     </CommentItem>

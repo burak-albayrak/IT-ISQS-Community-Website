@@ -28,15 +28,14 @@ const Footer = () => {
             <Link to="/syllabus">Syllabus</Link>
             <Link to="/blog">Blog</Link>
             <Link to="/community-forum">Community Forum</Link>
-            <Link to="/project-results">Project Results</Link>
+
           </div>
           
           <div className="footer-links-column">
+            <Link to="/project-results">Project Results</Link>
             <Link to="/privacy-policy">Privacy & Policy</Link>
             <Link to="/terms">Terms of Service</Link>
-            <Link to="/cookie-settings">Cookie Settings</Link>
             <Link to="/contact">Contact Us</Link>
-            <Link to="/faqs">FAQs</Link>
           </div>
         </div>
 

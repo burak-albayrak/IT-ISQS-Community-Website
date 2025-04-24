@@ -5,6 +5,7 @@ import { FiArrowLeft, FiClock, FiUser, FiCalendar } from 'react-icons/fi';
 import '../styles/Blog.css';
 import BlogService from '../services/BlogService';
 import defaultBlogImage from '../assets/defaultblog.png';
+import axios from 'axios';
 
 const BlogDetail = () => {
   const { id } = useParams();
@@ -13,6 +14,7 @@ const BlogDetail = () => {
   const [recentBlogs, setRecentBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [categoryColorMap, setCategoryColorMap] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -137,6 +139,30 @@ const BlogDetail = () => {
     fetchData();
   }, [id]);
 
+  // Add useEffect to fetch category colors (similar to Blog.js)
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/forum-categories'); 
+        if (response && response.data) {
+          const colorMap = response.data.reduce((acc, category) => {
+            if (category.name && category.color) {
+              acc[category.name] = category.color;
+            }
+            return acc;
+          }, {});
+          setCategoryColorMap(colorMap);
+        } else {
+          setCategoryColorMap({});
+        }
+      } catch (error) {
+        console.error('Error fetching categories for blog detail:', error);
+        setCategoryColorMap({}); // Reset map on error
+      }
+    };
+    fetchCategories();
+  }, []); // Fetch categories once when component mounts
+
   // Resim URL'sini kontrol edip, gerekirse varsayılan resme döndüren yardımcı fonksiyon
   const getImageUrl = (blogItem) => {
     if (!blogItem) return defaultBlogImage;
@@ -228,7 +254,9 @@ const BlogDetail = () => {
                   {recentBlog.categories && recentBlog.categories.length > 0 && (
                     <CategoryTags>
                       {recentBlog.categories.map((category, idx) => (
-                        <CategoryTag key={idx}>{category}</CategoryTag>
+                        <CategoryTag key={idx} $categoryColor={categoryColorMap[category] || null}>
+                          {category}
+                        </CategoryTag>
                       ))}
                     </CategoryTags>
                   )}
@@ -253,7 +281,9 @@ const BlogDetail = () => {
             {blog.categories && blog.categories.length > 0 && (
               <CategoryTags>
                 {blog.categories.map((category, idx) => (
-                  <CategoryTag key={idx}>{category}</CategoryTag>
+                  <CategoryTag key={idx} $categoryColor={categoryColorMap[category] || null}>
+                    {category}
+                  </CategoryTag>
                 ))}
               </CategoryTags>
             )}
@@ -457,17 +487,27 @@ const CategoryTags = styled.div`
 
 const CategoryTag = styled.span`
   font-size: 12px;
-  font-weight: 500;
-  color: #1E40AF;
-  background-color: #EFF4FF;
+  font-weight: 400;
   padding: 4px 10px;
   border-radius: 16px;
   display: inline-flex;
   align-items: center;
   transition: all 0.2s ease;
-  
+  white-space: nowrap;
+
+  color: ${props => props.$categoryColor || '#475467'};
+  background-color: ${props => 
+    props.$categoryColor 
+      ? props.$categoryColor + '33'
+      : '#e9ecef' 
+  };
+
   &:hover {
-    background-color: #DBE4FF;
+    background-color: ${props => 
+      props.$categoryColor 
+        ? props.$categoryColor + '55'
+        : '#d8dde1'
+    };
     transform: translateY(-1px);
   }
 `;

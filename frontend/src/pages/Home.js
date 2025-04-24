@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
 import homeImage from '../assets/home.png';
 import home2Image from '../assets/home2.png';
 import ourImage from '../assets/our.png';
@@ -8,10 +7,12 @@ import cankayaLogo from '../assets/cankaya-logo.png';
 import tedLogo from '../assets/ted-logo.png';
 import ufvLogo from '../assets/fufdv-logo.png';
 import openLogo from '../assets/open-logo.png';
+import defaultProfilePic from '../assets/defaultpp.jpg';
+import defaultBlogImage from '../assets/defaultblog.png';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FiArrowRight, FiMapPin, FiPhone, FiMail, FiGlobe } from 'react-icons/fi';
-import axios from 'axios';
-import defaultBlogImage from '../assets/defaultblog.png';
 import { useNavigate } from 'react-router-dom';
 
 // Helper function for date formatting
@@ -93,6 +94,7 @@ const Home = () => {
   const [forumLoading, setForumLoading] = useState(true);
   const [error, setError] = useState(null);
   const [forumError, setForumError] = useState(null);
+  const [categoryColorMap, setCategoryColorMap] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -144,44 +146,29 @@ const Home = () => {
       setForumError(null);
       
       try {
-        // Use the new backend endpoint for recent posts
-        const response = await axios.get(`http://localhost:8080/api/v1/forum-posts/recent`); // <-- Updated endpoint
+        const response = await axios.get(`http://localhost:8080/api/v1/forum-posts/recent`);
         
         if (response && response.data) {
-          // Check if the data is an array, as expected for posts
           if (Array.isArray(response.data)) {
-             // Backend already sends the top 3, no need to slice here
-             // const limitedPosts = response.data.slice(0, 3); 
-
-             // Map data to match the frontend structure expected by ForumPostItem
-             // Use fields populated by the backend (creatorName, creatorProfilePic etc.)
              const formattedPosts = response.data.map(post => ({
-                id: post.forumPostID || post.id, // Use forumPostID from backend
+                id: post.forumPostID || post.id,
                 title: post.title || 'Untitled Post',
-                // Use the full description or limit if needed, backend sends full description
                 description: post.description ? post.description.substring(0, 100) + '...' : 'No description available.', 
-                author: post.creatorName || 'Anonymous', // Use creatorName from backend
-                authorAvatar: post.creatorProfilePic || '', // Use creatorProfilePic from backend
-                // Ensure correct field names for stats based on ForumPost.java (likesCount, commentCount)
-                likes: post.likesCount || 0, // Use likesCount from backend
-                replies: post.commentCount || 0, // Use commentCount from backend
-                // Pass the original ISO date string for formatting
-                createdAt: post.createdAt // Ensure backend sends ISO string or similar
+                author: post.creatorName || 'Anonymous',
+                authorAvatar: post.creatorProfilePic || defaultProfilePic,
+                likes: post.likesCount || 0,
+                replies: post.commentCount || 0,
+                createdAt: post.createdAt
              }));
-
              setRecentForumPosts(formattedPosts);
           } else {
               console.warn("API response for recent forum posts is not an array:", response.data);
-              setRecentForumPosts([]); // Set to empty if data format is unexpected
+              setRecentForumPosts([]);
           }
-
         } else {
            console.warn("API response for recent forum posts is missing data.");
-          // Fallback to mock data if API returns empty // <-- Bu yorumu silebiliriz
-          // setRecentForumPosts(getMockForumPosts()); // <-- Bu satırı kaldır
-          setRecentForumPosts([]); // <-- Boş dizi ata
+          setRecentForumPosts([]);
         }
-
         setForumLoading(false);
       } catch (err) {
         console.error("Forum verilerini getirirken hata oluştu:", err);
@@ -191,48 +178,33 @@ const Home = () => {
       }
     };
 
-    // Helper function to get mock forum posts
-    const getMockForumPosts = () => {
-      return [
-        {
-          id: 1,
-          title: "Lorem ipsum dolor sit amet consectetur?",
-          description: "Lorem ipsum dolor sit amet consectetur. Malesuada dapibus in risus.",
-          author: "Kristint Watson",
-          authorAvatar: "",
-          views: 10,
-          likes: 5,
-          replies: 2,
-          date: "01.25.2025"
-        },
-        {
-          id: 2,
-          title: "Lorem ipsum dolor sit amet consectetur?",
-          description: "Lorem ipsum dolor sit amet consectetur. Malesuada dapibus in risus.",
-          author: "Albert Flores",
-          authorAvatar: "",
-          views: 20,
-          likes: 11,
-          replies: 5,
-          date: "11.22.2024"
-        },
-        {
-          id: 3,
-          title: "Lorem ipsum dolor sit amet consectetur?",
-          description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut la...",
-          author: "Jenny Wilson",
-          authorAvatar: "",
-          views: 60,
-          likes: 35,
-          replies: 20,
-          date: "11.22.2024"
-        }
-      ];
-    };
-
     fetchRecentBlogs();
     fetchRecentForumPosts();
   }, []);
+
+  // Add useEffect to fetch category colors (similar to Blog.js/Forum.js)
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/forum-categories'); 
+        if (response && response.data) {
+          const colorMap = response.data.reduce((acc, category) => {
+            if (category.name && category.color) {
+              acc[category.name] = category.color;
+            }
+            return acc;
+          }, {});
+          setCategoryColorMap(colorMap);
+        } else {
+          setCategoryColorMap({});
+        }
+      } catch (error) {
+        console.error('Error fetching categories for home page:', error);
+        setCategoryColorMap({}); // Reset map on error
+      }
+    };
+    fetchCategories();
+  }, []); // Fetch categories once when component mounts
 
   const handleBlogClick = (blogId) => {
     navigate(`/blog/${blogId}`);
@@ -257,11 +229,9 @@ const Home = () => {
             The Innovative Training for International Software Quality Standards (IT-ISQS) project, supported by Erasmus+, is dedicated to reshaping software engineering education by embedding internationally recognized quality standards into academic curricula. In an age where software reliability is vital for sectors like healthcare, finance, mobility, and education, we believe that quality should not be an afterthought — it should be a foundation.
 
 
-            Join us in building a future where software is not only innovative — but also reliable, robust, and safe.
+            Join us in building a future where software is not only innovative, but also reliable, robust, and safe.
           </HeroText>
-          {!isAuthenticated && (
-            <JoinButton to="/login?signup=true">Join us! sign up</JoinButton>
-          )}
+
         </HeroContent>
       </HeroSection>
 
@@ -275,7 +245,9 @@ const Home = () => {
         </SectionHeader>
         
         {loading ? (
-          <LoadingMessage>Loading recent blog posts...</LoadingMessage>
+          <LoadingContainer>
+            <Spinner />
+          </LoadingContainer>
         ) : error ? (
           <ErrorMessage>{error}</ErrorMessage>
         ) : recentBlogPosts.length === 0 ? (
@@ -298,7 +270,9 @@ const Home = () => {
                   <FeaturedBlogDescription>{recentBlogPosts[0].summary}</FeaturedBlogDescription>
                   <BlogCategories>
                     {recentBlogPosts[0].categories.map((category, idx) => (
-                      <BlogCategory key={idx}>{category}</BlogCategory>
+                      <BlogCategory key={idx} $categoryColor={categoryColorMap[category] || null}>
+                        {category}
+                      </BlogCategory>
                     ))}
                   </BlogCategories>
                 </FeaturedBlogContent>
@@ -322,7 +296,9 @@ const Home = () => {
                     <SideBlogDescription>{blog.summary}</SideBlogDescription>
                     <BlogCategories>
                       {blog.categories.map((category, idx) => (
-                        <BlogCategory key={idx}>{category}</BlogCategory>
+                        <BlogCategory key={idx} $categoryColor={categoryColorMap[category] || null}>
+                          {category}
+                        </BlogCategory>
                       ))}
                     </BlogCategories>
                   </SideBlogContent>
@@ -343,7 +319,9 @@ const Home = () => {
         </ForumSectionHeader>
         
         {forumLoading ? (
-          <LoadingMessage>Loading recent forum posts...</LoadingMessage>
+          <LoadingContainer>
+            <Spinner />
+          </LoadingContainer>
         ) : forumError ? (
           <ErrorMessage>{forumError}</ErrorMessage>
         ) : recentForumPosts.length === 0 ? (
@@ -352,9 +330,9 @@ const Home = () => {
           <ForumPostsContainer>
             <ForumTableHeader>
               <ForumPostsColumn />
-              <StatsColumn>Likes</StatsColumn>
-              <StatsColumn>Replies</StatsColumn>
-              <DateColumn>Date</DateColumn>
+              <LikesHeaderColumn>Likes</LikesHeaderColumn>
+              <RepliesHeaderColumn>Replies</RepliesHeaderColumn>
+              <DateHeaderColumn>Date</DateHeaderColumn>
             </ForumTableHeader>
             
             {recentForumPosts.map((post) => (
@@ -363,7 +341,14 @@ const Home = () => {
                   <ForumPostTitle>{post.title}</ForumPostTitle>
                   <ForumPostDescription>{post.description}</ForumPostDescription>
                   <ForumPostAuthor>
-                    <AuthorAvatar src={post.authorAvatar || "https://via.placeholder.com/40"} alt={post.author} />
+                    <AuthorAvatar 
+                      src={post.authorAvatar}
+                      alt={post.author}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = defaultProfilePic;
+                      }}
+                    />
                     <AuthorName>{post.author}</AuthorName>
                   </ForumPostAuthor>
                 </ForumPostContent>
@@ -442,13 +427,12 @@ const Home = () => {
           </PartnerCard>
         ))}
       </PartnersSection>
-
     </HomeContainer>
   );
 };
 
 const HomeContainer = styled.div`
-  max-width: 1300px;
+  max-width: 1200px;
   margin: 0 auto;
 `;
 
@@ -735,17 +719,50 @@ const BlogCategories = styled.div`
 
 const BlogCategory = styled.span`
   font-size: 12px;
-  font-weight: 500;
-  color: #6B7DD1;
-  background-color: #EFF6FF;
+  font-weight: 400;
   padding: 4px 10px;
   border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  color: ${props => props.$categoryColor || '#475467'};
+  background-color: ${props => 
+    props.$categoryColor 
+      ? props.$categoryColor + '33'
+      : '#e9ecef' 
+  };
+
+  &:hover {
+    background-color: ${props => 
+      props.$categoryColor 
+        ? props.$categoryColor + '55'
+        : '#d8dde1'
+    };
+    transform: translateY(-1px);
+  }
 `;
 
-const LoadingMessage = styled.p`
-  text-align: center;
-  color: #667085;
-  padding: 20px;
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+`;
+
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 4px solid #E4E7EC;
+  border-top: 4px solid #1E40AF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 `;
 
 const ErrorMessage = styled.p`
@@ -802,19 +819,28 @@ const ForumPostsColumn = styled.div`
   flex: 4;
 `;
 
-const StatsColumn = styled.div`
+const LikesHeaderColumn = styled.div`
   flex: 1;
-  text-align: center;
-  
+  text-align: left;
+  padding-left: 220px;
   @media (max-width: 768px) {
     display: none;
   }
 `;
 
-const DateColumn = styled.div`
+const RepliesHeaderColumn = styled.div`
+  flex: 1;
+  text-align: right;
+  padding-right: 5px;
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const DateHeaderColumn = styled.div`
   flex: 1.5;
-  text-align: center;
-  
+  text-align: right;
+  padding-right: 85px;
   @media (max-width: 768px) {
     flex: 1.5;
   }
@@ -928,7 +954,7 @@ const SectionContent = styled.div`
 const SectionTitleBlue = styled.h2`
   font-size: 28px; // Slightly larger font size for the title
   font-weight: 700;
-  color: #1E40AF; // Blue color for the title
+  color: #2a4b8d;
   margin-bottom: 20px; // Space below the title
   text-align: left; // Align title to the left
 `;
