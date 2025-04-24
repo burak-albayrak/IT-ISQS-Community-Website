@@ -130,7 +130,7 @@ const FormSection = styled.div`
   padding: 2.5rem;
   background-color: white;
   border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09);
   width: 80%;
   max-width: 800px;
   position: relative;
