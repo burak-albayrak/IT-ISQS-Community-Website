@@ -50,10 +50,10 @@ public class ToxicityDetectionService {
             String scriptPath;
             if (projectRoot != null) {
                 // Use project root path
-                scriptPath = Paths.get(projectRoot, "IT-ISQS-Community-Website/backend", pythonScriptPath).toString();
+                scriptPath = Paths.get(projectRoot, pythonScriptPath).toString();
             } else {
                 // Fallback to working directory
-                scriptPath = Paths.get(System.getProperty("user.dir"), "IT-ISQS-Community-Website/backend", pythonScriptPath).toString();
+                scriptPath = Paths.get(System.getProperty("user.dir"), pythonScriptPath).toString();
             }
             
             File scriptFile = new File(scriptPath);
