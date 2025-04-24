@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080';
+const API_URL = 'https://closed-merola-deveracankaya-2f4e22df.koyeb.app';
 const API_PATH = '/api/v1/blogs';
 
 class BlogService {

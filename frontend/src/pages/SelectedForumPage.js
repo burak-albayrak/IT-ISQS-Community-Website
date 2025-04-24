@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft } from 'react-icons/fi';
@@ -33,14 +33,13 @@ const SelectedForumPage = () => {
   const [zoomedImageUrl, setZoomedImageUrl] = useState(null);
 
   // New function to fetch comments
-  const fetchComments = async (currentPostId) => {
+  const fetchComments = useCallback(async (postId) => {
     setCommentsLoading(true);
     setCommentError(null);
     try {
-      // Use postId as a query parameter
-      // const response = await axios.get(`http://localhost:8080/api/v1/forum-comments?postId=${currentPostId}`);
-      // Corrected endpoint based on ForumCommentController
-      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}/main`);
+      // const response = await axios.get(`http://localhost:8080/api/v1/forum-comments?postId=${postId}`);
+      //const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${postId}/main`);
+      const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments/post/${postId}/main`);
       if (response && response.data) {
         // >>> DEBUG LOGGING START <<<
         // console.log("Raw comments received:", response.data);
@@ -69,12 +68,12 @@ const SelectedForumPage = () => {
     } finally {
       setCommentsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/v1/forum-categories');
+        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories');
         if (response && response.data) {
           const colorMap = response.data.reduce((acc, category) => {
             if (category.name && category.color) {
@@ -98,7 +97,7 @@ const SelectedForumPage = () => {
       
       try {
         console.log('Fetching post with ID:', postId);
-        const response = await axios.get(`http://localhost:8080/api/v1/forum-posts/${postId}`);
+        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/${postId}`);
         console.log('Forum post response:', response);
         
         if (response && response.data) {
@@ -130,7 +129,7 @@ const SelectedForumPage = () => {
           
           // Fetch popular posts for sidebar
           try {
-            const allPostsResponse = await axios.get(`http://localhost:8080/api/v1/forum-posts`);
+            const allPostsResponse = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts`);
             if (allPostsResponse && allPostsResponse.data) {
               const formattedPosts = allPostsResponse.data.map(post => ({
                 id: post.forumPostID,
@@ -191,7 +190,7 @@ const SelectedForumPage = () => {
     
     fetchCategories(); // Fetch categories when component mounts
     fetchPostData();   // Fetch post data when component mounts or postId changes
-  }, [postId, navigate]);
+  }, [postId, navigate, fetchComments]);
 
   // Fetch saved posts for logged-in user
   useEffect(() => {
@@ -203,7 +202,7 @@ const SelectedForumPage = () => {
       }
 
       try {
-        const response = await axios.get('http://localhost:8080/api/v1/users/me/saved-posts', {
+        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/users/me/saved-posts', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response && response.data) {
@@ -246,7 +245,7 @@ const SelectedForumPage = () => {
 
       // Make the API call to toggle the like status
       await axios.post(
-        `http://localhost:8080/api/v1/forum-posts/like/${postId}`,
+        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/like/${postId}`,
         {},
         {
           headers: {
@@ -288,7 +287,7 @@ const SelectedForumPage = () => {
       // Make the API call to toggle the save status
       // Backend service saveOrUnsavePost returns a message
       const response = await axios.post(
-        `http://localhost:8080/api/v1/forum-posts/${postId}/save`,
+        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/${postId}/save`,
         {},
         {
           headers: {
@@ -332,7 +331,7 @@ const SelectedForumPage = () => {
     try {
       // Make the API call to the backend comment endpoint
       const response = await axios.post(
-        `http://localhost:8080/api/v1/forum-comments`,
+        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments`,
         {
           forumPostID: parseInt(postId), // Ensure postId is passed correctly
           description: newComment,

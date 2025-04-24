@@ -103,18 +103,14 @@ const Home = () => {
       setError(null);
       
       try {
-        const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/blogs`);
         
         if (response && response.data) {
           const blogs = response.data;
           
           if (blogs.length > 0) {
-            // Sort blogs by createdAt date (newest first)
-            const sortedBlogs = [...blogs].sort((a, b) => {
-              const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
-              const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
-              return dateB - dateA; // Newest first
-            });
+            // Sort blogs by creation date in descending order and take the top 5
+            const sortedBlogs = blogs.sort((a, b) => new Date(b.creationDate) - new Date(a.creationDate));
             
             // Take most recent 3 blogs for the featured section
             const recentBlogs = sortedBlogs.slice(0, 3).map(blog => ({
@@ -146,7 +142,7 @@ const Home = () => {
       setForumError(null);
       
       try {
-        const response = await axios.get(`http://localhost:8080/api/v1/forum-posts/recent`);
+        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/recent`);
         
         if (response && response.data) {
           if (Array.isArray(response.data)) {
@@ -186,7 +182,7 @@ const Home = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/v1/forum-categories'); 
+        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories'); 
         if (response && response.data) {
           const colorMap = response.data.reduce((acc, category) => {
             if (category.name && category.color) {

@@ -265,21 +265,15 @@ const ContactUs = () => {
     setIsSubmitting(true);
     
     try {
-      const response = await axios.post('http://localhost:8080/api/v1/contact', formData);
-
-      if (response.status === 200 || response.status === 201) {
-        setFormData({
-          name: '',
-          surname: '',
-          email: '',
-          subject: '',
-          message: ''
-        });
-        alert('Your message has been sent successfully!');
-      } else {
-        console.error("Unexpected response status:", response.status);
-        alert('Failed to send message. Unexpected response from server.');
-      }
+      const response = await axios.post('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/contact', formData);
+      setFormData({
+        name: '',
+        surname: '',
+        email: '',
+        subject: '',
+        message: ''
+      });
+      alert('Your message has been sent successfully!');
     } catch (error) {
       console.error('Error submitting contact form:', error);
       const errorMessage = error.response?.data?.message || 'Failed to send message. Please try again later.';

@@ -81,7 +81,7 @@ const Forum = () => {
       
       try {
         // Get forum posts from backend
-        const response = await axios.get(`http://localhost:8080/api/v1/forum-posts`);
+        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts`);
         
         if (response && response.data) {
           const posts = response.data;
@@ -184,7 +184,7 @@ const Forum = () => {
       }
 
       try {
-        const response = await axios.get('http://localhost:8080/api/v1/users/me/saved-posts', {
+        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/users/me/saved-posts', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response && response.data) {
@@ -214,7 +214,7 @@ const Forum = () => {
   useEffect(() => {
     const fetchAndFilterCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/v1/forum-categories');
+        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories');
         let fetchedCategories = [];
         if (response && response.data) {
           fetchedCategories = response.data; // Assuming response.data is an array of { categoryId, name, color, ... }
@@ -555,7 +555,7 @@ const Forum = () => {
 
         // Send POST request to the /with-media endpoint
         response = await axios.post(
-          'http://localhost:8080/api/v1/forum-posts/with-media',
+          'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/with-media',
           formData,
           {
             headers: {
@@ -574,7 +574,7 @@ const Forum = () => {
 
         // Send POST request to the standard endpoint
         response = await axios.post(
-          'http://localhost:8080/api/v1/forum-posts',
+          'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts',
           postData,
           {
             headers: {
@@ -652,7 +652,7 @@ const Forum = () => {
     // Perform API call in the background
     try {
       await axios.post(
-        `http://localhost:8080/api/v1/forum-posts/like/${postId}`,
+        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/like/${postId}`,
         {},
         {
           headers: {
@@ -720,7 +720,7 @@ const Forum = () => {
     // Perform API call in the background
     try {
       await axios.post(
-        `http://localhost:8080/api/v1/forum-posts/${postId}/save`,
+        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/${postId}/save`,
         {},
         {
           headers: {
