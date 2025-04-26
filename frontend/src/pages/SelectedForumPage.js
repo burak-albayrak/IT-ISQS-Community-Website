@@ -611,7 +611,7 @@ const SelectedForumPage = () => {
       <ForumContainer>
         <ForumContent>
           <LeftSidebar>
-            {recommendedPosts.length > 0 && (
+            {recommendedPosts.length > 0 ? (
               <>
                 <RecommendedPostsTitle>Recommended Forum Posts for you</RecommendedPostsTitle>
                 <SidebarPostsList>
@@ -631,6 +631,13 @@ const SelectedForumPage = () => {
                     </SidebarPostItem>
                   ))}
                 </SidebarPostsList>
+              </>
+            ) : (
+              <>
+                <RecommendedPostsTitle>Recommendations</RecommendedPostsTitle>
+                <NoRecommendationsMessage>
+                  You can see suggested posts by commenting and liking the posts.
+                </NoRecommendationsMessage>
               </>
             )}
             
@@ -1584,6 +1591,13 @@ const SidebarPostCategory = styled.div`
   font-size: 12px;
   color: #667085;
   margin-bottom: 6px;
+  font-style: italic;
+`;
+
+const NoRecommendationsMessage = styled.p`
+  color: #667085;
+  text-align: center;
+  padding: 20px 0;
   font-style: italic;
 `;
 

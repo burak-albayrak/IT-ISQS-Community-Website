@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @Service
 public class KNNRecommendationService {
     private static final Logger logger = LoggerFactory.getLogger(KNNRecommendationService.class);
-    private static final int MIN_INTERACTIONS = 0; // Cold start eşiği - test için 0'a düşürüldü
+    private static final int MIN_INTERACTIONS = 30; // Cold start eşiği - test için 0'a düşürüldü
     private static final int K_NEIGHBORS = 5; // Kaç benzer gönderi önerilecek
 
     @Autowired
@@ -40,9 +40,10 @@ public class KNNRecommendationService {
                                forumCommentRepository.countByCreatedBy(userId);
 
         if (totalInteractions < MIN_INTERACTIONS) {
-            logger.info("User {} has insufficient interactions ({}). Using fallback recommendations.", 
+            logger.info("User {} has insufficient interactions ({}). Not showing recommendations.", 
                        userId, totalInteractions);
-            return getFallbackRecommendations();
+            // Cold start durumunda boş liste döndür, frontend'de uygun mesaj gösterilecek
+            return Collections.emptyList();
         }
 
         try {
