@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @Service
 public class KNNRecommendationService {
     private static final Logger logger = LoggerFactory.getLogger(KNNRecommendationService.class);
-    private static final int MIN_INTERACTIONS = 30; // Cold start eşiği
+    private static final int MIN_INTERACTIONS = 0; // Cold start eşiği - test için 0'a düşürüldü
     private static final int K_NEIGHBORS = 5; // Kaç benzer gönderi önerilecek
 
     @Autowired
@@ -82,6 +82,11 @@ public class KNNRecommendationService {
     }
 
     private Set<Integer> getUserInteractions(int userId) {
+        // Test kullanıcıları veya anonim kullanıcılar için (userId = 0) boş küme döndür
+        if (userId == 0) {
+            return new HashSet<>();
+        }
+        
         Set<Integer> likedPosts = new HashSet<>(forumPostLikeRepository.findForumPostIdByUserId(userId));
         Set<Integer> commentedPosts = new HashSet<>(forumCommentRepository.findForumPostIdByCreatedBy(userId));
         likedPosts.addAll(commentedPosts);

@@ -23,7 +23,21 @@ public class RecommendationController {
     public ResponseEntity<List<RecommendationResponse>> getForumPostRecommendations(
             @AuthenticationPrincipal UserDetails userDetails) {
         // Kullanıcı ID'sini UserDetails'den al
-        int userId = Integer.parseInt(userDetails.getUsername());
+        int userId;
+        
+        // Null kontrolü ekle
+        if (userDetails == null) {
+            // Kullanıcı bilgileri yoksa, varsayılan 0 ID ile fallback önerileri al
+            userId = 0;
+        } else {
+            try {
+                userId = Integer.parseInt(userDetails.getUsername());
+            } catch (NumberFormatException e) {
+                // Username integer değilse de varsayılan önerileri al
+                userId = 0;
+            }
+        }
+        
         List<RecommendationResponse> recommendations = knnRecommendationService.getRecommendations(userId);
         return ResponseEntity.ok(recommendations);
     }

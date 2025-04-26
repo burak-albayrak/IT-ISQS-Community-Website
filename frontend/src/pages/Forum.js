@@ -23,6 +23,7 @@ const Forum = () => {
   const [recentForumPosts, setRecentForumPosts] = useState([]);
   const [savedForumPosts, setSavedForumPosts] = useState([]);
   const [userSavedPosts, setUserSavedPosts] = useState([]);
+  const [recommendedPosts, setRecommendedPosts] = useState([]); // Önerilen postlar
   const [allPosts, setAllPosts] = useState([]); // Store all posts for filtering
   const [categories, setCategories] = useState(['Research', 'Frameworks', 'Tools', 'Software Development']);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -224,27 +225,84 @@ const Forum = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response && response.data) {
-          // Format the saved posts (ensure necessary fields like creatorName are handled)
           const formattedSavedPosts = response.data.map(post => ({
             id: post.forumPostID,
             title: post.title,
-            userName: post.creatorName || 'Anonymous', // creatorName might be null from this endpoint
+            userName: post.creatorName || 'Anonymous',
             commentCount: post.commentCount || 0,
             likesCount: post.likesCount || 0,
           }));
           setUserSavedPosts(formattedSavedPosts);
+          
+          // Update saved status for posts in existing state
+          const savedIds = response.data.map(post => post.forumPostID);
+          updateSavedStatusInAllPosts(savedIds);
         } else {
            setUserSavedPosts([]);
         }
       } catch (err) {
         console.error("Error fetching saved posts:", err);
         setUserSavedPosts([]); // Set empty on error
-        // Optionally handle error display for saved posts section
       }
+    };
+
+    // Function to update saved status in all post lists
+    const updateSavedStatusInAllPosts = (savedPostIds) => {
+      // Helper function to update isSaved flag in a list of posts
+      const updatePostsWithSavedStatus = (posts) => {
+        return posts.map(post => ({
+          ...post,
+          isSaved: savedPostIds.includes(post.id)
+        }));
+      };
+
+      // Update all post lists with saved status
+      setAllPosts(updatePostsWithSavedStatus(allPosts));
+      setRecentForumPosts(updatePostsWithSavedStatus(recentForumPosts));
+      setForumPosts(updatePostsWithSavedStatus(forumPosts));
     };
 
     fetchSavedPosts();
   }, [refreshKey]); // Re-fetch when refreshKey changes (e.g., after save/unsave)
+
+  // Fetch recommendation posts for logged-in user
+  useEffect(() => {
+    const fetchRecommendedPosts = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+          setRecommendedPosts([]); // Clear recommended posts if not logged in
+          return;
+      }
+
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/recommendations/forum-posts', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response && response.data) {
+          // Format the recommendation posts
+          const formattedRecommendations = response.data.map(post => ({
+            id: post.forumPostId,
+            title: post.title,
+            categoryName: post.categoryName,
+            commentCount: post.commentCount || 0,
+            likesCount: post.likesCount || 0,
+            similarityScore: post.similarityScore
+          }));
+          
+          setRecommendedPosts(formattedRecommendations);
+          console.log('Recommendations loaded:', formattedRecommendations);
+        } else {
+          setRecommendedPosts([]);
+        }
+      } catch (err) {
+        console.error("Error fetching recommendations:", err);
+        setRecommendedPosts([]); // Set empty on error
+      }
+    };
+
+    fetchRecommendedPosts();
+  }, [refreshKey]);
 
   // Fetch categories from backend and filter them
   useEffect(() => {
@@ -739,45 +797,53 @@ const Forum = () => {
 
         <ForumContent>
           <LeftSidebar>
+            {recommendedPosts.length > 0 && (
+              <>
+                <RecommendedPostsTitle>Recommended Forum Posts for you</RecommendedPostsTitle>
+                <SidebarPostsList>
+                  {recommendedPosts.map((post) => (
+                    <SidebarPostItem key={`recommended-${post.id}`} onClick={() => navigate(`/forum/post/${post.id}`)}>
+                      <SidebarPostTitle>{post.title}</SidebarPostTitle>
+                      <SidebarPostCategory>
+                        {post.categoryName}
+                      </SidebarPostCategory>
+                      <SidebarPostStats>
+                        <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
+                      </SidebarPostStats>
+                    </SidebarPostItem>
+                  ))}
+                </SidebarPostsList>
+              </>
+            )}
+            
             <PopularPostsTitle>Popular Forum Posts</PopularPostsTitle>
             <SidebarPostsList>
-              {forumPosts.length > 0 ? (
-                forumPosts.map((post) => (
-                  <SidebarPostItem key={post.id} onClick={() => navigate(`/forum/post/${post.id}`)}>
-                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
-                    <SidebarPostAuthor>
-                      {post.userName}
-                    </SidebarPostAuthor>
-                    <SidebarPostStats>
-                      <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
-                    </SidebarPostStats>
-                  </SidebarPostItem>
-                ))
-              ) : (
-                <EmptyStateMessage style={{ padding: '20px 0' }}>No popular posts yet</EmptyStateMessage>
-              )}
+              {forumPosts.length > 0 ? forumPosts.map((post) => (
+                <SidebarPostItem key={`popular-${post.id}`} onClick={() => navigate(`/forum/post/${post.id}`)}>
+                  <SidebarPostTitle>{post.title}</SidebarPostTitle>
+                  <SidebarPostAuthor>
+                    {post.userName}
+                  </SidebarPostAuthor>
+                  <SidebarPostStats>
+                    <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
+                  </SidebarPostStats>
+                </SidebarPostItem>
+              )) : <EmptyStateMessage>No popular posts yet</EmptyStateMessage>}
             </SidebarPostsList>
-            
+
             <SavedPostsTitle>Saved Forum Posts</SavedPostsTitle>
             <SidebarPostsList>
-              {userSavedPosts.length > 0 ? (
-                userSavedPosts.map((post) => (
-                  <SidebarPostItem key={`saved-${post.id}`} onClick={() => navigate(`/forum/post/${post.id}`)}>
-                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
-                    <SidebarPostAuthor>
-                      {post.userName}
-                    </SidebarPostAuthor>
-                    <SidebarPostStats>
-                      <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
-                    </SidebarPostStats>
-                  </SidebarPostItem>
-                ))
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                  <EmptyStateMessage style={{ padding: '20px 0' }}>No saved posts yet</EmptyStateMessage>
-                </div>
-              )}
-              {userSavedPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/saved')}>View All</ViewAllLink>}
+              {userSavedPosts.length > 0 ? userSavedPosts.map((post) => (
+                <SidebarPostItem key={`saved-${post.id}`} onClick={() => navigate(`/forum/post/${post.id}`)}>
+                  <SidebarPostTitle>{post.title}</SidebarPostTitle>
+                  <SidebarPostAuthor>
+                    {post.userName}
+                  </SidebarPostAuthor>
+                  <SidebarPostStats>
+                    <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
+                  </SidebarPostStats>
+                </SidebarPostItem>
+              )) : <EmptyStateMessage>No saved posts yet</EmptyStateMessage>}
             </SidebarPostsList>
           </LeftSidebar>
 
@@ -1321,18 +1387,18 @@ const PopularPostsTitle = styled.h2`
   margin: 0 0 15px 0;
 `;
 
+const RecommendedPostsTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #101828;
+  margin: 0 0 15px 0;
+`;
+
 const SavedPostsTitle = styled.h2`
   font-size: 20px;
   font-weight: 600;
   color: #101828;
   margin: 30px 0 15px 0;
-`;
-
-const DetailedPostsTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 600;
-  color: #101828;
-  margin: 0 0 20px 0;
 `;
 
 const SidebarPostsList = styled.div`
@@ -1382,6 +1448,13 @@ const SidebarPostAuthor = styled.div`
 const SidebarPostStats = styled.div`
   font-size: 12px;
   color: #667085;
+`;
+
+const DetailedPostsTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #101828;
+  margin: 0 0 20px 0;
 `;
 
 const DetailedPostsList = styled.div`
@@ -2019,6 +2092,13 @@ const GeneralErrorMessage = styled(SuccessMessage)`
   background-color: #ffebee; // Light red background
   color: #c62828; // Dark red text
   border-left-color: #f44336;
+`;
+
+const SidebarPostCategory = styled.div`
+  font-size: 12px;
+  color: #667085;
+  margin-bottom: 6px;
+  font-style: italic;
 `;
 
 export default Forum; 

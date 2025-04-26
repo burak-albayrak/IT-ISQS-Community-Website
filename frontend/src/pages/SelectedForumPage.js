@@ -29,6 +29,7 @@ const SelectedForumPage = () => {
   const [forumPosts, setForumPosts] = useState([]); // For popular posts sidebar
   const [savedForumPosts, setSavedForumPosts] = useState([]); // <-- Bu state artık kullanılmayacak
   const [userSavedPosts, setUserSavedPosts] = useState([]); // <-- Yeni state
+  const [recommendedPosts, setRecommendedPosts] = useState([]); // <-- Önerilen postlar için state
   const [categoryColorMap, setCategoryColorMap] = useState({});
   const [zoomedImageUrl, setZoomedImageUrl] = useState(null);
   const [replyingToCommentId, setReplyingToCommentId] = useState(null); // ID of the comment being replied to
@@ -237,10 +238,50 @@ const SelectedForumPage = () => {
       }
     };
 
+    // Fetch recommendation posts for logged-in user
+    const fetchRecommendedPosts = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+          setRecommendedPosts([]); // Clear recommended posts if not logged in
+          return;
+      }
+
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/recommendations/forum-posts', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response && response.data) {
+          // Filter out the currently viewed post from the recommendations
+          const filteredRecommendations = response.data.filter(p => p.forumPostId !== parseInt(postId));
+          
+          // Format the recommendation posts
+          const formattedRecommendations = filteredRecommendations.map(post => ({
+            id: post.forumPostId,
+            title: post.title,
+            userName: '', // API doesn't return creator info
+            categoryName: post.categoryName,
+            commentCount: post.commentCount || 0,
+            likesCount: post.likesCount || 0,
+            similarityScore: post.similarityScore
+          }));
+          
+          setRecommendedPosts(formattedRecommendations);
+          console.log('Recommendations loaded:', formattedRecommendations);
+        } else {
+          setRecommendedPosts([]);
+        }
+      } catch (err) {
+        console.error("Error fetching recommendations:", err);
+        setRecommendedPosts([]); // Set empty on error
+      }
+    };
+
     // Fetch saved posts when postId changes (to filter correctly) or user potentially saves/unsaves
-    fetchSavedPosts(); 
+    fetchSavedPosts();
+    fetchRecommendedPosts();
     // Dependency array could include a refresh trigger if available, or just postId
-  }, [postId]); 
+  }, [postId]);
 
   const handleLikePost = async () => {
     // Check if post data is available
@@ -570,6 +611,29 @@ const SelectedForumPage = () => {
       <ForumContainer>
         <ForumContent>
           <LeftSidebar>
+            {recommendedPosts.length > 0 && (
+              <>
+                <RecommendedPostsTitle>Recommended Forum Posts for you</RecommendedPostsTitle>
+                <SidebarPostsList>
+                  {recommendedPosts.map((sidebarPost) => (
+                    <SidebarPostItem 
+                      key={`recommended-${sidebarPost.id}`} 
+                      onClick={() => navigate(`/forum/post/${sidebarPost.id}`)}
+                      $isActive={sidebarPost.id === parseInt(postId)}
+                    >
+                      <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
+                      <SidebarPostCategory>
+                        {sidebarPost.categoryName}
+                      </SidebarPostCategory>
+                      <SidebarPostStats>
+                        <span>{sidebarPost.commentCount} comments</span> • <span>{sidebarPost.likesCount} likes</span>
+                      </SidebarPostStats>
+                    </SidebarPostItem>
+                  ))}
+                </SidebarPostsList>
+              </>
+            )}
+            
             <PopularPostsTitle>Popular Forum Posts</PopularPostsTitle>
             <SidebarPostsList>
               {forumPosts.length > 0 ? (
@@ -872,6 +936,13 @@ const RightContent = styled.div`
 `;
 
 const PopularPostsTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #101828;
+  margin: 0 0 15px 0;
+`;
+
+const RecommendedPostsTitle = styled.h2`
   font-size: 20px;
   font-weight: 600;
   color: #101828;
@@ -1507,6 +1578,13 @@ const ReviewModalMessage = styled.p`
   color: #101828;
   text-align: center;
   margin-top: 16px;
+`;
+
+const SidebarPostCategory = styled.div`
+  font-size: 12px;
+  color: #667085;
+  margin-bottom: 6px;
+  font-style: italic;
 `;
 
 export default SelectedForumPage;
