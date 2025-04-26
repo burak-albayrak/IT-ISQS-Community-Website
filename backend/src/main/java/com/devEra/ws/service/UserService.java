@@ -2,6 +2,7 @@ package com.devEra.ws.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -129,6 +130,13 @@ public class UserService {
     
     public void saveUser(User user) {
         userRepository.save(user);
+    }
+
+    public Optional<User> findByEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be null or empty");
+        }
+        return userRepository.findByEmail(email);
     }
 
 }

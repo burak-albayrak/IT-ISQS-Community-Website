@@ -4,5 +4,5 @@ public enum Role {
     STUDENT,
     ACADEMIC,
     INDUSTRY_PROFESSIONAL,
-    OTHER
+    OTHER, USER
 }

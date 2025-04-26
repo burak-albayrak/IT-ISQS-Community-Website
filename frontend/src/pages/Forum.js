@@ -50,6 +50,9 @@ const Forum = () => {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // State to trigger data refresh
   const [submitSuccess, setSubmitSuccess] = useState(''); // State for success message
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   // Define the allowed category names (alphabetically sorted)
   const allowedCategoryNames = [
@@ -310,40 +313,61 @@ const Forum = () => {
     };
   }, [sortRef, categoryRef]);
 
-  // Handle search functionality
-  const handleSearch = (e) => {
-    e.preventDefault();
-    
-    if (!searchQuery.trim()) {
-      // If search is empty, reset to show all posts
-      setRecentForumPosts(allPosts.slice(0, 5));
-      
-      // Reset popular posts
-      const popularPosts = [...allPosts]
-        .sort((a, b) => b.likesCount - a.likesCount)
-        .slice(0, 4);
-      setForumPosts(popularPosts);
-      
-      return;
-    }
-    
-    // Filter posts by search query
-    const filteredPosts = allPosts.filter(post => {
-      const searchLower = searchQuery.toLowerCase();
-      return (
-        (post.title && post.title.toLowerCase().includes(searchLower)) ||
-        (post.description && post.description.toLowerCase().includes(searchLower))
-      );
-    });
-    
-    // Update recent posts with filtered results
-    setRecentForumPosts(filteredPosts.slice(0, 5));
-    
-    // Update popular posts with filtered results
-    const filteredPopular = [...filteredPosts]
-      .sort((a, b) => b.likesCount - a.likesCount)
-      .slice(0, 4);
-    setForumPosts(filteredPopular);
+  // Debounced search function
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery) {
+        setIsSearching(true);
+        try {
+          const response = await axios.get(`http://localhost:8080/api/v1/forum-posts/search?query=${encodeURIComponent(searchQuery)}`);
+          if (response.data) {
+            const formattedResults = response.data.map(post => ({
+              id: post.forumPostID,
+              title: post.title,
+              description: post.description,
+              media: post.mediaList || [],
+              likesCount: post.likesCount || 0,
+              commentCount: post.commentCount || 0,
+              createdBy: post.createdBy,
+              createdByType: post.createdByType,
+              createdAt: post.createdAt,
+              formattedDate: formatDate(post.createdAt),
+              timeAgo: getTimeAgo(post.createdAt),
+              updatedAt: post.updatedAt,
+              tags: post.category ? [post.category.name] : ['General'],
+              userName: post.creatorName || 'Anonymous',
+              userProfilePic: post.creatorProfilePic || defaultProfilePic,
+            }));
+            setSearchResults(formattedResults);
+            setShowSearchResults(true);
+            setRecentForumPosts(formattedResults);
+          }
+        } catch (error) {
+          console.error('Search error:', error);
+          setError('Failed to perform search');
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setShowSearchResults(false);
+        setSearchResults([]);
+        // Reset to original posts when search is cleared
+        setRecentForumPosts(allPosts.slice(0, 5));
+      }
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setShowSearchResults(false);
+    setSearchResults([]);
+    setRecentForumPosts(allPosts.slice(0, 5));
   };
 
   // Handle category change
@@ -815,17 +839,26 @@ const Forum = () => {
 
           <RightContent>
             <ForumControls>
-              <SearchFormContainer onSubmit={handleSearch}>
-                <SearchIcon>
-                  <FiSearch />
-                </SearchIcon>
-                <SearchInput 
-                  type="text" 
-                  placeholder="Search in Forum" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </SearchFormContainer>
+              <SearchContainer>
+                <SearchInputWrapper>
+                  <FiSearch size={20} color="#667085" />
+                  <SearchInput
+                    type="text"
+                    placeholder="Search forum posts..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                  />
+                  {isSearching ? (
+                    <LoadingSpinner>
+                      <div className="spinner"></div>
+                    </LoadingSpinner>
+                  ) : searchQuery && (
+                    <ClearButton onClick={clearSearch}>
+                      <FiX size={20} />
+                    </ClearButton>
+                  )}
+                </SearchInputWrapper>
+              </SearchContainer>
               
               <SortButtonContainer ref={sortRef}>
                 <SortButton onClick={() => setShowSortDropdown(!showSortDropdown)}>
@@ -895,7 +928,9 @@ const Forum = () => {
               </CreatePostButton>
             </ForumControls>
 
-            <DetailedPostsTitle>Recently Forum Posts</DetailedPostsTitle>
+            <DetailedPostsTitle>
+              {showSearchResults ? `Search Results (${searchResults.length})` : 'Recently Forum Posts'}
+            </DetailedPostsTitle>
             <DetailedPostsList>
               {recentForumPosts.length > 0 ? (
                 recentForumPosts.map((post, index) => (
@@ -1163,36 +1198,78 @@ const ForumControls = styled.div`
   }
 `;
 
-const SearchFormContainer = styled.form`
+const SearchContainer = styled.div`
+  flex: 1;
+  max-width: 500px;
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
   display: flex;
   align-items: center;
-  background-color: #f2f4f7;
+  background-color: white;
+  border: 1px solid #E5E7EB;
   border-radius: 25px;
   padding: 8px 16px;
-  flex-grow: 1;
-  max-width: 380px;
-  
-  @media (max-width: 768px) {
-    max-width: 100%;
+  transition: all 0.2s;
+
+  &:focus-within {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  }
+
+  svg {
+    margin-right: 8px;
   }
 `;
 
 const SearchInput = styled.input`
-  width: 100%;
-  padding: 8px 8px 8px 10px;
+  flex: 1;
   border: none;
-  background: transparent;
+  outline: none;
   font-size: 15px;
+  background: transparent;
+  color: #1F2937;
+
+  &::placeholder {
+    color: #9CA3AF;
+  }
+
   &:focus {
     outline: none;
   }
 `;
 
-const SearchIcon = styled.div`
-  color: #667085;
-  font-size: 16px;
+const LoadingSpinner = styled.div`
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #E5E7EB;
+    border-top-color: #2563EB;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const ClearButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #9CA3AF;
   display: flex;
   align-items: center;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #4B5563;
+  }
 `;
 
 const SortButtonContainer = styled.div`

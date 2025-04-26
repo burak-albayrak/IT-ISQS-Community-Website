@@ -280,4 +280,33 @@ public class UserController {
             return ResponseEntity.status(500).body(error);
         }
     }
+
+    /**
+     * Giriş yapmış kullanıcının bilgilerini getirir
+     * 
+     * @param tokenHeader Yetkilendirme token'ı
+     * @return Kullanıcı bilgileri
+     */
+    @GetMapping("/api/v1/users/me")
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String tokenHeader) {
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            Integer userId;
+            
+            if (jwtTokenService.isAdminToken(token)) {
+                userId = jwtTokenService.getAdminIdFromToken(token);
+            } else {
+                userId = jwtTokenService.getUserIdFromToken(token);
+            }
+            
+            User user = userService.getUser(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            ApiError error = new ApiError();
+            error.setStatus(401);
+            error.setMessage("Invalid or missing token: " + e.getMessage());
+            error.setPath("/api/v1/users/me");
+            return ResponseEntity.status(401).body(error);
+        }
+    }
 }

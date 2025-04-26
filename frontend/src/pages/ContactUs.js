@@ -117,7 +117,7 @@ const FormSectionWrapper = styled.div`
   display: flex;
   justify-content: center;
   padding: 0 2rem;
-  margin-top: -2rem;
+  margin-top: -4rem;
   position: relative;
   
   @media (max-width: 768px) {
@@ -134,6 +134,26 @@ const FormSection = styled.div`
   width: 80%;
   max-width: 800px;
   position: relative;
+  transition: all 0.3s ease;
+  animation: pulse 3s ease-in-out infinite;
+  
+  @keyframes pulse {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+  
+  &:hover {
+    animation: none;
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  }
   
   @media (max-width: 768px) {
     width: 90%;

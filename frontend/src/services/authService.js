@@ -171,9 +171,23 @@ export const resendResetCode = async (email) => {
   }
 };
 
-// Get user profile by ID
-export const getUserProfile = async (userId) => {
+// Get user profile
+export const getUserProfile = async (userId = null) => {
   try {
+    if (!userId) {
+      // Token'dan kullanıcı bilgilerini al
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token found');
+
+      // Token'ı decode et
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+      userId = decodedToken.userId || decodedToken.sub;
+    }
+
+    if (!userId) {
+      throw new Error('User ID not found');
+    }
+
     const response = await api.get(`/users/${userId}`);
     return response.data;
   } catch (error) {
@@ -266,5 +280,19 @@ export const getCurrentUser = () => {
     // Hatalı veriyi temizle
     localStorage.removeItem('user');
     return null;
+  }
+};
+
+// Google OAuth2 login servisi
+export const googleLogin = async () => {
+  try {
+    // Google OAuth URL'sini oluştur
+    const googleAuthUrl = 'http://localhost:8080/oauth2/authorization/google';
+    
+    // Yeni pencerede Google OAuth sayfasını aç
+    window.location.href = googleAuthUrl;
+  } catch (error) {
+    console.error('Google login service error:', error);
+    throw error;
   }
 }; 

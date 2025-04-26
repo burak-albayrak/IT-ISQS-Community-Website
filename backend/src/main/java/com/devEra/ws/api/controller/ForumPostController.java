@@ -9,6 +9,7 @@ import com.devEra.ws.entity.Forum.ForumPost;
 import com.devEra.ws.service.ForumPostService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -265,16 +266,12 @@ public class ForumPostController {
      * @return Bulunan forum gönderileri
      */
     @GetMapping("/search")
-    public ResponseEntity<?> searchPosts(@RequestParam(required = false) String searchQuery) {
+    public ResponseEntity<List<ForumPost>> searchPosts(@RequestParam String query) {
         try {
-            List<ForumPost> posts = forumPostService.searchPosts(searchQuery);
-            return ResponseEntity.ok(posts);
+            List<ForumPost> searchResults = forumPostService.searchPosts(query);
+            return ResponseEntity.ok(searchResults);
         } catch (Exception e) {
-            ApiError error = new ApiError();
-            error.setStatus(500);
-            error.setMessage("Error searching posts: " + e.getMessage());
-            error.setPath("/api/v1/forum-posts/search");
-            return ResponseEntity.status(500).body(error);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     

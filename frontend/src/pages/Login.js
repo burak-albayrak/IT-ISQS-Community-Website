@@ -7,8 +7,10 @@ import mailIcon from '../assets/mail.png'; // Mail ikonunu import ediyoruz
 import tikIcon from '../assets/tik.png'; // Tik ikonunu import ediyoruz
 import personIcon from '../assets/person.png'; // Person ikonunu import ediyoruz
 import lockIcon from '../assets/lock.png'; // Lock ikonunu import ediyoruz
-import { login, register, getUserByEmail } from '../services/authService';
+import { login, register, getUserByEmail, googleLogin, getUserProfile } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
+import { useGoogleLogin } from '@react-oauth/google';
+import { toast } from 'react-hot-toast';
 
 // Formda yan yana koyacağımız girdi alanları için stil ekleyelim
 const FormRow = styled.div`
@@ -318,6 +320,28 @@ const Login = () => {
         }
     };
 
+    const handleGoogleLogin = async () => {
+        try {
+            const result = await googleLogin();
+            if (result.token) {
+                // Normal login başarılı
+                const userResponse = await getUserProfile();
+                authLogin(userResponse);
+                navigate('/');
+                toast.success('Google login successful!');
+            } else if (result.tempToken && result.registration === 'incomplete') {
+                // Profil tamamlama gerekiyor
+                navigate('/complete-profile', { 
+                    state: { tempToken: result.tempToken }
+                });
+                toast.info('Please complete your profile');
+            }
+        } catch (error) {
+            console.error('Google login error:', error);
+            toast.error(error.message || 'Google login failed');
+        }
+    };
+
     // Helper function to determine if an input field has an error
     const hasError = (fieldName) => Boolean(fieldErrors[fieldName]);
 
@@ -328,7 +352,7 @@ const Login = () => {
             <S.BottomLeftImage src={personIcon} />
             <S.TopRightImage src={lockIcon} />
             <S.Container>
-                <S.SignUpContainer isLogin={isLogin}>
+                <S.SignUpContainer $isLogin={isLogin}>
                     <S.Form onSubmit={handleRegisterSubmit}>
                         <S.Title2>Sign Up</S.Title2>
                         
@@ -441,7 +465,7 @@ const Login = () => {
                                 required
                                 style={hasError('role') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
                             >
-                                <option value="" disabled selected>Role</option>
+                                <option value="" disabled>Role</option>
                                 <option value="STUDENT">Student</option>
                                 <option value="TEACHER">Teacher</option>
                                 <option value="RESEARCHER">Researcher</option>
@@ -470,14 +494,14 @@ const Login = () => {
                         
                         <S.Divider>or</S.Divider>
                         
-                        <S.GoogleButton type="button">
+                        <S.GoogleButton type="button" onClick={handleGoogleLogin}>
                             <img src="https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google logo" width="20" />
                             Sign up with your Google Account
                         </S.GoogleButton>
                     </S.Form>
                 </S.SignUpContainer>
 
-                <S.SignInContainer isLogin={isLogin}>
+                <S.SignInContainer $isLogin={isLogin}>
                     <S.Form onSubmit={handleLoginSubmit}>
                         <S.Title2>Sign In</S.Title2>
                         
@@ -517,16 +541,16 @@ const Login = () => {
                         
                         <S.Divider>or</S.Divider>
                         
-                        <LoginGoogleButton type="button">
+                        <LoginGoogleButton type="button" onClick={handleGoogleLogin}>
                             <img src="https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google logo" width="20" />
                             Sign in with your Google Account
                         </LoginGoogleButton>
                     </S.Form>
                 </S.SignInContainer>
                 
-                <S.OverlayContainer isLogin={isLogin}>
-                    <S.Overlay isLogin={isLogin}>
-                        <S.LeftOverlayPanel isLogin={isLogin}>
+                <S.OverlayContainer $isLogin={isLogin}>
+                    <S.Overlay $isLogin={isLogin}>
+                        <S.LeftOverlayPanel $isLogin={isLogin}>
                             <S.Title>Hello!</S.Title>
                             <S.Text>
                                 Don't you have an account?<br />
@@ -539,7 +563,7 @@ const Login = () => {
                             </S.GhostButton>
                         </S.LeftOverlayPanel>
 
-                        <S.RightOverlayPanel isLogin={isLogin}>
+                        <S.RightOverlayPanel $isLogin={isLogin}>
                             <S.Title>Welcome!</S.Title>
                             <S.Text>
                                 You already have an account?<br />

@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -20,42 +22,49 @@ import Forum from './pages/Forum';
 import SelectedForumPage from './pages/SelectedForumPage';
 import Home from './pages/Home';
 import { AuthProvider } from './contexts/AuthContext';
+import OAuth2Callback from './pages/OAuth2Callback';
+import CompleteProfile from './pages/CompleteProfile';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <Header />
-          <main className="main-content">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/syllabus" element={<Syllabus />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:id" element={<BlogDetail />} />
-              <Route path="/forum" element={<Forum />} />
-              <Route path="/forum/post/:postId" element={<SelectedForumPage />} />
-              <Route path="/project-results" element={<ProjectResults />} />
-              <Route path="/contact" element={<ContactUs />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/verify-email" element={<EmailVerification />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/privacy-policy" element={<div className="page">Privacy & Policy Page</div>} />
-              <Route path="/terms" element={<div className="page">Terms of Service Page</div>} />
-              <Route path="/cookie-settings" element={<div className="page">Cookie Settings Page</div>} />
-              <Route path="/faqs" element={<div className="page">FAQs Page</div>} />
-              <Route path="*" element={<div className="page">404 Not Found</div>} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
-    </AuthProvider>
+    <GoogleOAuthProvider clientId="840879879105-j9at8samclj5qau0t6jl44keg1jtdf6i.apps.googleusercontent.com">
+      <AuthProvider>
+        <Router>
+          <div className="App">
+            <Toaster position="top-right" />
+            <Header />
+            <main className="main-content">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/syllabus" element={<Syllabus />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:id" element={<BlogDetail />} />
+                <Route path="/forum" element={<Forum />} />
+                <Route path="/forum/post/:postId" element={<SelectedForumPage />} />
+                <Route path="/project-results" element={<ProjectResults />} />
+                <Route path="/contact" element={<ContactUs />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/verify-email" element={<EmailVerification />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/oauth2/callback" element={<OAuth2Callback />} />
+                <Route path="/complete-profile" element={<CompleteProfile />} />
+                <Route path="/privacy-policy" element={<div className="page">Privacy & Policy Page</div>} />
+                <Route path="/terms" element={<div className="page">Terms of Service Page</div>} />
+                <Route path="/cookie-settings" element={<div className="page">Cookie Settings Page</div>} />
+                <Route path="/faqs" element={<div className="page">FAQs Page</div>} />
+                <Route path="*" element={<div className="page">404 Not Found</div>} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </Router>
+      </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }
 

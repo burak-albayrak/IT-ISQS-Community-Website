@@ -2,6 +2,7 @@ package com.devEra.ws.entity;
 
 import com.devEra.ws.core.enums.Role;
 import com.devEra.ws.core.enums.Gender;
+import com.devEra.ws.core.enums.AuthProvider;
 import com.devEra.ws.core.validation.UniqueEmail;
 
 import jakarta.persistence.*;
@@ -33,6 +34,10 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
+    // Combined name field for OAuth2
+    @Column(name = "name")
+    private String name;
+
     //@UniqueEmail
     @Email(message = "Please provide a valid email address.")
     @NotBlank(message = "Email address cannot be blank.")
@@ -41,12 +46,13 @@ public class User {
 
     @Size(min = 8, max = 255, message = "Password must be between 8 and 255 characters.")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$", message = "Password must contain at least one uppercase letter, one lowercase letter, and one digit.")
-    @NotBlank(message = "Password cannot be blank.")
     private String password;
 
     private Boolean isBlocked = false;
 
     private Boolean isActive = false;
+
+    private Boolean enabled = false;
 
     private String institution;
 
@@ -62,4 +68,11 @@ public class User {
     
     @Column(name = "picture")
     private String picture;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider")
+    private AuthProvider authProvider;
 }

@@ -308,9 +308,7 @@ export const BottomRightImage = styled.img`
 `;
 
 // Form alanları içi arkaplan rengini ayarlayan bileşenler
-export const SignUpContainer = styled.div.attrs(props => ({
-    'data-islogin': props.isLogin
-}))`
+export const SignUpContainer = styled.div`
     position: absolute;
     top: 0;
     height: 100%;
@@ -323,7 +321,7 @@ export const SignUpContainer = styled.div.attrs(props => ({
     background-color: rgba(140, 158, 193, 0.5);
     visibility: hidden;
     overflow: hidden;
-    ${props => !props.isLogin && css`
+    ${({ $isLogin }) => !$isLogin && css`
         transform: translateX(53.8%);
         opacity: 1;
         z-index: 300;
@@ -331,9 +329,7 @@ export const SignUpContainer = styled.div.attrs(props => ({
     `}
 `;
 
-export const SignInContainer = styled.div.attrs(props => ({
-    'data-islogin': props.isLogin
-}))`
+export const SignInContainer = styled.div`
     position: absolute;
     top: 0;
     height: 100%;
@@ -346,16 +342,14 @@ export const SignInContainer = styled.div.attrs(props => ({
     border-radius: 30px;
     background-color: rgba(140, 158, 193, 0.5);
     overflow: hidden;
-    ${props => !props.isLogin && css`
+    ${({ $isLogin }) => !$isLogin && css`
         transform: translateX(53.8%);
         opacity: 0;
         visibility: hidden;
     `}
 `;
 
-export const OverlayContainer = styled.div.attrs(props => ({
-    'data-islogin': props.isLogin
-}))`
+export const OverlayContainer = styled.div`
     position: absolute;
     top: 0;
     left: 65%;
@@ -365,16 +359,14 @@ export const OverlayContainer = styled.div.attrs(props => ({
     transition: transform 0.8s cubic-bezier(0.86, 0, 0.07, 1);
     z-index: 150;
     border-radius: 50px 0 0 50px;
-    ${props => !props.isLogin && css`
+    ${({ $isLogin }) => !$isLogin && css`
         transform: translateX(-185.7%);
         border-radius: 30px 30px 30px 30px;
         z-index: 150;
     `}
 `;
 
-export const Overlay = styled.div.attrs(props => ({
-    'data-islogin': props.isLogin
-}))`
+export const Overlay = styled.div`
     background: rgba(255, 255, 255, 0.98);
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7));
     color: #333;
@@ -385,7 +377,7 @@ export const Overlay = styled.div.attrs(props => ({
     transform: translateX(54%);
     transition: transform 0.8s cubic-bezier(0.86, 0, 0.07, 1);
     border-radius: 50px 0 0 50px;
-    ${props => !props.isLogin && css`
+    ${({ $isLogin }) => !$isLogin && css`
         transform: translateX(0);
         border-radius: 0 50px 50px 0;
     `}
@@ -406,16 +398,14 @@ export const OverlayPanel = styled.div`
     transition: transform 0.8s cubic-bezier(0.86, 0, 0.07, 1);
 `;
 
-export const LeftOverlayPanel = styled(OverlayPanel).attrs(props => ({
-    'data-islogin': props.isLogin
-}))`
+export const LeftOverlayPanel = styled(OverlayPanel)`
     transform: translateX(10%);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 
-    ${props => !props.isLogin && css`
+    ${({ $isLogin }) => !$isLogin && css`
         transform: translateX(-10%);
     `}
 
@@ -433,12 +423,10 @@ export const LeftOverlayPanel = styled(OverlayPanel).attrs(props => ({
     }
 `;
 
-export const RightOverlayPanel = styled(OverlayPanel).attrs(props => ({
-    'data-islogin': props.isLogin
-}))`
+export const RightOverlayPanel = styled(OverlayPanel)`
     right: 0;
     transform: translateX(35%);
-    ${props => !props.isLogin && css`
+    ${({ $isLogin }) => !$isLogin && css`
         transform: translateX(10%);
     `}
 

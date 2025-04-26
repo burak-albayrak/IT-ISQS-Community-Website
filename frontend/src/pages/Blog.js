@@ -63,6 +63,9 @@ const Blog = () => {
     'WebDevelopment'
   ];
 
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
   // Blog verileri için sayfa yüklendiğinde çalışacak efekt
   useEffect(() => {
     const fetchData = async () => {
@@ -92,6 +95,7 @@ const Blog = () => {
               summary: blog.description.substring(0, 150) + '...',
               categories: [blog.category || 'Uncategorized'],
               date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+              createdAt: blog.createdAt ? new Date(blog.createdAt) : new Date(),
               author: blog.owner || blog.createdBy || 'Anonymous',
               imageUrl: blog.media || '' // Boş string bırak, null ise varsayılan resim kullanılacak
             }));
@@ -104,6 +108,7 @@ const Blog = () => {
               summary: blog.description.substring(0, 150) + '...',
               categories: [blog.category || 'Uncategorized'],
               date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+              createdAt: blog.createdAt ? new Date(blog.createdAt) : new Date(),
               author: blog.owner || blog.createdBy || 'Anonymous',
               imageUrl: blog.media || '' // Boş string bırak, null ise varsayılan resim kullanılacak
             }));
@@ -221,10 +226,40 @@ const Blog = () => {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    
+    // Eğer arama alanı boşsa, tüm blogları göster
+    if (!searchQuery.trim()) {
+      try {
+        const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+        if (response && response.data) {
+          const blogs = response.data;
+          const formattedBlogs = blogs.map(blog => ({
+            id: blog.blogID,
+            title: blog.title,
+            summary: blog.description.substring(0, 150) + '...',
+            categories: [blog.category || 'Uncategorized'],
+            date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+            createdAt: blog.createdAt ? new Date(blog.createdAt) : new Date(),
+            author: blog.owner || blog.createdBy || 'Anonymous',
+            imageUrl: blog.media
+          }));
+          
+          setAllBlogPosts(formattedBlogs);
+          setError(null);
+          setTotalPages(Math.ceil(formattedBlogs.length / 10));
+          setIsSearchActive(false);
+        }
+      } catch (err) {
+        console.error("Blog verilerini getirirken hata oluştu:", err);
+        setError("Blog verileri yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+      } finally {
+        setIsSearching(false);
+      }
+      return;
+    }
 
     try {
-      // Get all blogs from the database and filter them on the client side
       const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
       
       if (response && response.data) {
@@ -255,18 +290,54 @@ const Blog = () => {
           summary: blog.description.substring(0, 150) + '...',
           categories: [blog.category || 'Uncategorized'],
           date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+          createdAt: blog.createdAt ? new Date(blog.createdAt) : new Date(),
           author: blog.owner || blog.createdBy || 'Anonymous',
           imageUrl: blog.media
         }));
         
         setAllBlogPosts(formattedBlogs);
         setTotalPages(Math.ceil(formattedBlogs.length / 10));
-      } else {
-        throw new Error('Invalid response format');
+        setIsSearchActive(true);
       }
     } catch (err) {
       console.error("Blog araması yaparken hata oluştu:", err);
       setError("Arama sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchFocus = () => {
+    if (isSearchActive) {
+        setIsSearchActive(false);
+    }
+  };
+
+  const clearSearch = async () => {
+    setSearchQuery('');
+    setIsSearchActive(false);
+    try {
+      const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+      if (response && response.data) {
+        const blogs = response.data;
+        const formattedBlogs = blogs.map(blog => ({
+          id: blog.blogID,
+          title: blog.title,
+          summary: blog.description.substring(0, 150) + '...',
+          categories: [blog.category || 'Uncategorized'],
+          date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+          createdAt: blog.createdAt ? new Date(blog.createdAt) : new Date(),
+          author: blog.owner || blog.createdBy || 'Anonymous',
+          imageUrl: blog.media
+        }));
+        
+        setAllBlogPosts(formattedBlogs);
+        setError(null);
+        setTotalPages(Math.ceil(formattedBlogs.length / 10));
+      }
+    } catch (err) {
+      console.error("Blog verilerini getirirken hata oluştu:", err);
+      setError("Blog verileri yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
     }
   };
 
@@ -326,9 +397,9 @@ const Blog = () => {
     const sortedBlogs = [...allBlogPosts].sort((a, b) => {
       switch (option) {
         case 'newest':
-          return new Date(b.date) - new Date(a.date);
+          return b.createdAt.getTime() - a.createdAt.getTime();
         case 'oldest':
-          return new Date(a.date) - new Date(b.date);
+          return a.createdAt.getTime() - b.createdAt.getTime();
         case 'a-z':
           return a.title.localeCompare(b.title);
         case 'z-a':
@@ -364,14 +435,25 @@ const Blog = () => {
       <SearchSection>
           <SearchFormContainer onSubmit={handleSearch}>
             <SearchIcon>
-              <FiSearch />
+                {isSearching ? <SearchSpinner /> : <FiSearch />}
             </SearchIcon>
           <SearchInput 
             type="text" 
             placeholder="Search in Blogs" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            disabled={isSearchActive}
+            onFocus={handleSearchFocus}
+            style={{
+                opacity: isSearchActive ? 0.7 : 1,
+                cursor: isSearchActive ? 'not-allowed' : 'text'
+            }}
           />
+          {isSearchActive && searchQuery && (
+              <ClearButton type="button" onClick={clearSearch}>
+                  ×
+              </ClearButton>
+          )}
           </SearchFormContainer>
           
           <SortButtonContainer ref={sortRef}>
@@ -649,6 +731,9 @@ const SearchIcon = styled.div`
   font-size: 16px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
 `;
 
 const SortButtonContainer = styled.div`
@@ -1184,6 +1269,41 @@ const SideBlogsContainer = styled.div`
   justify-content: flex-start;
   gap: 20px;
   height: 100%;
+`;
+
+const ClearButton = styled.button`
+    background: none;
+    border: none;
+    color: #667085;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+
+    &:hover {
+        color: #101828;
+    }
+
+    &:focus {
+        outline: none;
+    }
+`;
+
+const SearchSpinner = styled.div`
+    width: 16px;
+    height: 16px;
+    border: 2px solid #E4E7EC;
+    border-top: 2px solid #1E40AF;
+    border-radius: 50%;
+    animation: searchSpin 1s linear infinite;
+    
+    @keyframes searchSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 `;
 
 export default Blog; 
