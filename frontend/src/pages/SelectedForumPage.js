@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft } from 'react-icons/fi';
+import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft, FiAlertCircle } from 'react-icons/fi';
 import axios from 'axios';
 import defaultProfilePic from '../assets/defaultpp.jpg';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -33,6 +33,10 @@ const SelectedForumPage = () => {
   const [zoomedImageUrl, setZoomedImageUrl] = useState(null);
   const [replyingToCommentId, setReplyingToCommentId] = useState(null); // ID of the comment being replied to
   const [replyInputValue, setReplyInputValue] = useState(''); // Input value for the reply form
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewModalMessage, setReviewModalMessage] = useState("");
+  const [reviewModalType, setReviewModalType] = useState("loading"); // "loading" or "error"
 
   // New function to fetch comments
   const fetchComments = async (currentPostId) => {
@@ -347,7 +351,12 @@ const SelectedForumPage = () => {
       navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to comment' } });
       return;
     }
+    
     setCommentError(null); // Clear previous errors
+    setIsSubmitting(true);
+    setReviewModalOpen(true);
+    setReviewModalType("loading");
+    setReviewModalMessage("Under review");
 
     try {
       // Make the API call to the backend comment endpoint
@@ -370,6 +379,9 @@ const SelectedForumPage = () => {
 
       // Clear the input field
       setNewComment('');
+      
+      // Close the modal after successful submission
+      setReviewModalOpen(false);
 
       // Refresh the comments list to show the new comment
       fetchComments(postId);
@@ -383,14 +395,29 @@ const SelectedForumPage = () => {
 
     } catch (err) {
       console.error('Error submitting comment:', err);
+      setReviewModalType("error");
+      
       if (err.response?.status === 401 || err.response?.status === 403) {
-         setCommentError('Authentication error or insufficient permissions. Please log in again.');
+        setReviewModalMessage("Please log in again.");
+        setCommentError('Authentication error or insufficient permissions. Please log in again.');
+      } else if (err.response?.data?.message?.includes("toxic")) {
+        // For toxic content errors
+        setReviewModalMessage("Please comment respectfully.");
+        setCommentError('Please comment respectfully.');
       } else if (err.response) {
-        setCommentError(`Error: ${err.response.data?.message || 'Failed to submit comment.'}`);
+        setReviewModalMessage("Failed to submit comment. Please comment respectfully.");
+        setCommentError(`Failed to submit comment. Please comment respectfully.`);
+      } else {
+        setReviewModalMessage("Failed to submit comment. Please comment respectfully.");
+        setCommentError('Failed to submit comment. Please comment respectfully.');
       }
-      else {
-         setCommentError('Failed to submit comment. Please check your connection and try again.');
-      }
+      
+      // Close the modal after 3 seconds
+      setTimeout(() => {
+        setReviewModalOpen(false);
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -404,7 +431,12 @@ const SelectedForumPage = () => {
       navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to reply' } });
       return;
     }
+    
     setCommentError(null); // Clear previous errors
+    setIsSubmitting(true);
+    setReviewModalOpen(true);
+    setReviewModalType("loading");
+    setReviewModalMessage("Under review");
 
     try {
       const response = await axios.post(
@@ -424,6 +456,9 @@ const SelectedForumPage = () => {
 
       console.log('Reply submitted successfully:', response.data);
 
+      // Close the modal after successful submission
+      setReviewModalOpen(false);
+      
       // Clear reply state
       handleCancelReply();
 
@@ -435,13 +470,29 @@ const SelectedForumPage = () => {
 
     } catch (err) {
       console.error('Error submitting reply:', err);
+      setReviewModalType("error");
+      
       if (err.response?.status === 401 || err.response?.status === 403) {
-         setCommentError('Authentication error or insufficient permissions. Please log in again.');
+        setReviewModalMessage("Please log in again.");
+        setCommentError('Authentication error or insufficient permissions. Please log in again.');
+      } else if (err.response?.data?.message?.includes("toxic")) {
+        // For toxic content errors
+        setReviewModalMessage("Please comment respectfully.");
+        setCommentError('Please comment respectfully.');
       } else if (err.response) {
-        setCommentError(`Reply Error: ${err.response.data?.message || 'Failed to submit reply.'}`);
+        setReviewModalMessage("Failed to submit reply. Please comment respectfully.");
+        setCommentError(`Failed to submit reply. Please comment respectfully.`);
       } else {
-         setCommentError('Failed to submit reply. Please check your connection and try again.');
+        setReviewModalMessage("Failed to submit reply. Please comment respectfully.");
+        setCommentError('Failed to submit reply. Please comment respectfully.');
       }
+      
+      // Close the modal after 3 seconds
+      setTimeout(() => {
+        setReviewModalOpen(false);
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -770,6 +821,25 @@ const SelectedForumPage = () => {
         </ZoomOverlay>
       )}
       {/* --- End of Image Zoom Modal --- */}
+      
+      {/* Review Modal */}
+      {reviewModalOpen && (
+        <ReviewModalOverlay>
+          <ReviewModal>
+            {reviewModalType === "loading" ? (
+              <>
+                <Spinner size="medium" />
+                <ReviewModalMessage>{reviewModalMessage}</ReviewModalMessage>
+              </>
+            ) : (
+              <>
+                <FiAlertCircle size={24} color="#D92D20" />
+                <ReviewModalMessage>{reviewModalMessage}</ReviewModalMessage>
+              </>
+            )}
+          </ReviewModal>
+        </ReviewModalOverlay>
+      )}
     </>
   );
 };
@@ -1313,13 +1383,13 @@ const LoadingContainer = styled.div`
 `;
 
 const Spinner = styled.div`
-  width: 50px;
-  height: 50px;
-  border: 4px solid #E4E7EC;
-  border-top: 4px solid #1E40AF;
+  width: ${props => props.size === "medium" ? "36px" : "24px"};
+  height: ${props => props.size === "medium" ? "36px" : "24px"};
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #1849A9;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-
+  
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -1403,6 +1473,40 @@ const RepliesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 15px; // Space between replies
+`;
+
+// New styled components for Review Modal
+const ReviewModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ReviewModal = styled.div`
+  background-color: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 400px;
+  width: 90%;
+`;
+
+const ReviewModalMessage = styled.p`
+  font-size: 16px;
+  font-weight: 500;
+  color: #101828;
+  text-align: center;
+  margin-top: 16px;
 `;
 
 export default SelectedForumPage;
