@@ -100,7 +100,7 @@ const extractUserIdFromToken = (token) => {
 export const register = async (userData) => {
   try {
     console.log('Registering user with data:', userData);
-    const response = await axios.post('http://localhost:8080/users/register', userData);
+    const response = await axios.post('https://it-isqs-cankaya.web.app/users/register', userData);
     console.log('Register response:', response.data);
     
     // Başarılı kayıt durumunda token ve kullanıcı bilgilerini sakla

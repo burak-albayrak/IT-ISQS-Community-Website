@@ -124,47 +124,82 @@ const SelectedForumPage = () => {
     setCommentsLoading(true);
     setCommentError(null);
     try {
-      console.log('Fetching comments for post:', currentPostId);
+      console.log('Fetching comments for post:', postId);
       const token = localStorage.getItem('token');
       const headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       };
       
-      // Add authorization header if token exists
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      // Doğru endpoint'i kullan
-      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}/all`, {
+      console.log('Making request with headers:', headers);
+      const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments/post/${postId}/all`, {
         headers: headers
       });
       
       console.log('Raw response:', response);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      console.log('Response data type:', typeof response.data);
+      console.log('Response data:', JSON.stringify(response.data, null, 2));
+
       if (response && response.data) {
-        console.log('Comments data:', response.data);
-        const formattedComments = response.data.map(comment => ({
-          id: comment.commentId,
-          content: comment.description,
-          createdAt: comment.createdAt,
-          timeAgo: getTimeAgo(comment.createdAt),
-          userName: comment.creatorName || 'Anonymous',
-          userProfilePic: comment.creatorPicture || defaultProfilePic,
-          likes: comment.likes || 0,
-          isLiked: comment.isLiked || false,
-          replies: (comment.replies || []).map(reply => ({
-            id: reply.commentId,
-            content: reply.description,
-            createdAt: reply.createdAt,
-            timeAgo: getTimeAgo(reply.createdAt),
-            userName: reply.creatorName || 'Anonymous',
-            userProfilePic: reply.creatorPicture || defaultProfilePic,
-            likes: reply.likes || 0,
-            isLiked: reply.isLiked || false
-          }))
-        }));
-        console.log('Formatted comments:', formattedComments);
+        let commentsData = response.data;
+        
+        // API yanıtının yapısını detaylı kontrol et
+        console.log('Initial commentsData type:', typeof commentsData);
+        console.log('Initial commentsData:', commentsData);
+        
+        // Eğer data bir array değilse ve data.content veya data.comments varsa, onu kullan
+        if (!Array.isArray(commentsData)) {
+          if (commentsData.content) {
+            commentsData = commentsData.content;
+            console.log('Using content property:', commentsData);
+          } else if (commentsData.comments) {
+            commentsData = commentsData.comments;
+            console.log('Using comments property:', commentsData);
+          } else if (commentsData.data) {
+            commentsData = commentsData.data;
+            console.log('Using data property:', commentsData);
+          }
+        }
+        
+        // Eğer hala array değilse, boş array kullan
+        if (!Array.isArray(commentsData)) {
+          console.warn('Comments data is not an array after all checks:', commentsData);
+          commentsData = [];
+        }
+
+        console.log('Final commentsData before mapping:', commentsData);
+
+        const formattedComments = commentsData.map(comment => {
+          console.log('Processing comment:', comment);
+          return {
+            id: comment.commentId || comment.id,
+            content: comment.description || comment.content,
+            createdAt: comment.createdAt,
+            timeAgo: getTimeAgo(comment.createdAt),
+            userName: comment.creatorName || comment.userName || 'Anonymous',
+            userProfilePic: comment.creatorPicture || comment.userProfilePic || defaultProfilePic,
+            likes: comment.likes || 0,
+            isLiked: comment.isLiked || false,
+            replies: Array.isArray(comment.replies) ? comment.replies.map(reply => ({
+              id: reply.commentId || reply.id,
+              content: reply.description || reply.content,
+              createdAt: reply.createdAt,
+              timeAgo: getTimeAgo(reply.createdAt),
+              userName: reply.creatorName || reply.userName || 'Anonymous',
+              userProfilePic: reply.creatorPicture || reply.userProfilePic || defaultProfilePic,
+              likes: reply.likes || 0,
+              isLiked: reply.isLiked || false
+            })) : []
+          };
+        });
+        
+        console.log('Final formatted comments:', formattedComments);
         setComments(formattedComments);
       } else {
         console.log('No comments data in response');
@@ -375,7 +410,7 @@ const SelectedForumPage = () => {
 
     try {
       await axios.post(
-        `http://localhost:8080/api/v1/forum-comments`,
+        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments`,
         {
           forumPostID: parseInt(postId),
           description: replyText,
