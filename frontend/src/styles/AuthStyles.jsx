@@ -70,7 +70,7 @@ export const Input = styled.input`
 `;
 
 export const Select = styled.select`
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.9);
     border: none;
     border-radius: 30px;
     padding: 12px 15px;

@@ -47,7 +47,6 @@ const Login = () => {
         country: '',
         institution: '',
         role: '',
-        termsAccepted: false
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -253,24 +252,20 @@ const Login = () => {
             isValid = false;
         }
 
-        // Terms validation
-        if (!registerData.termsAccepted) {
-            errors.termsAccepted = 'You must accept the terms and conditions';
-            isValid = false;
-        }
-
         setFieldErrors(errors);
         return isValid;
     };
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
+        console.log('Form submitted, current data:', registerData);
         setLoading(true);
         setError('');
         setFieldErrors({});
         
         // Validate form
         if (!validateForm()) {
+            console.log('Form validation failed, errors:', fieldErrors);
             setLoading(false);
             return;
         }
@@ -287,12 +282,14 @@ const Login = () => {
                 lastName: registerData.lastName,
                 email: registerData.email,
                 password: registerData.password,
-                country: properCountryName, // Use proper case country name
-                institution: registerData.institution,
-                role: registerData.role
+                country: properCountryName,
+                institution: registerData.institution || '',
+                role: registerData.role,
+                isActive: false,
+                isBlocked: false
             };
             
-            console.log('Register data being sent:', userData);
+            console.log('Sending registration data to backend:', userData);
             
             // Register API isteği
             const response = await register(userData);
@@ -302,18 +299,16 @@ const Login = () => {
             navigate('/verify-email', { state: { email: registerData.email } });
         } catch (err) {
             console.error('Registration error:', err);
-            if (err.validationErrors) {
-                // Process server-side validation errors
-                const serverErrors = {};
-                Object.entries(err.validationErrors).forEach(([key, value]) => {
-                    serverErrors[key] = value;
-                });
-                setFieldErrors(serverErrors);
-            } else if (err.message) {
-                setError(err.message);
+            if (err.response && err.response.data) {
+                // API'den gelen hata mesajını göster
+                setError(err.response.data.message || 'Registration failed. Please try again.');
+                if (err.response.data.validationErrors) {
+                    setFieldErrors(err.response.data.validationErrors);
+                }
             } else {
-                setError('Registration failed. Please try again.');
+                setError('An error occurred during registration. Please try again.');
             }
+        } finally {
             setLoading(false);
         }
     };
@@ -328,7 +323,7 @@ const Login = () => {
             <S.BottomLeftImage src={personIcon} />
             <S.TopRightImage src={lockIcon} />
             <S.Container>
-                <S.SignUpContainer isLogin={isLogin}>
+                <S.SignUpContainer $isLogin={isLogin}>
                     <S.Form onSubmit={handleRegisterSubmit}>
                         <S.Title2>Sign Up</S.Title2>
                         
@@ -410,7 +405,7 @@ const Login = () => {
                                     required
                                     style={hasError('country') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
                                 >
-                                    <option value="" disabled>Country</option>
+                                    <option value="">Country</option>
                                     {countries.map((country, index) => (
                                         <option key={index} value={country.toLowerCase()}>
                                             {country}
@@ -441,43 +436,21 @@ const Login = () => {
                                 required
                                 style={hasError('role') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
                             >
-                                <option value="" disabled selected>Role</option>
+                                <option value="">Role</option>
                                 <option value="STUDENT">Student</option>
-                                <option value="TEACHER">Teacher</option>
-                                <option value="RESEARCHER">Researcher</option>
+                                <option value="ACADEMIC">Academic</option>
+                                <option value="INDUSTRY_PROFESSIONAL">Industry Professional</option>
                                 <option value="OTHER">Other</option>
                             </S.Select>
                             {fieldErrors.role && <S.InputError>{fieldErrors.role}</S.InputError>}
                         </div>
-                        
-                        <S.CheckboxContainer style={hasError('termsAccepted') ? { color: '#e74c3c' } : {}}>
-                            <S.Checkbox
-                                type="checkbox"
-                                name="termsAccepted"
-                                checked={registerData.termsAccepted}
-                                onChange={handleRegisterChange}
-                                required
-                            />
-                            <S.CheckboxLabel style={hasError('termsAccepted') ? { color: '#e74c3c' } : {}}>
-                                I have read and accepted the terms and conditions
-                            </S.CheckboxLabel>
-                        </S.CheckboxContainer>
-                        {fieldErrors.termsAccepted && <S.InputError style={{ margin: '-5px 0 10px 0' }}>{fieldErrors.termsAccepted}</S.InputError>}
-                        
                         <S.Button type="submit" disabled={loading}>
                             {loading ? 'Processing...' : 'Sign Up'}
                         </S.Button>
-                        
-                        <S.Divider>or</S.Divider>
-                        
-                        <S.GoogleButton type="button">
-                            <img src="https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google logo" width="20" />
-                            Sign up with your Google Account
-                        </S.GoogleButton>
                     </S.Form>
                 </S.SignUpContainer>
 
-                <S.SignInContainer isLogin={isLogin}>
+                <S.SignInContainer $isLogin={isLogin}>
                     <S.Form onSubmit={handleLoginSubmit}>
                         <S.Title2>Sign In</S.Title2>
                         
@@ -514,19 +487,13 @@ const Login = () => {
                         <S.Button type="submit" disabled={loading}>
                             {loading ? 'Processing...' : 'Sign In'}
                         </S.Button>
-                        
-                        <S.Divider>or</S.Divider>
-                        
-                        <LoginGoogleButton type="button">
-                            <img src="https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google logo" width="20" />
-                            Sign in with your Google Account
-                        </LoginGoogleButton>
+
                     </S.Form>
                 </S.SignInContainer>
                 
-                <S.OverlayContainer isLogin={isLogin}>
-                    <S.Overlay isLogin={isLogin}>
-                        <S.LeftOverlayPanel isLogin={isLogin}>
+                <S.OverlayContainer $isLogin={isLogin}>
+                    <S.Overlay $isLogin={isLogin}>
+                        <S.LeftOverlayPanel $isLogin={isLogin}>
                             <S.Title>Hello!</S.Title>
                             <S.Text>
                                 Don't you have an account?<br />
@@ -539,7 +506,7 @@ const Login = () => {
                             </S.GhostButton>
                         </S.LeftOverlayPanel>
 
-                        <S.RightOverlayPanel isLogin={isLogin}>
+                        <S.RightOverlayPanel $isLogin={isLogin}>
                             <S.Title>Welcome!</S.Title>
                             <S.Text>
                                 You already have an account?<br />

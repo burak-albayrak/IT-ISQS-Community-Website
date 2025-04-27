@@ -44,7 +44,7 @@ const partnerUniversities = [
     id: 1,
     logo: cankayaLogo,
     name: 'Cankaya Universitesi',
-    country: 'Turkiye',
+    country: 'Türkiye',
     role: 'Project Coordinator',
     address: 'Yukariyurtcu Mahallesi Mimar Sinan Caddesi No:4, 06815, Etimesgut/ANKARA',
     phone: '+90 312 233 10 00',
@@ -55,7 +55,7 @@ const partnerUniversities = [
     id: 2,
     logo: tedLogo,
     name: 'TED Universitesi',
-    country: 'Turkiye',
+    country: 'Türkiye',
     role: null,
     address: 'Ziya Gökalp Caddesi No:48 06420, Kolej Çankaya/ANKARA',
     phone: '+90 (312) 585 00 00',
@@ -822,7 +822,7 @@ const ForumPostsColumn = styled.div`
 const LikesHeaderColumn = styled.div`
   flex: 1;
   text-align: left;
-  padding-left: 220px;
+  padding-left: 210px;
   @media (max-width: 768px) {
     display: none;
   }
