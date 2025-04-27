@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft } from 'react-icons/fi';
+import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft, FiAlertCircle } from 'react-icons/fi';
 import axios from 'axios';
 import defaultProfilePic from '../assets/defaultpp.jpg';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -29,37 +29,47 @@ const SelectedForumPage = () => {
   const [forumPosts, setForumPosts] = useState([]); // For popular posts sidebar
   const [savedForumPosts, setSavedForumPosts] = useState([]); // <-- Bu state artık kullanılmayacak
   const [userSavedPosts, setUserSavedPosts] = useState([]); // <-- Yeni state
+  const [recommendedPosts, setRecommendedPosts] = useState([]); // <-- Önerilen postlar için state
   const [categoryColorMap, setCategoryColorMap] = useState({});
   const [zoomedImageUrl, setZoomedImageUrl] = useState(null);
+  const [replyingToCommentId, setReplyingToCommentId] = useState(null); // ID of the comment being replied to
+  const [replyInputValue, setReplyInputValue] = useState(''); // Input value for the reply form
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewModalMessage, setReviewModalMessage] = useState("");
+  const [reviewModalType, setReviewModalType] = useState("loading"); // "loading" or "error"
 
   // New function to fetch comments
   const fetchComments = async (currentPostId) => {
     setCommentsLoading(true);
     setCommentError(null);
     try {
-      // Use postId as a query parameter
-      // const response = await axios.get(`http://localhost:8080/api/v1/forum-comments?postId=${currentPostId}`);
-      // Corrected endpoint based on ForumCommentController
-      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}/main`);
+      // Use the endpoint that fetches all comments hierarchically
+      const response = await axios.get(`http://localhost:8080/api/v1/forum-comments/post/${currentPostId}/all`);
       if (response && response.data) {
-        // >>> DEBUG LOGGING START <<<
-        // console.log("Raw comments received:", response.data);
-        // response.data.forEach((comment, index) => {
-        //   console.log(`Comment ${index} creatorPicture:`, comment.creatorPicture);
-        // });
-        // >>> DEBUG LOGGING END <<<
-
         // Format comments based on backend response structure
+        // The structure might be nested now, adjust formatting if needed
         const formattedComments = response.data.map(comment => ({
-          id: comment.commentID, // Adjust based on actual backend response field name (e.g., commentId)
+          id: comment.commentId, // CORRECTED: Use commentId (lowercase d) based on DTO
           content: comment.description,
           createdAt: comment.createdAt,
           timeAgo: getTimeAgo(comment.createdAt),
-          userName: comment.creatorName || 'Anonymous', // Use creatorName
+          userName: comment.creatorName || 'Anonymous', // Adjust based on backend response
           userProfilePic: comment.creatorPicture || defaultProfilePic, // Correct field name from backend DTO
-          replies: comment.replies ? comment.replies.map(/* Need to format replies if backend sends them nested */) : [] // Handle replies if needed
+          // Assuming backend now sends replies nested within the comment DTO
+          replies: comment.replies ? comment.replies.map(reply => ({
+             id: reply.commentId, // CORRECTED: Use commentId here too
+             content: reply.description,
+             createdAt: reply.createdAt,
+             timeAgo: getTimeAgo(reply.createdAt),
+             userName: reply.creatorName || 'Anonymous',
+             userProfilePic: reply.creatorPicture || defaultProfilePic,
+             // Replies themselves won't have further replies in this structure based on backend logic
+             replies: [] 
+          })) : [] 
         }));
         setComments(formattedComments);
+        console.log('Formatted Comments:', formattedComments); // Check if replies are formatted
       } else {
         setComments([]);
       }
@@ -119,7 +129,7 @@ const SelectedForumPage = () => {
             timeAgo: getTimeAgo(postData.createdAt),
             updatedAt: postData.updatedAt,
             tags: postData.category ? [postData.category.name] : [],
-            userName: postData.creatorName || 'Anonymous', // Use creatorName
+            userName: postData.creatorName || 'Anonymous',
             userProfilePic: postData.creatorProfilePic || defaultProfilePic,
             isLiked: postData.isLikedByUser || false,
             isSaved: postData.isSavedByUser || false
@@ -140,7 +150,7 @@ const SelectedForumPage = () => {
                 commentCount: post.commentCount || 0,
                 createdAt: post.createdAt,
                 timeAgo: getTimeAgo(post.createdAt),
-                userName: post.creatorName || 'Anonymous' // Use creatorName
+                userName: post.creatorName || 'Anonymous'
               }));
               
               // Get popular posts
@@ -214,7 +224,7 @@ const SelectedForumPage = () => {
           const formattedSavedPosts = filteredSavedPosts.map(post => ({
             id: post.forumPostID,
             title: post.title,
-            userName: post.creatorName || 'Anonymous', // Use creatorName
+            userName: post.creatorName || 'Anonymous',
             commentCount: post.commentCount || 0,
             likesCount: post.likesCount || 0,
           }));
@@ -228,10 +238,50 @@ const SelectedForumPage = () => {
       }
     };
 
+    // Fetch recommendation posts for logged-in user
+    const fetchRecommendedPosts = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+          setRecommendedPosts([]); // Clear recommended posts if not logged in
+          return;
+      }
+
+      try {
+        const response = await axios.get('http://localhost:8080/api/v1/recommendations/forum-posts', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response && response.data) {
+          // Filter out the currently viewed post from the recommendations
+          const filteredRecommendations = response.data.filter(p => p.forumPostId !== parseInt(postId));
+          
+          // Format the recommendation posts
+          const formattedRecommendations = filteredRecommendations.map(post => ({
+            id: post.forumPostId,
+            title: post.title,
+            userName: '', // API doesn't return creator info
+            categoryName: post.categoryName,
+            commentCount: post.commentCount || 0,
+            likesCount: post.likesCount || 0,
+            similarityScore: post.similarityScore
+          }));
+          
+          setRecommendedPosts(formattedRecommendations);
+          console.log('Recommendations loaded:', formattedRecommendations);
+        } else {
+          setRecommendedPosts([]);
+        }
+      } catch (err) {
+        console.error("Error fetching recommendations:", err);
+        setRecommendedPosts([]); // Set empty on error
+      }
+    };
+
     // Fetch saved posts when postId changes (to filter correctly) or user potentially saves/unsaves
-    fetchSavedPosts(); 
+    fetchSavedPosts();
+    fetchRecommendedPosts();
     // Dependency array could include a refresh trigger if available, or just postId
-  }, [postId]); 
+  }, [postId]);
 
   const handleLikePost = async () => {
     // Check if post data is available
@@ -318,6 +368,21 @@ const SelectedForumPage = () => {
     }
   };
 
+  // --- Handler to start replying to a comment ---
+  const handleStartReply = (commentId) => {
+    setReplyingToCommentId(commentId);
+    setReplyInputValue(''); // Clear previous reply input
+    setCommentError(null); // Clear any previous errors specific to reply
+  };
+
+  // --- Handler to cancel replying ---
+  const handleCancelReply = () => {
+    setReplyingToCommentId(null);
+    setReplyInputValue('');
+    setCommentError(null);
+  };
+
+  // --- Handler to submit a MAIN comment (existing) ---
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -327,7 +392,12 @@ const SelectedForumPage = () => {
       navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to comment' } });
       return;
     }
+    
     setCommentError(null); // Clear previous errors
+    setIsSubmitting(true);
+    setReviewModalOpen(true);
+    setReviewModalType("loading");
+    setReviewModalMessage("Under review");
 
     try {
       // Make the API call to the backend comment endpoint
@@ -350,6 +420,9 @@ const SelectedForumPage = () => {
 
       // Clear the input field
       setNewComment('');
+      
+      // Close the modal after successful submission
+      setReviewModalOpen(false);
 
       // Refresh the comments list to show the new comment
       fetchComments(postId);
@@ -363,14 +436,104 @@ const SelectedForumPage = () => {
 
     } catch (err) {
       console.error('Error submitting comment:', err);
+      setReviewModalType("error");
+      
       if (err.response?.status === 401 || err.response?.status === 403) {
-         setCommentError('Authentication error or insufficient permissions. Please log in again.');
+        setReviewModalMessage("Please log in again.");
+        setCommentError('Authentication error or insufficient permissions. Please log in again.');
+      } else if (err.response?.data?.message?.includes("toxic")) {
+        // For toxic content errors
+        setReviewModalMessage("Please comment respectfully.");
+        setCommentError('Please comment respectfully.');
       } else if (err.response) {
-        setCommentError(`Error: ${err.response.data?.message || 'Failed to submit comment.'}`);
+        setReviewModalMessage("Failed to submit comment. Please comment respectfully.");
+        setCommentError(`Failed to submit comment. Please comment respectfully.`);
+      } else {
+        setReviewModalMessage("Failed to submit comment. Please comment respectfully.");
+        setCommentError('Failed to submit comment. Please comment respectfully.');
       }
-      else {
-         setCommentError('Failed to submit comment. Please check your connection and try again.');
+      
+      // Close the modal after 3 seconds
+      setTimeout(() => {
+        setReviewModalOpen(false);
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- NEW Handler to submit a REPLY ---
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyInputValue.trim() || replyingToCommentId === null) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to reply' } });
+      return;
+    }
+    
+    setCommentError(null); // Clear previous errors
+    setIsSubmitting(true);
+    setReviewModalOpen(true);
+    setReviewModalType("loading");
+    setReviewModalMessage("Under review");
+
+    try {
+      const response = await axios.post(
+        `http://localhost:8080/api/v1/forum-comments`,
+        {
+          forumPostID: parseInt(postId),
+          description: replyInputValue,
+          parentCommentID: replyingToCommentId // Include the parent comment ID
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Reply submitted successfully:', response.data);
+
+      // Close the modal after successful submission
+      setReviewModalOpen(false);
+      
+      // Clear reply state
+      handleCancelReply();
+
+      // Refresh comments to show the new reply
+      fetchComments(postId);
+
+      // Optionally update main post's comment count if backend doesn't handle nested counts
+      // setPost(prev => ({ ...prev, commentCount: (prev.commentCount || 0) + 1 }));
+
+    } catch (err) {
+      console.error('Error submitting reply:', err);
+      setReviewModalType("error");
+      
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setReviewModalMessage("Please log in again.");
+        setCommentError('Authentication error or insufficient permissions. Please log in again.');
+      } else if (err.response?.data?.message?.includes("toxic")) {
+        // For toxic content errors
+        setReviewModalMessage("Please comment respectfully.");
+        setCommentError('Please comment respectfully.');
+      } else if (err.response) {
+        setReviewModalMessage("Failed to submit reply. Please comment respectfully.");
+        setCommentError(`Failed to submit reply. Please comment respectfully.`);
+      } else {
+        setReviewModalMessage("Failed to submit reply. Please comment respectfully.");
+        setCommentError('Failed to submit reply. Please comment respectfully.');
       }
+      
+      // Close the modal after 3 seconds
+      setTimeout(() => {
+        setReviewModalOpen(false);
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -448,18 +611,48 @@ const SelectedForumPage = () => {
       <ForumContainer>
         <ForumContent>
           <LeftSidebar>
+            {recommendedPosts.length > 0 ? (
+              <>
+                <RecommendedPostsTitle>Recommended Forum Posts for you</RecommendedPostsTitle>
+                <SidebarPostsList>
+                  {recommendedPosts.map((sidebarPost) => (
+                    <SidebarPostItem 
+                      key={`recommended-${sidebarPost.id}`} 
+                      onClick={() => navigate(`/forum/post/${sidebarPost.id}`)}
+                      $isActive={sidebarPost.id === parseInt(postId)}
+                    >
+                      <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
+                      <SidebarPostCategory>
+                        {sidebarPost.categoryName}
+                      </SidebarPostCategory>
+                      <SidebarPostStats>
+                        <span>{sidebarPost.commentCount} comments</span> • <span>{sidebarPost.likesCount} likes</span>
+                      </SidebarPostStats>
+                    </SidebarPostItem>
+                  ))}
+                </SidebarPostsList>
+              </>
+            ) : (
+              <>
+                <RecommendedPostsTitle>Recommendations</RecommendedPostsTitle>
+                <NoRecommendationsMessage>
+                  You can see suggested posts by commenting and liking the posts.
+                </NoRecommendationsMessage>
+              </>
+            )}
+            
             <PopularPostsTitle>Popular Forum Posts</PopularPostsTitle>
             <SidebarPostsList>
               {forumPosts.length > 0 ? (
                 forumPosts.map((sidebarPost) => (
                   <SidebarPostItem 
-                    key={sidebarPost.id} 
+                    key={`popular-${sidebarPost.id}`} 
                     onClick={() => navigate(`/forum/post/${sidebarPost.id}`)}
                     $isActive={sidebarPost.id === parseInt(postId)}
                   >
                     <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
-                      {sidebarPost.userName /* Uses creatorName again */}
+                      {sidebarPost.userName}
                     </SidebarPostAuthor>
                     <SidebarPostStats>
                       <span>{sidebarPost.commentCount} comments</span> • <span>{sidebarPost.likesCount} likes</span>
@@ -481,7 +674,7 @@ const SelectedForumPage = () => {
                   >
                     <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
-                      {sidebarPost.userName /* Uses creatorName again */}
+                      {sidebarPost.userName}
                     </SidebarPostAuthor>
                     <SidebarPostStats>
                       <span>{sidebarPost.commentCount} comments</span> • <span>{sidebarPost.likesCount} likes</span>
@@ -515,7 +708,7 @@ const SelectedForumPage = () => {
                   </AuthorAvatar>
                   <DetailedPostAuthorInfo>
                     <DetailedPostAuthorName>
-                      {post.userName /* Uses creatorName again */}
+                      {post.userName}
                     </DetailedPostAuthorName>
                     <DetailedPostTime>{post.timeAgo}</DetailedPostTime>
                   </DetailedPostAuthorInfo>
@@ -598,40 +791,91 @@ const SelectedForumPage = () => {
                 {commentsLoading ? (
                   <LoadingContainer><Spinner /></LoadingContainer>
                 ) : comments.length > 0 ? (
-                  comments.map((comment) => (
-                    <CommentItem key={comment.id}>
+                  comments.map((comment) => {
+                    // Log the props being passed to each CommentItem
+                    console.log('Rendering CommentItem props:', comment); 
+                    return (
+                    // --- Individual Comment Item --- 
+                    <CommentItem key={comment.id} $isReply={false}>
                       <CommentAvatar>
-                        <img 
-                          src={comment.userProfilePic || defaultProfilePic} 
-                          alt={comment.userName} 
-                          onError={(e) => {
-                            e.target.onerror = null; 
-                            e.target.src = defaultProfilePic;
-                          }}
-                        />
+                         <img src={comment.userProfilePic || defaultProfilePic} alt={comment.userName} />
                       </CommentAvatar>
                       <CommentContent>
                         <CommentAuthor>
-                          <CommentAuthorName>{comment.userName /* Uses creatorName again */}</CommentAuthorName>
+                          <CommentAuthorName>{comment.userName}</CommentAuthorName>
                           <CommentTime>{comment.timeAgo}</CommentTime>
                         </CommentAuthor>
                         <CommentText>{comment.content}</CommentText>
                         <CommentActionsContainer>
-                          <CommentAction>
+                          <CommentAction> {/* Add like functionality later */}
                             <FiHeart size={14} />
                             <span>{comment.likes || 0}</span>
                           </CommentAction>
-                          {/*
-                          {!comment.parentCommentID && (
-                            <CommentAction>
+                          {/* --- Modify Reply Button --- */}
+                          {!comment.parentCommentID && replyingToCommentId !== comment.id && (
+                            <CommentAction onClick={() => handleStartReply(comment.id)}>
                               Reply
                             </CommentAction>
                           )}
-                          */}
+                          {replyingToCommentId === comment.id && (
+                            <CommentAction onClick={handleCancelReply} style={{ color: '#D9480F' }}>
+                              Cancel Reply
+                            </CommentAction>
+                          )}
                         </CommentActionsContainer>
+
+                        {/* Conditionally Render Reply Form */}
+                        {replyingToCommentId === comment.id && (
+                          <ReplyFormContainer onSubmit={handleReplySubmit}>
+                            <CommentInput 
+                              placeholder={`Replying to ${comment.userName}...`} 
+                              value={replyInputValue}
+                              onChange={(e) => setReplyInputValue(e.target.value)}
+                              minRows={1}
+                              maxRows={10} // Make reply input potentially smaller
+                              autoFocus // Focus when it appears
+                            />
+                            <CommentSubmitButton type="submit" disabled={!replyInputValue.trim()}>
+                              <FiSend />
+                            </CommentSubmitButton>
+                            {/* Display error specifically for this reply submission */} 
+                            {commentError && <ReplyErrorMessage>{commentError}</ReplyErrorMessage>}
+                          </ReplyFormContainer>
+                        )}
+
+                        {/* --- Render Replies Recursively/Nested --- */}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <RepliesContainer>
+                            {comment.replies.map(reply => (
+                              // Use a slightly different item for replies or reuse CommentItem with props
+                              <CommentItem key={reply.id} $isReply={true}>
+                                <CommentAvatar>
+                                  <img src={reply.userProfilePic || defaultProfilePic} alt={reply.userName} />
+                                </CommentAvatar>
+                                <CommentContent>
+                                  <CommentAuthor>
+                                    <CommentAuthorName>{reply.userName}</CommentAuthorName>
+                                    <CommentTime>{reply.timeAgo}</CommentTime>
+                                  </CommentAuthor>
+                                  <CommentText>{reply.content}</CommentText>
+                                  <CommentActionsContainer>
+                                    <CommentAction> {/* Add like functionality later */}
+                                      <FiHeart size={14} />
+                                      <span>{reply.likes || 0}</span>
+                                    </CommentAction>
+                                    {/* Replies cannot be replied to based on backend logic */}
+                                  </CommentActionsContainer>
+                                </CommentContent>
+                              </CommentItem>
+                            ))}
+                          </RepliesContainer>
+                        )}
+
                       </CommentContent>
                     </CommentItem>
-                  ))
+                    // --- End of Individual Comment Item --- 
+                   );
+                  })
                 ) : (
                   !commentError && <EmptyCommentsMessage><FiMessageSquare size={18} /> No comments yet. Be the first to comment!</EmptyCommentsMessage>
                 )}
@@ -641,13 +885,32 @@ const SelectedForumPage = () => {
         </ForumContent>
       </ForumContainer>
 
-      {/* --- Image Zoom Modal --- */} 
+      {/* --- Image Zoom Modal --- */}
       {zoomedImageUrl && (
         <ZoomOverlay onClick={() => setZoomedImageUrl(null)}>
           <ZoomedImage src={zoomedImageUrl} alt="Zoomed post media" />
         </ZoomOverlay>
       )}
       {/* --- End of Image Zoom Modal --- */}
+      
+      {/* Review Modal */}
+      {reviewModalOpen && (
+        <ReviewModalOverlay>
+          <ReviewModal>
+            {reviewModalType === "loading" ? (
+              <>
+                <Spinner size="medium" />
+                <ReviewModalMessage>{reviewModalMessage}</ReviewModalMessage>
+              </>
+            ) : (
+              <>
+                <FiAlertCircle size={24} color="#D92D20" />
+                <ReviewModalMessage>{reviewModalMessage}</ReviewModalMessage>
+              </>
+            )}
+          </ReviewModal>
+        </ReviewModalOverlay>
+      )}
     </>
   );
 };
@@ -680,6 +943,13 @@ const RightContent = styled.div`
 `;
 
 const PopularPostsTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #101828;
+  margin: 0 0 15px 0;
+`;
+
+const RecommendedPostsTitle = styled.h2`
   font-size: 20px;
   font-weight: 600;
   color: #101828;
@@ -1074,6 +1344,11 @@ const CommentItem = styled.div`
   background-color: #fff;
   display: flex;
   gap: 15px;
+  position: relative; // Needed for absolute positioning of potential reply form error
+  margin-left: ${props => props.$isReply ? '40px' : '0'}; // Indent replies using transient prop
+  border-left: ${props => props.$isReply ? '3px solid #D1E9FF' : '1px solid #E4E7EC'}; // Highlight reply indent using transient prop
+  border-top-left-radius: ${props => props.$isReply ? '0' : '8px'};
+  border-bottom-left-radius: ${props => props.$isReply ? '0' : '8px'};
 `;
 
 const CommentAvatar = styled.div`
@@ -1127,6 +1402,7 @@ const CommentActionsContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 8px; // Add margin top for spacing
 `;
 
 // New styled component for comment action buttons (Like, Reply)
@@ -1185,13 +1461,13 @@ const LoadingContainer = styled.div`
 `;
 
 const Spinner = styled.div`
-  width: 50px;
-  height: 50px;
-  border: 4px solid #E4E7EC;
-  border-top: 4px solid #1E40AF;
+  width: ${props => props.size === "medium" ? "36px" : "24px"};
+  height: ${props => props.size === "medium" ? "36px" : "24px"};
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #1849A9;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-
+  
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -1247,5 +1523,82 @@ const ZoomedImage = styled.img`
   cursor: default; // Prevent overlay cursor on the image itself
 `;
 // --- End of Image Zoom Modal styles ---
+
+// --- Add Styles for Reply Form --- 
+const ReplyFormContainer = styled.form`
+  display: flex;
+  align-items: flex-start;
+  margin-top: 15px; // Space between comment actions and reply form
+  gap: 8px;
+  padding-left: 51px; // Indent reply form (Avatar width + gap)
+  position: relative; // For error message positioning
+`;
+
+const ReplyErrorMessage = styled.div`
+  color: #d92d20;
+  font-size: 12px;
+  position: absolute; // Position below the input
+  bottom: -18px; // Adjust as needed
+  left: 51px; // Align with input start
+`;
+// --- End of Reply Form styles ---
+
+// Container for replies to visually group and indent them
+const RepliesContainer = styled.div`
+  margin-top: 15px;
+  padding-left: 10px; // Additional padding for the container itself
+  /* border-left: 2px solid #e0e0e0; // Optional: line to show connection */
+  display: flex;
+  flex-direction: column;
+  gap: 15px; // Space between replies
+`;
+
+// New styled components for Review Modal
+const ReviewModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ReviewModal = styled.div`
+  background-color: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 400px;
+  width: 90%;
+`;
+
+const ReviewModalMessage = styled.p`
+  font-size: 16px;
+  font-weight: 500;
+  color: #101828;
+  text-align: center;
+  margin-top: 16px;
+`;
+
+const SidebarPostCategory = styled.div`
+  font-size: 12px;
+  color: #667085;
+  margin-bottom: 6px;
+  font-style: italic;
+`;
+
+const NoRecommendationsMessage = styled.p`
+  color: #667085;
+  text-align: center;
+  padding: 20px 0;
+  font-style: italic;
+`;
 
 export default SelectedForumPage;

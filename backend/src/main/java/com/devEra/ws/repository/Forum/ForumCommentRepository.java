@@ -1,6 +1,8 @@
 package com.devEra.ws.repository.Forum;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.devEra.ws.core.enums.CreatorType;
@@ -22,4 +24,11 @@ public interface ForumCommentRepository extends JpaRepository<ForumComment, Inte
     
     // Bir kullanıcının yaptığı tüm yorumları bul
     List<ForumComment> findByCreatedByAndCreatedByTypeOrderByCreatedAtDesc(int createdBy, CreatorType createdByType);
+    
+    // Bir kullanıcının yaptığı yorum sayısını say
+    Long countByCreatedBy(int userId);
+    
+    // Bir kullanıcının yorum yaptığı forum gönderilerinin ID'lerini bul
+    @Query("SELECT DISTINCT fc.forumPostID FROM ForumComment fc WHERE fc.createdBy = :userId")
+    List<Integer> findForumPostIdByCreatedBy(@Param("userId") int userId);
 }

@@ -47,4 +47,24 @@ public interface ForumPostRepository extends JpaRepository<ForumPost,Integer>{
      * @return A list of the most recent forum posts.
      */
     List<ForumPost> findTop3ByOrderByCreatedAtDesc(); // Finds top 3 posts
+    
+    // Find the maximum likes count among all posts
+    @Query("SELECT COALESCE(MAX(p.likesCount), 0) FROM ForumPost p")
+    int findMaxLikesCount();
+    
+    // Find the maximum comment count among all posts
+    @Query("SELECT COALESCE(MAX(p.commentCount), 0) FROM ForumPost p")
+    int findMaxCommentCount();
+    
+    // Find all posts with their categories and counts
+    @Query("SELECT p FROM ForumPost p LEFT JOIN FETCH p.category")
+    List<ForumPost> findAllWithCategoryAndCounts();
+    
+    // Find post title by ID
+    @Query("SELECT p.title FROM ForumPost p WHERE p.forumPostID = :postId")
+    String findTitleById(@Param("postId") int postId);
+    
+    // Find all posts ordered by likes and comments count (popularity)
+    @Query("SELECT p FROM ForumPost p ORDER BY (p.likesCount + p.commentCount) DESC")
+    List<ForumPost> findAllOrderByLikesAndCommentsDesc();
 }
