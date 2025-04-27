@@ -100,12 +100,51 @@ const extractUserIdFromToken = (token) => {
 export const register = async (userData) => {
   try {
     console.log('Registering user with data:', userData);
-    const response = await api.post('/users', userData);
+    const response = await axios.post('http://localhost:8080/users/register', userData);
     console.log('Register response:', response.data);
+    
+    // Başarılı kayıt durumunda token ve kullanıcı bilgilerini sakla
+    if (response.data && response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      
+      // Temel kullanıcı bilgilerini oluştur ve sakla
+      const userInfo = {
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        institution: userData.institution || '',
+        country: userData.country,
+        role: userData.role
+      };
+      localStorage.setItem('user', JSON.stringify(userInfo));
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Register service error:', error);
-    throw error;
+    
+    if (error.response) {
+      // API'den gelen hata
+      console.error('API error response:', error.response.data);
+      throw {
+        message: error.response.data.message || 'Registration failed. Please try again.',
+        status: error.response.status
+      };
+    } else if (error.request) {
+      // İstek yapıldı ama yanıt alınamadı
+      console.error('No response received:', error.request);
+      throw {
+        message: 'No response from server. Please check your connection.',
+        status: 0
+      };
+    } else {
+      // İstek oluşturulurken hata oluştu
+      console.error('Request error:', error.message);
+      throw {
+        message: 'Failed to create request. Please try again.',
+        status: 0
+      };
+    }
   }
 };
 

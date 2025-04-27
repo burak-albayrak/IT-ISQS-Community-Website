@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
-import { FiSearch, FiArrowRight, FiFilter, FiChevronDown, FiMoreHorizontal, FiX, FiImage, FiSend, FiTag, FiHeart, FiEye, FiBookmark } from 'react-icons/fi';
+import { FiSearch, FiArrowRight, FiFilter, FiChevronDown, FiMoreHorizontal, FiX, FiImage, FiSend, FiTag, FiEye } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Forum.css';
@@ -21,8 +21,6 @@ const Forum = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [forumPosts, setForumPosts] = useState([]);
   const [recentForumPosts, setRecentForumPosts] = useState([]);
-  const [savedForumPosts, setSavedForumPosts] = useState([]);
-  const [userSavedPosts, setUserSavedPosts] = useState([]);
   const [allPosts, setAllPosts] = useState([]); // Store all posts for filtering
   const [categories, setCategories] = useState(['Research', 'Frameworks', 'Tools', 'Software Development']);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -122,10 +120,8 @@ const Forum = () => {
               // Use category object if available from backend
               tags: post.category ? [post.category.name] : ['General'], 
               // Use creatorName and creatorProfilePic if available from backend
-              userName: post.creatorName || 'Anonymous', // Revert back to creatorName
-              userProfilePic: post.creatorProfilePic || defaultProfilePic, 
-              isLiked: post.isLikedByUser || false, // Assume backend provides like status
-              isSaved: post.isSavedByUser || false // Assume backend provides save status
+              userName: post.creatorName || 'Anonymous',
+              userProfilePic: post.creatorProfilePic || defaultProfilePic
             }));
             
             // Save all posts for filtering
@@ -134,15 +130,13 @@ const Forum = () => {
             // Set recent posts
             setRecentForumPosts(formattedPosts.slice(0, 5));
             
-            // Get popular posts for the Popular section
+            // Get popular posts - Sort by comment count (highest to lowest) for 'Popular' section
+            // This will be independent from category and sort filters
             const popularPosts = [...formattedPosts]
-              .sort((a, b) => b.likesCount - a.likesCount)
-              .slice(0, 4);
-            setForumPosts(popularPosts);
+              .sort((a, b) => b.commentCount - a.commentCount)
+              .slice(0, 10); // Show up to 10 most commented posts
             
-            // Get saved posts for the current user
-            // In a real app, this would be fetched from a separate endpoint
-            setSavedForumPosts(formattedPosts.slice(0, 3));
+            setForumPosts(popularPosts);
             
             // Set pagination
             setTotalPages(Math.ceil(formattedPosts.length / 10));
@@ -151,7 +145,6 @@ const Forum = () => {
             setAllPosts([]);
             setForumPosts([]);
             setRecentForumPosts([]);
-            setSavedForumPosts([]);
             setError("No forum posts found.");
           }
         } else {
@@ -165,7 +158,6 @@ const Forum = () => {
         setAllPosts([]);
         setForumPosts([]);
         setRecentForumPosts([]);
-        setSavedForumPosts([]);
         setLoading(false);
       }
     };
@@ -173,43 +165,6 @@ const Forum = () => {
     fetchData();
     // Add refreshKey to dependency array
   }, [currentPage, refreshKey]);
-
-  // Fetch saved posts for logged-in user
-  useEffect(() => {
-    const fetchSavedPosts = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-          setUserSavedPosts([]); // Clear saved posts if not logged in
-          return; 
-      }
-
-      try {
-        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/users/me/saved-posts', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response && response.data) {
-          // Format the saved posts (ensure necessary fields like creatorName are handled)
-          const formattedSavedPosts = response.data.map(post => ({
-            id: post.forumPostID,
-            title: post.title,
-            userName: post.creatorName || 'Anonymous', // Revert back to creatorName
-            commentCount: post.commentCount || 0,
-            likesCount: post.likesCount || 0,
-          }));
-          setUserSavedPosts(formattedSavedPosts);
-        } else {
-           setUserSavedPosts([]);
-        }
-      } catch (err) {
-        console.error("Error fetching saved posts:", err);
-        setUserSavedPosts([]); // Set empty on error
-        // Optionally handle error display for saved posts section
-      }
-    };
-
-    fetchSavedPosts();
-  }, [refreshKey]); // Re-fetch when refreshKey changes (e.g., after save/unsave)
-
   // Fetch categories from backend and filter them
   useEffect(() => {
     const fetchAndFilterCategories = async () => {
@@ -317,13 +272,6 @@ const Forum = () => {
     if (!searchQuery.trim()) {
       // If search is empty, reset to show all posts
       setRecentForumPosts(allPosts.slice(0, 5));
-      
-      // Reset popular posts
-      const popularPosts = [...allPosts]
-        .sort((a, b) => b.likesCount - a.likesCount)
-        .slice(0, 4);
-      setForumPosts(popularPosts);
-      
       return;
     }
     
@@ -338,12 +286,6 @@ const Forum = () => {
     
     // Update recent posts with filtered results
     setRecentForumPosts(filteredPosts.slice(0, 5));
-    
-    // Update popular posts with filtered results
-    const filteredPopular = [...filteredPosts]
-      .sort((a, b) => b.likesCount - a.likesCount)
-      .slice(0, 4);
-    setForumPosts(filteredPopular);
   };
 
   // Handle category change
@@ -354,13 +296,6 @@ const Forum = () => {
     if (!category) {
       // If no category selected, show all posts
       setRecentForumPosts(allPosts.slice(0, 5));
-      
-      // Reset popular posts
-      const popularPosts = [...allPosts]
-        .sort((a, b) => b.likesCount - a.likesCount)
-        .slice(0, 4);
-      setForumPosts(popularPosts);
-      
       return;
     }
     
@@ -371,12 +306,6 @@ const Forum = () => {
     
     // Update recent posts with filtered results
     setRecentForumPosts(filteredPosts.slice(0, 5));
-    
-    // Update popular posts with filtered results
-    const filteredPopular = [...filteredPosts]
-      .sort((a, b) => b.likesCount - a.likesCount)
-      .slice(0, 4);
-    setForumPosts(filteredPopular);
   };
 
   // Handle page change
@@ -425,25 +354,17 @@ const Forum = () => {
     
     // Create a copy of posts to sort
     let sortedRecentPosts = [...recentForumPosts];
-    let sortedPopularPosts = [...forumPosts];
     
     // Apply sorting based on selected option
     switch (option) {
       case 'newest':
         sortedRecentPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        sortedPopularPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         break;
       case 'oldest':
         sortedRecentPosts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        sortedPopularPosts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        break;
-      case 'most-liked':
-        sortedRecentPosts.sort((a, b) => b.likesCount - a.likesCount);
-        sortedPopularPosts.sort((a, b) => b.likesCount - a.likesCount);
         break;
       case 'most-commented':
         sortedRecentPosts.sort((a, b) => b.commentCount - a.commentCount);
-        sortedPopularPosts.sort((a, b) => b.commentCount - a.commentCount);
         break;
       default:
         break;
@@ -451,7 +372,6 @@ const Forum = () => {
     
     // Update state with sorted posts
     setRecentForumPosts(sortedRecentPosts);
-    setForumPosts(sortedPopularPosts);
   };
 
   // Handle outside click for modal
@@ -616,127 +536,7 @@ const Forum = () => {
       }
     }
   };
-
-  // Handle like action
-  const handleLikePost = async (postId) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login', { state: { from: '/forum', message: 'Please log in to like posts' } });
-      return;
-    }
-
-    // --- Optimistic UI Update --- 
-    // Helper function to update state immediately
-    const updatePostInListOptimistic = (postList) => {
-      return postList.map(post => {
-        if (post.id === postId) {
-          // Toggle like state and count immediately
-          const isLiked = post.isLiked || false;
-          return {
-            ...post,
-            isLiked: !isLiked,
-            likesCount: isLiked ? (post.likesCount || 1) - 1 : (post.likesCount || 0) + 1
-          };
-        }
-        return post;
-      });
-    };
-
-    // Update state immediately
-    setAllPosts(updatePostInListOptimistic(allPosts));
-    setRecentForumPosts(updatePostInListOptimistic(recentForumPosts));
-    setForumPosts(updatePostInListOptimistic(forumPosts));
-    setSavedForumPosts(updatePostInListOptimistic(savedForumPosts)); // Ensure saved list is also updated if like affects it visually
-    // -----------------------------
-
-    // Perform API call in the background
-    try {
-      await axios.post(
-        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/like/${postId}`,
-        {},
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      // No need to update state again here unless API returns new data we need
-
-    } catch (error) {
-      console.error('Error liking post (API call failed):', error);
-      // **Important:** In a real app, revert the optimistic UI update here
-      // For now, we just log the error
-      // Example revert (would need previous state or refetch):
-      // setAllPosts(previousAllPostsState);
-      // setRecentForumPosts(previousRecentPostsState);
-      // setForumPosts(previousForumPostsState);
-      // setSavedForumPosts(previousSavedPostsState);
-    }
-  };
-
-  // Handle save action
-  const handleSavePost = async (postId) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login', { state: { from: '/forum', message: 'Please log in to save posts' } });
-      return;
-    }
-
-    // --- Optimistic UI Update --- 
-    // Helper function to update state immediately
-    const updatePostInListOptimisticSave = (postList) => {
-      return postList.map(post => {
-        if (post.id === postId) {
-          // Toggle saved state immediately
-          const isSaved = post.isSaved || false;
-          return {
-            ...post,
-            isSaved: !isSaved
-          };
-        }
-        return post;
-      });
-    };
-
-    // Update state immediately
-    setAllPosts(updatePostInListOptimisticSave(allPosts));
-    setRecentForumPosts(updatePostInListOptimisticSave(recentForumPosts));
-    setForumPosts(updatePostInListOptimisticSave(forumPosts));
-
-    // Also update the dedicated saved posts list optimistically
-    const postToUpdate = allPosts.find(p => p.id === postId); // Find the post
-    if(postToUpdate) {
-        const isCurrentlySaved = postToUpdate.isSaved || false;
-        if (!isCurrentlySaved) { // If it was *not* saved, now it is, so remove from list
-             setSavedForumPosts(savedForumPosts.filter(p => p.id !== postId));
-        } else { // If it *was* saved, now it is not, so add it back (if not already present)
-            if (!savedForumPosts.some(p => p.id === postId)) {
-                setSavedForumPosts([...savedForumPosts, { ...postToUpdate, isSaved: true }]); // Add with isSaved=true because we just toggled it to false in main lists
-            }
-        }
-    }
-    // -----------------------------
-
-    // Perform API call in the background
-    try {
-      await axios.post(
-        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/${postId}/save`,
-        {},
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      // No need to update state again here
-
-    } catch (error) {
-      console.error('Error saving post (API call failed):', error);
-      // **Important:** In a real app, revert the optimistic UI update here
-      // Example revert would be more complex for save state
-    }
-  };
-
+  
   if (loading) {
     return (
       <ForumContainer>
@@ -776,40 +576,16 @@ const Forum = () => {
                   <SidebarPostItem key={post.id} onClick={() => navigate(`/forum/post/${post.id}`)}>
                     <SidebarPostTitle>{post.title}</SidebarPostTitle>
                     <SidebarPostAuthor>
-                      {/* {post.userName} */}
-                      {post.userName /* This now uses creatorName again */}
+                      {post.userName}
                     </SidebarPostAuthor>
                     <SidebarPostStats>
-                      <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
+                      <span>{post.commentCount} comments</span>
                     </SidebarPostStats>
                   </SidebarPostItem>
                 ))
               ) : (
                 <EmptyStateMessage style={{ padding: '20px 0' }}>No popular posts yet</EmptyStateMessage>
               )}
-            </SidebarPostsList>
-            
-            <SavedPostsTitle>Saved Forum Posts</SavedPostsTitle>
-            <SidebarPostsList>
-              {userSavedPosts.length > 0 ? (
-                userSavedPosts.map((post) => (
-                  <SidebarPostItem key={`saved-${post.id}`} onClick={() => navigate(`/forum/post/${post.id}`)}>
-                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
-                    <SidebarPostAuthor>
-                      {/* {post.userName} */}
-                       {post.userName /* This now uses creatorName again */}
-                    </SidebarPostAuthor>
-                    <SidebarPostStats>
-                      <span>{post.commentCount} comments</span> • <span>{post.likesCount} likes</span>
-                    </SidebarPostStats>
-                  </SidebarPostItem>
-                ))
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                  <EmptyStateMessage style={{ padding: '20px 0' }}>No saved posts yet</EmptyStateMessage>
-                </div>
-              )}
-              {userSavedPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/saved')}>View All</ViewAllLink>}
             </SidebarPostsList>
           </LeftSidebar>
 
@@ -846,12 +622,6 @@ const Forum = () => {
                       onClick={() => handleSortChange('oldest')}
                     >
                       Oldest first
-                    </SortOption>
-                    <SortOption 
-                      selected={sortOption === 'most-liked'} 
-                      onClick={() => handleSortChange('most-liked')}
-                    >
-                      Most liked
                     </SortOption>
                     <SortOption 
                       selected={sortOption === 'most-commented'} 
@@ -918,31 +688,11 @@ const Forum = () => {
                         </AuthorAvatar>
                         <DetailedPostAuthorInfo>
                           <DetailedPostAuthorName>
-                            {/* {post.userName} */}
-                            {post.userName /* This now uses creatorName again */}
+                            {post.userName}
                           </DetailedPostAuthorName>
                           <DetailedPostTime>{post.timeAgo}</DetailedPostTime>
                         </DetailedPostAuthorInfo>
                       </DetailedPostAuthorSection>
-
-                      {/* Container for buttons on the right */}
-                      <HeaderActions>
-                        {/* Like Display (Non-interactive) - MOVED TO FOOTER */}
-                        {/* 
-                        <LikeDisplay>
-                          <FiHeart size={16} color="#667085" />
-                          <span>{post.likesCount}</span>
-                        </LikeDisplay> 
-                        */}
-
-                        {/* Save Button (Interactive) */}
-                        <SaveButton onClick={(e) => {
-                          e.stopPropagation();
-                          handleSavePost(post.id);
-                        }}>
-                          {post.isSaved ? <FiBookmark size={16} fill="#1E40AF" color="#1E40AF" /> : <FiBookmark size={16} />}
-                        </SaveButton>
-                      </HeaderActions>
                     </DetailedPostHeader>
                     
                     <DetailedPostContent>
@@ -956,18 +706,12 @@ const Forum = () => {
                     </DetailedPostContent>
                     
                     <DetailedPostFooter>
-                      {/* NEW: Container for stats (likes and comments) */}
+                      {/* NEW: Container for stats (comments only) */}
                       <PostStatsContainer>
-                        {/* Comments count first */}
+                        {/* Comments count */}
                         <DetailedPostComments>
                           {post.commentCount} comment{post.commentCount !== 1 ? 's' : ''}
                         </DetailedPostComments>
-                        
-                        {/* Likes count second */}
-                        <LikeDisplay>
-                          <FiHeart size={16} color="#667085" />
-                          <span>{post.likesCount}</span>
-                        </LikeDisplay>
                       </PostStatsContainer>
                       
                       {/* Tags remain on the right */}
@@ -1119,6 +863,10 @@ const ForumContainer = styled.div`
   margin: 0 auto;
   padding: 0 20px;
   position: relative;
+
+  @media (max-width: 768px) {
+    padding: 0 15px;
+  }
 `;
 
 const FullWidthBanner = styled.div`
@@ -1138,6 +886,11 @@ const BannerTitle = styled.h1`
   font-weight: 600;
   color: #101828;
   margin: 0 0 10px 0;
+
+  @media (max-width: 768px) {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
 `;
 
 const BannerDescription = styled.p`
@@ -1145,6 +898,10 @@ const BannerDescription = styled.p`
   color: #475467;
   margin: 0;
   max-width: 1000px;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 `;
 
 const ForumControls = styled.div`
@@ -1159,7 +916,22 @@ const ForumControls = styled.div`
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
-    width: 100%;
+    margin-bottom: 20px;
+
+    & > form {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    & > div:not(:last-child) {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    & > button:last-child {
+      width: 100%;
+    }
   }
 `;
 
@@ -1198,6 +970,11 @@ const SearchIcon = styled.div`
 const SortButtonContainer = styled.div`
   position: relative;
   margin: 0 4px;
+
+  @media (max-width: 768px) {
+    flex: 1;
+    margin: 0;
+  }
 `;
 
 const SortButton = styled.button`
@@ -1208,7 +985,7 @@ const SortButton = styled.button`
   background-color: #f2f4f7;
   border: none;
   border-radius: 25px;
-  padding: 8px 10px;
+  padding: 8px 16px;
   height: 35px;
   color: #667085;
   font-size: 15px;
@@ -1216,6 +993,14 @@ const SortButton = styled.button`
   
   &:hover {
     background-color: #e4e7ec;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    height: 45px;
+    font-size: 14px;
+    padding: 8px 12px;
+    gap: 6px;
   }
 `;
 
@@ -1252,6 +1037,11 @@ const SortOption = styled.div`
 const CategorySelectContainer = styled.div`
   position: relative;
   margin: 0 4px;
+
+  @media (max-width: 768px) {
+    flex: 1;
+    margin: 0;
+  }
 `;
 
 const CategoryButton = styled.button`
@@ -1262,7 +1052,7 @@ const CategoryButton = styled.button`
   background-color: #f2f4f7;
   border: none;
   border-radius: 25px;
-  padding: 8px 10px;
+  padding: 8px 16px;
   height: 35px;
   color: #667085;
   font-size: 15px;
@@ -1270,6 +1060,14 @@ const CategoryButton = styled.button`
   
   &:hover {
     background-color: #e4e7ec;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    height: 45px;
+    font-size: 14px;
+    padding: 8px 12px;
+    gap: 6px;
   }
 `;
 
@@ -1325,6 +1123,14 @@ const CreatePostButton = styled.button`
   &:hover {
     background-color: #0284C7;
   }
+
+  @media (max-width: 768px) {
+    margin: 0;
+    width: 100%;
+    height: 45px;
+    font-size: 14px;
+    padding: 8px 20px;
+  }
 `;
 
 const ForumContent = styled.div`
@@ -1341,10 +1147,19 @@ const LeftSidebar = styled.div`
   display: flex;
   flex-direction: column;
   padding-top: 66px;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const RightContent = styled.div`
   flex: 0 0 70%;
+
+  @media (max-width: 768px) {
+    flex: 1;
+    width: 100%;
+  }
 `;
 
 const PopularPostsTitle = styled.h2`
@@ -1352,13 +1167,11 @@ const PopularPostsTitle = styled.h2`
   font-weight: 600;
   color: #101828;
   margin: 0 0 15px 0;
-`;
 
-const SavedPostsTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 600;
-  color: #101828;
-  margin: 30px 0 15px 0;
+  @media (max-width: 768px) {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
 `;
 
 const DetailedPostsTitle = styled.h2`
@@ -1366,6 +1179,11 @@ const DetailedPostsTitle = styled.h2`
   font-weight: 600;
   color: #101828;
   margin: 0 0 20px 0;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
 `;
 
 const SidebarPostsList = styled.div`
@@ -1396,6 +1214,10 @@ const SidebarPostItem = styled.div`
   &:last-child {
     border-bottom: none;
   }
+
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
 `;
 
 const SidebarPostTitle = styled.h3`
@@ -1404,6 +1226,11 @@ const SidebarPostTitle = styled.h3`
   color: #1849A9;
   margin: 0 0 8px 0;
   line-height: 1.3;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
 `;
 
 const SidebarPostAuthor = styled.div`
@@ -1434,6 +1261,10 @@ const DetailedPostItem = styled.div`
     box-shadow: 0 4px 8px rgba(16, 24, 40, 0.1);
     transform: translateY(-2px);
   }
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
 `;
 
 const DetailedPostHeader = styled.div`
@@ -1446,10 +1277,9 @@ const DetailedPostHeader = styled.div`
   
   @media (max-width: 576px) {
     flex-direction: column;
-    align-items: center;
-    margin-top: 15px;
-    flex-wrap: wrap;
-    gap: 15px;
+    align-items: flex-start;
+    margin-top: 10px;
+    gap: 10px;
   }
 `;
 
@@ -1489,12 +1319,6 @@ const DetailedPostTime = styled.div`
   color: #667085;
 `;
 
-const HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
 const DetailedPostContent = styled.div`
   margin-bottom: 15px;
 `;
@@ -1504,6 +1328,10 @@ const DetailedPostTitle = styled.h3`
   font-weight: 500;
   color: #1849A9;
   margin: 0 0 10px 0;
+
+  @media (max-width: 768px) {
+    font-size: 15px;
+  }
 `;
 
 const DetailedPostText = styled.p`
@@ -1511,24 +1339,39 @@ const DetailedPostText = styled.p`
   color: #475467;
   line-height: 1.5;
   margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+    line-height: 1.4;
+  }
 `;
 
 const DetailedPostFooter = styled.div`
   display: flex;
-  justify-content: space-between; /* Keeps stats left, tags right */
+  justify-content: space-between;
   align-items: center;
   margin-top: 15px;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
-  gap: 15px; /* Add gap between lines if wrapping */
+  flex-wrap: wrap;
+  gap: 15px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
 `;
 
-// NEW: Container for stats
 const PostStatsContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px; /* Space between likes and comments */
+  gap: 12px;
   font-size: 12px;
   color: #667085;
+
+  @media (max-width: 768px) {
+    font-size: 11px;
+    gap: 8px;
+  }
 `;
 
 const DetailedPostComments = styled.div`
@@ -1539,15 +1382,10 @@ const DetailedPostTags = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-`;
 
-// Style for the non-interactive like display (Now used in Footer)
-const LikeDisplay = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: inherit; /* Inherit size from container */
-  color: inherit; /* Inherit color from container */
+  @media (max-width: 768px) {
+    gap: 4px;
+  }
 `;
 
 const LoadingContainer = styled.div`
@@ -1625,8 +1463,6 @@ const getSortLabel = (option) => {
       return 'Newest';
     case 'oldest':
       return 'Oldest';
-    case 'most-liked':
-      return 'Most Liked';
     case 'most-commented':
       return 'Most Commented';
     default:
@@ -1892,10 +1728,7 @@ const ForumLogo = styled.img.attrs({
   z-index: 0;
   
   @media (max-width: 768px) {
-    margin: 5px auto;
-    height: 150px;
-    position: relative;
-    right: auto;
+    display: none;
   }
 `;
 
@@ -1924,27 +1757,10 @@ const CategoryTag = styled.span`
     };
     transform: translateY(-1px);
   }
-`;
 
-const SaveButton = styled.button`
-  background: none;
-  border: none;
-  color: #667085;
-  cursor: pointer;
-  padding: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 4px;
-  border-radius: 50%;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  
-  &:hover {
-    background-color: #f2f4f7;
-  }
-
-  &:active {
-    transform: scale(0.85);
+  @media (max-width: 768px) {
+    font-size: 11px;
+    padding: 3px 8px;
   }
 `;
 

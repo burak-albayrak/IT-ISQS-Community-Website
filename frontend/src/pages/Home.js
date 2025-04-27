@@ -44,7 +44,7 @@ const partnerUniversities = [
     id: 1,
     logo: cankayaLogo,
     name: 'Cankaya Universitesi',
-    country: 'Turkiye',
+    country: 'Türkiye',
     role: 'Project Coordinator',
     address: 'Yukariyurtcu Mahallesi Mimar Sinan Caddesi No:4, 06815, Etimesgut/ANKARA',
     phone: '+90 312 233 10 00',
@@ -55,7 +55,7 @@ const partnerUniversities = [
     id: 2,
     logo: tedLogo,
     name: 'TED Universitesi',
-    country: 'Turkiye',
+    country: 'Türkiye',
     role: null,
     address: 'Ziya Gökalp Caddesi No:48 06420, Kolej Çankaya/ANKARA',
     phone: '+90 (312) 585 00 00',
@@ -117,10 +117,10 @@ const Home = () => {
               id: blog.blogID,
               title: blog.title,
               summary: blog.description.substring(0, 150) + '...',
-              categories: [blog.category || 'Uncategorized'],
+              categories: blog.category ? [blog.category] : [],
               date: blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
               author: blog.owner || blog.createdBy || 'Anonymous',
-              imageUrl: blog.media || '' // Boş string bırak, null ise varsayılan resim kullanılacak
+              imageUrl: blog.media || ''
             }));
             setRecentBlogPosts(recentBlogs);
           } else {
@@ -130,8 +130,8 @@ const Home = () => {
         
         setLoading(false);
       } catch (err) {
-        console.error("Blog verilerini getirirken hata oluştu:", err);
-        setError("Blog verileri yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+        console.error("Error while fetching blog data:", err);
+        setError("An error occurred while loading blog data. Please try again later.");
         setRecentBlogPosts([]);
         setLoading(false);
       }
@@ -152,7 +152,6 @@ const Home = () => {
                 description: post.description ? post.description.substring(0, 100) + '...' : 'No description available.', 
                 author: post.creatorName || 'Anonymous',
                 authorAvatar: post.creatorProfilePic || defaultProfilePic,
-                likes: post.likesCount || 0,
                 replies: post.commentCount || 0,
                 createdAt: post.createdAt
              }));
@@ -167,8 +166,8 @@ const Home = () => {
         }
         setForumLoading(false);
       } catch (err) {
-        console.error("Forum verilerini getirirken hata oluştu:", err);
-        setForumError("Forum gönderileri yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+        console.error("Error fetching forum data:", err);
+        setForumError("An error occurred while loading forum posts. Please try again later.");
         setRecentForumPosts([]);
         setForumLoading(false);
       }
@@ -326,7 +325,6 @@ const Home = () => {
           <ForumPostsContainer>
             <ForumTableHeader>
               <ForumPostsColumn />
-              <LikesHeaderColumn>Likes</LikesHeaderColumn>
               <RepliesHeaderColumn>Replies</RepliesHeaderColumn>
               <DateHeaderColumn>Date</DateHeaderColumn>
             </ForumTableHeader>
@@ -348,9 +346,6 @@ const Home = () => {
                     <AuthorName>{post.author}</AuthorName>
                   </ForumPostAuthor>
                 </ForumPostContent>
-                <ForumPostStats>
-                  <StatValue>{post.likes}</StatValue>
-                </ForumPostStats>
                 <ForumPostStats>
                   <StatValue>{post.replies}</StatValue>
                 </ForumPostStats>
@@ -430,6 +425,11 @@ const Home = () => {
 const HomeContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 15px;
+
+  @media (max-width: 768px) {
+    padding: 0 10px;
+  }
 `;
 
 const HeroSection = styled.section`
@@ -445,6 +445,15 @@ const HeroSection = styled.section`
   border-radius: 15px;
   overflow: hidden;
   margin-top: 20px;
+
+  @media (max-width: 768px) {
+    min-height: 450px;
+    border-radius: 10px;
+  }
+
+  @media (max-width: 480px) {
+    min-height: 400px;
+  }
 `;
 
 const Overlay = styled.div`
@@ -464,12 +473,13 @@ const HeroContent = styled.div`
   z-index: 2;
   
   @media (max-width: 992px) {
-    width: 70%;
+    width: 80%;
+    padding-left: 30px;
   }
   
   @media (max-width: 768px) {
     width: 100%;
-    padding: 30px;
+    padding: 20px;
   }
 `;
 
@@ -478,12 +488,17 @@ const HeroTitle = styled.h1`
   line-height: 1;
   margin-bottom: 30px;
   
-  @media (max-width: 768px) {
-    font-size: 56px;
+  @media (max-width: 992px) {
+    font-size: 60px;
   }
   
-  @media (max-width: 576px) {
-    font-size: 42px;
+  @media (max-width: 768px) {
+    font-size: 48px;
+    margin-bottom: 20px;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 36px;
   }
 `;
 
@@ -507,6 +522,20 @@ const HeroText = styled.p`
   line-height: 1.6;
   margin-top: 170px;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
+
+  @media (max-width: 992px) {
+    margin-top: 120px;
+  }
+
+  @media (max-width: 768px) {
+    margin-top: 80px;
+    font-size: 15px;
+  }
+
+  @media (max-width: 480px) {
+    margin-top: 60px;
+    font-size: 14px;
+  }
 `;
 
 const JoinButton = styled(Link)`
@@ -531,6 +560,16 @@ const JoinButton = styled(Link)`
 const BlogSection = styled.section`
   margin: 60px 0;
   padding: 0 20px;
+
+  @media (max-width: 768px) {
+    margin: 40px 0;
+    padding: 0 15px;
+  }
+
+  @media (max-width: 480px) {
+    margin: 30px 0;
+    padding: 0 10px;
+  }
 `;
 
 const SectionHeader = styled.div`
@@ -540,6 +579,14 @@ const SectionHeader = styled.div`
   margin-bottom: 24px;
   padding-bottom: 10px;
   border-bottom: 1px solid #E4E7EC;
+
+  @media (max-width: 768px) {
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 480px) {
+    margin-bottom: 16px;
+  }
 `;
 
 const SectionTitle = styled.h2`
@@ -547,6 +594,14 @@ const SectionTitle = styled.h2`
   font-weight: 600;
   color: #101828;
   margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+  }
 `;
 
 const ViewAllLink = styled(Link)`
@@ -569,8 +624,9 @@ const RecentBlogsGrid = styled.div`
   gap: 28px;
   margin-top: 24px;
   
-  @media (max-width: 768px) {
+  @media (max-width: 992px) {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
 `;
 
@@ -591,6 +647,10 @@ const FeaturedBlog = styled.div`
     transform: translateY(-4px);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
+
+  @media (max-width: 768px) {
+    margin-bottom: 20px;
+  }
 `;
 
 const FeaturedBlogImage = styled.img`
@@ -598,6 +658,14 @@ const FeaturedBlogImage = styled.img`
   height: 250px;
   object-fit: cover;
   border-bottom: 1px solid #E4E7EC;
+
+  @media (max-width: 768px) {
+    height: 200px;
+  }
+
+  @media (max-width: 480px) {
+    height: 180px;
+  }
 `;
 
 const FeaturedBlogContent = styled.div`
@@ -619,6 +687,14 @@ const FeaturedBlogTitle = styled.h2`
   color: #101828;
   margin-bottom: 10px;
   line-height: 1.3;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+  }
 `;
 
 const FeaturedBlogDescription = styled.p`
@@ -630,6 +706,12 @@ const FeaturedBlogDescription = styled.p`
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    -webkit-line-clamp: 2;
+    margin-bottom: 12px;
+  }
 `;
 
 const SideBlog = styled.div`
@@ -651,6 +733,12 @@ const SideBlog = styled.div`
     transform: translateY(-4px);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
+
+  @media (max-width: 768px) {
+    padding: 15px;
+    min-height: auto;
+    margin-bottom: 20px;
+  }
 `;
 
 const SideBlogImage = styled.img`
@@ -663,6 +751,18 @@ const SideBlogImage = styled.img`
   border-top-left-radius: 12px;
   border-bottom-left-radius: 12px;
   border-right: 1px solid #E4E7EC;
+
+  @media (max-width: 768px) {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+  }
+
+  @media (max-width: 480px) {
+    height: 180px;
+  }
 `;
 
 const SideBlogContent = styled.div`
@@ -671,6 +771,10 @@ const SideBlogContent = styled.div`
   justify-content: center;
   height: 100%;
   gap: 8px;
+
+  @media (max-width: 768px) {
+    gap: 6px;
+  }
 `;
 
 const SideBlogAuthor = styled.div`
@@ -776,6 +880,16 @@ const EmptyMessage = styled.p`
 const ForumSection = styled.section`
   margin: 60px 0;
   padding: 0 20px;
+
+  @media (max-width: 768px) {
+    margin: 40px 0;
+    padding: 0 15px;
+  }
+
+  @media (max-width: 480px) {
+    margin: 30px 0;
+    padding: 0 10px;
+  }
 `;
 
 const ForumSectionHeader = styled.div`
@@ -792,6 +906,14 @@ const ForumSectionTitle = styled.h2`
   font-weight: 600;
   color: #101828;
   margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 18px;
+  }
 `;
 
 const ForumPostsContainer = styled.div`
@@ -799,6 +921,11 @@ const ForumPostsContainer = styled.div`
   border-radius: 12px;
   overflow: hidden;
   margin-top: 20px;
+
+  @media (max-width: 768px) {
+    margin-top: 15px;
+    border-radius: 8px;
+  }
 `;
 
 const ForumTableHeader = styled.div`
@@ -809,25 +936,31 @@ const ForumTableHeader = styled.div`
   font-weight: 500;
   color: #667085;
   font-size: 14px;
+
+  @media (max-width: 768px) {
+    padding: 12px 15px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 10px;
+  }
 `;
 
 const ForumPostsColumn = styled.div`
   flex: 4;
-`;
 
-const LikesHeaderColumn = styled.div`
-  flex: 1;
-  text-align: left;
-  padding-left: 220px;
   @media (max-width: 768px) {
-    display: none;
+    flex: 1;
+    width: 100%;
   }
 `;
 
 const RepliesHeaderColumn = styled.div`
   flex: 1;
   text-align: right;
-  padding-right: 5px;
+  padding-left: 125px;
+  
   @media (max-width: 768px) {
     display: none;
   }
@@ -836,9 +969,10 @@ const RepliesHeaderColumn = styled.div`
 const DateHeaderColumn = styled.div`
   flex: 1.5;
   text-align: right;
-  padding-right: 85px;
+  padding-right: 100px;
+  
   @media (max-width: 768px) {
-    flex: 1.5;
+    display: none;
   }
 `;
 
@@ -858,11 +992,27 @@ const ForumPostItem = styled.div`
   &:last-child {
     border-bottom: none;
   }
+
+  @media (max-width: 768px) {
+    padding: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 10px;
+  }
 `;
 
 const ForumPostContent = styled.div`
   flex: 3;
   padding-right: 20px;
+
+  @media (max-width: 768px) {
+    flex: 1;
+    width: 100%;
+    padding-right: 0;
+  }
 `;
 
 const ForumPostTitle = styled.h3`
@@ -871,6 +1021,15 @@ const ForumPostTitle = styled.h3`
   color: #1E40AF;
   margin: 0 0 8px 0;
   text-decoration: none;
+
+  @media (max-width: 768px) {
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 14px;
+  }
 `;
 
 const ForumPostDescription = styled.p`
@@ -878,12 +1037,30 @@ const ForumPostDescription = styled.p`
   color: #475467;
   margin: 0 0 12px 0;
   line-height: 1.5;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 `;
 
 const ForumPostAuthor = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+
+  @media (max-width: 480px) {
+    gap: 6px;
+  }
 `;
 
 const AuthorAvatar = styled.img`
@@ -891,11 +1068,24 @@ const AuthorAvatar = styled.img`
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
+
+  @media (max-width: 480px) {
+    width: 20px;
+    height: 20px;
+  }
 `;
 
 const AuthorName = styled.span`
   font-size: 14px;
   color: #667085;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
 `;
 
 const ForumPostStats = styled.div`
@@ -915,7 +1105,7 @@ const ForumPostDate = styled.div`
   text-align: center;
   
   @media (max-width: 768px) {
-    flex: 1.5;
+    display: none;
   }
 `;
 
@@ -923,6 +1113,14 @@ const StatValue = styled.span`
   font-size: 14px;
   color: #667085;
   font-weight: 500;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
 `;
 
 // New Styled Components for "What Can You Do" Section
@@ -936,23 +1134,51 @@ const WhatCanYouDoSection = styled.section`
 
 const SectionImage = styled.img`
   width: 100%;
-  height: auto; // Adjust height automatically
-  max-height: 400px; // Optional: set a max height if needed
+  height: auto;
+  max-height: 400px;
   object-fit: cover;
-  display: block; // Ensure image behaves as a block element
-  border-radius: 36px; // Add border-radius for rounded corners
+  display: block;
+  border-radius: 36px;
+
+  @media (max-width: 768px) {
+    max-height: 300px;
+    border-radius: 24px;
+  }
+
+  @media (max-width: 480px) {
+    max-height: 250px;
+    border-radius: 16px;
+  }
 `;
 
 const SectionContent = styled.div`
-  padding: 30px 20px; // Add padding around the text content
+  padding: 30px 20px;
+
+  @media (max-width: 768px) {
+    padding: 20px 15px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 15px 10px;
+  }
 `;
 
 const SectionTitleBlue = styled.h2`
-  font-size: 28px; // Slightly larger font size for the title
+  font-size: 28px;
   font-weight: 700;
   color: #2a4b8d;
-  margin-bottom: 20px; // Space below the title
-  text-align: left; // Align title to the left
+  margin-bottom: 20px;
+  text-align: left;
+
+  @media (max-width: 768px) {
+    font-size: 24px;
+    margin-bottom: 15px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
 `;
 
 const SectionText = styled.p`
@@ -969,13 +1195,28 @@ const OurImageSection = styled.section`
 `;
 
 const OurImage = styled.img`
-  width: 50%; // Reduce width to make the image smaller
+  width: 50%;
   height: auto;
-  max-height: 500px; // Adjust as needed
-  object-fit: contain; // Use 'contain' to ensure the whole image is visible
+  max-height: 500px;
+  object-fit: contain;
   display: block;
-  border-radius: 12px; // Add some rounding
-  margin: 0 auto; // Center the image
+  border-radius: 12px;
+  margin: 0 auto;
+
+  @media (max-width: 992px) {
+    width: 70%;
+    max-height: 400px;
+  }
+
+  @media (max-width: 768px) {
+    width: 80%;
+    max-height: 350px;
+  }
+
+  @media (max-width: 480px) {
+    width: 90%;
+    max-height: 300px;
+  }
 `;
 
 // New Styled Components for Partner Universities Section
@@ -997,6 +1238,12 @@ const PartnerCard = styled.div`
   @media (max-width: 992px) {
     flex-direction: column;
     align-items: flex-start;
+    padding: 20px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 15px;
+    gap: 15px;
   }
 `;
 
@@ -1055,12 +1302,17 @@ const ContactColumn = styled.div`
 
   @media (max-width: 992px) {
     width: 100%;
-    border-left: none;
-    border-right: none;
+    border: none;
     border-top: 1px solid #E4E7EC;
     border-bottom: 1px solid #E4E7EC;
     padding: 15px 0;
-    margin-bottom: 15px;
+    margin: 15px 0;
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 0;
+    margin: 12px 0;
+    gap: 6px;
   }
 `;
 
@@ -1072,7 +1324,12 @@ const ContactInfo = styled.div`
   color: #475467;
 
   svg {
-    min-width: 16px; // Ensure icons have consistent width
+    min-width: 16px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+    gap: 6px;
   }
 `;
 
@@ -1081,11 +1338,10 @@ const WebsiteColumn = styled.div`
   display: flex;
   justify-content: flex-start;
   align-items: center;
-
   
   @media (max-width: 992px) {
-     width: 100%;
-     justify-content: flex-start;
+    width: 100%;
+    justify-content: flex-start;
   }
 `;
 
@@ -1094,13 +1350,17 @@ const WebsiteLink = styled.a`
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #1E40AF; // Blue link color
+  color: #1E40AF;
   text-decoration: none;
-  word-break: break-all; // Break long URLs
+  word-break: break-all;
 
   &:hover {
     text-decoration: underline;
   }
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+  }
 `;
 
-export default Home; 
+export default Home;

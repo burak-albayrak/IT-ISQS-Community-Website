@@ -16,6 +16,8 @@ import com.devEra.ws.dto.response.LoginResponse;
 import com.devEra.ws.service.AuthenticationService;
 import com.devEra.ws.service.EmailVerificationService;
 import com.devEra.ws.service.ForgotPasswordService;
+import com.devEra.ws.repository.UserRepository;
+import com.devEra.ws.entity.User;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -30,6 +32,9 @@ public class AuthenticationController {
 
     @Autowired
     private AuthenticationService authenticationService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping("/api/v1/users/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
@@ -119,6 +124,52 @@ public class AuthenticationController {
         }
 
         return ResponseEntity.ok(new GenericMessage("Password has been successfully reset."));
+    }
+
+    @PostMapping("/api/v1/users/resend-verification")
+    public ResponseEntity<?> resendVerificationCode(@RequestBody ForgotPasswordRequest request) {
+        try {
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new EntityNotFoundException("Email not found"));
+
+            if (user.getIsActive()) {
+                ApiError error = new ApiError();
+                error.setStatus(400);
+                error.setMessage("Email is already verified");
+                error.setPath("/api/v1/users/resend-verification");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            emailVerificationService.sendVerificationCode(user);
+            return ResponseEntity.ok(new GenericMessage("Verification code has been sent to your email."));
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/users/resend-verification");
+            return ResponseEntity.status(404).body(error);
+        } catch (Exception e) {
+            ApiError error = new ApiError();
+            error.setStatus(500);
+            error.setMessage("Failed to send verification code. Please try again.");
+            error.setPath("/api/v1/users/resend-verification");
+            return ResponseEntity.status(500).body(error);
+        }
+    }
+
+    @PostMapping("/api/v1/users/resend-reset-code")
+    public ResponseEntity<?> resendResetCode(@RequestBody ForgotPasswordRequest request) {
+        boolean result = forgotPasswordService.sendResetCode(request.getEmail());
+
+        if (result) {
+            return ResponseEntity.ok(new GenericMessage("A new reset code has been sent to your email."));
+        } else {
+            ApiError apiError = new ApiError();
+            apiError.setPath("/api/v1/users/resend-reset-code");
+            apiError.setMessage("No user registered with this email address.");
+            apiError.setStatus(404);
+            return ResponseEntity.status(404).body(apiError);
+        }
     }
 
 }

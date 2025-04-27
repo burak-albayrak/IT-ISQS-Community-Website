@@ -49,10 +49,7 @@ const RightContent = styled.div`
   align-items: flex-start;
   
   @media (max-width: 768px) {
-    width: 100%;
-    padding: 2rem;
-    align-items: center;
-    background: white;
+    display: none;
   }
 `;
 
@@ -60,11 +57,6 @@ const ContactImage = styled.img`
   max-width: 72%;
   height: auto;
   transform: translateY(-2rem);
-  
-  @media (max-width: 768px) {
-    transform: none;
-    max-width: 80%;
-  }
 `;
 
 const Title = styled.h1`

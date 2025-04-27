@@ -15,6 +15,12 @@ const ProfileContainer = styled.div`
   background-color: #FFF;
   position: relative;
   display: flex;
+
+  @media (max-width: 768px) {
+    padding: 20px;
+    flex-direction: column;
+    align-items: center;
+  }
 `;
 
 const ProfileLeft = styled.div`
@@ -23,6 +29,12 @@ const ProfileLeft = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding-right: 0;
+    margin-bottom: 30px;
+  }
 `;
 
 const ProfileRight = styled.div`
@@ -38,6 +50,15 @@ const ProfileRight = styled.div`
     height: 470px;
     width: 1px;
     background-color: #f1f1f1;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding-left: 0;
+    
+    &::before {
+      display: none;
+    }
   }
 `;
 
@@ -55,6 +76,12 @@ const UserAvatar = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  @media (max-width: 768px) {
+    width: 150px;
+    height: 150px;
+    margin-bottom: 15px;
   }
 `;
 
@@ -85,6 +112,10 @@ const UserName = styled.h2`
   margin: 1px 0;
   text-align: center;
   color: #223A70;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const TabContainer = styled.div`
@@ -92,6 +123,11 @@ const TabContainer = styled.div`
   border-bottom: 2px solid #f1f1f1;
   margin-bottom: 15px;
   position: relative;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+    gap: 10px;
+  }
 `;
 
 const Tab = styled.button`
@@ -107,23 +143,11 @@ const Tab = styled.button`
   opacity: ${props => props.disabled ? 0.5 : 1};
   transition: color 0.3s, background-color 0.3s;
   border-radius: 4px;
-  
-  &:hover {
-    color: ${props => props.active === "true" ? '#0056b3' : '#666'};
-    background-color: ${props => props.disabled ? 'transparent' : '#f0f0f0'};
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 3px;
-    background-color: #0056b3;
-    bottom: -2px;
-    left: 0;
-    transform: scaleX(${props => props.active === "true" ? '1' : '0'});
-    transform-origin: center;
-    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 8px 12px;
+    margin-right: 10px;
   }
 `;
 
@@ -134,6 +158,10 @@ const ProfileContent = styled.div`
 const InfoSection = styled.div`
   background-color: #fff;
   border-radius: 8px;
+
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
 `;
 
 const InfoRow = styled.div`
@@ -150,6 +178,13 @@ const InfoRow = styled.div`
   &:not(:last-child) {
     border-bottom: 1px solid #f0f0f0;
   }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 15px 0;
+  }
 `;
 
 const InfoLabel = styled.div`
@@ -164,6 +199,11 @@ const InfoLabel = styled.div`
     color: #223A70;
     font-size: 18px;
   }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    margin-bottom: 5px;
+  }
 `;
 
 const InfoValue = styled.div`
@@ -171,6 +211,11 @@ const InfoValue = styled.div`
   color: #333;
   font-weight: ${props => props.bold ? 'bold' : 'normal'};
   font-size: 16px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    font-size: 15px;
+  }
 `;
 
 const EditButton = styled.button`
@@ -191,6 +236,15 @@ const EditButton = styled.button`
   &:hover {
     background-color: #192C54;
   }
+
+  @media (max-width: 768px) {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    top: auto;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
 `;
 
 const Form = styled.form`
@@ -198,12 +252,21 @@ const Form = styled.form`
   flex-direction: column;
   gap: 20px;
   max-width: 600px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 0 10px;
+  }
 `;
 
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   margin-bottom: 15px;
+
+  @media (max-width: 768px) {
+    margin-bottom: 12px;
+  }
 `;
 
 const Label = styled.label`
@@ -228,6 +291,11 @@ const Input = styled.input`
   &::placeholder {
     color: #666;
   }
+
+  @media (max-width: 768px) {
+    font-size: 15px;
+    padding: 10px 12px;
+  }
 `;
 
 const Button = styled.button`
@@ -241,14 +309,12 @@ const Button = styled.button`
   cursor: pointer;
   transition: background-color 0.3s ease;
   align-self: flex-end;
-  
-  &:hover {
-    background-color: #e1e1e1;
-  }
-  
-  &:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    align-self: center;
+    font-size: 15px;
+    padding: 10px 20px;
   }
 `;
 
@@ -282,6 +348,11 @@ const EditInput = styled.input`
     border-color: #223A70;
     background-color: #f8f9fa;
   }
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    font-size: 15px;
+  }
 `;
 
 const EditSelect = styled.select`
@@ -300,20 +371,10 @@ const EditSelect = styled.select`
   background-size: 12px auto;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  
-  &:focus {
-    outline: none;
-    border-color: #223A70;
-    box-shadow: 0 0 0 2px rgba(34, 58, 112, 0.2);
-  }
-  
-  &:hover {
-    border-color: #223A70;
-    background-color: #f8f9fa;
-  }
-  
-  option {
-    padding: 10px;
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    font-size: 15px;
   }
 `;
 
@@ -322,6 +383,18 @@ const ButtonGroup = styled.div`
   gap: 10px;
   margin-top: 20px;
   justify-content: flex-end;
+
+  @media (max-width: 768px) {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 15px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    justify-content: center;
+  }
 `;
 
 const CancelButton = styled.button`
@@ -412,6 +485,12 @@ const ModalContent = styled.div`
   width: 90%;
   max-width: 480px;
   position: relative;
+
+  @media (max-width: 768px) {
+    width: 95%;
+    padding: 20px;
+    margin: 10px;
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -652,7 +731,15 @@ const Profile = () => {
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
-    setEditData(prev => ({ ...prev, [name]: value }));
+    
+    // Age alanı için özel kontrol
+    if (name === 'age') {
+      // Eğer değer boşsa veya sadece boşluklardan oluşuyorsa boş string olarak ayarla
+      const newValue = value.trim() === '' ? '' : value;
+      setEditData(prev => ({ ...prev, [name]: newValue }));
+    } else {
+      setEditData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleEditSubmit = async () => {
@@ -666,16 +753,26 @@ const Profile = () => {
         throw new Error('User ID is missing. Please log in again.');
       }
       
+      // Sadece doldurulmuş alanları gönder
       const updatedProfile = {
         firstName: editData.firstName,
         lastName: editData.lastName,
         institution: editData.institution,
         country: editData.country,
         role: editData.role?.toUpperCase(),
-        age: editData.age ? parseInt(editData.age) : null,
-        gender: editData.gender?.toUpperCase(),
         picture: user.picture
       };
+
+      // Age ve gender sadece doldurulmuşsa ekle
+      if (editData.age && editData.age.trim() !== '') {
+        updatedProfile.age = parseInt(editData.age);
+      } else {
+        updatedProfile.age = null; // Age alanı boşsa null olarak ayarla
+      }
+      
+      if (editData.gender && editData.gender.trim() !== '') {
+        updatedProfile.gender = editData.gender?.toUpperCase();
+      }
       
       console.log("Current user data:", user);
       console.log("Sending profile update data with picture:", updatedProfile);
@@ -685,7 +782,7 @@ const Profile = () => {
       setUser(prevUser => ({
         ...prevUser,
         ...updatedProfile,
-        role: editData.role, 
+        role: editData.role,
         gender: editData.gender,
         picture: prevUser.picture
       }));
@@ -981,12 +1078,6 @@ const Profile = () => {
             onClick={() => setActiveTab('about')}
           >
             About
-          </Tab>
-          <Tab 
-            disabled={true} 
-            onClick={() => {}}
-          >
-            My Forum Posts
           </Tab>
           <Tab 
             active={activeTab === 'password' ? "true" : "false"} 

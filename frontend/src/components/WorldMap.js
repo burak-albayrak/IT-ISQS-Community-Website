@@ -93,7 +93,7 @@ const partnerLocations = [
   { name: "Çankaya University", coordinates: [32.7597, 39.4334], color: "#FF3A33", tooltipType: "cankaya" },
   
   // Other universities (orange dots)
-  { name: "Open Universiteit", coordinates: [5.9815, 50.8883], color: "#FF9326", tooltipType: "open-uni" },
+  { name: "Open Universiteit", coordinates: [4.9815, 52.3883], color: "#FF9326", tooltipType: "open-uni" },
   { name: "Universidad Francisco De Vitoria", coordinates: [-3.7038, 40.4168], color: "#FF9326", tooltipType: "fufdv" },
   { name: "TED University", coordinates: [35, 39.5334], color: "#FF9326", tooltipType: "ted" },
 ];

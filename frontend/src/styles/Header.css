@@ -13,6 +13,7 @@
   justify-content: space-between;
   max-width: 1400px;
   margin: 0 auto;
+  position: relative;
 }
 
 /* Logo Section */
@@ -20,6 +21,7 @@
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  z-index: 2;
 }
 
 .main-logo {
@@ -44,10 +46,32 @@
   width: 180px;
 }
 
+/* Hamburger Menu */
+.hamburger-menu {
+  display: none;
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 1001;
+}
+
+.hamburger-menu:hover {
+  color: #0056b3;
+}
+
+/* Navigation Container */
+.nav-container {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-grow: 1;
+}
+
 /* Navigation */
 .main-nav {
   flex-grow: 1;
-  margin-left: 2rem;
 }
 
 .nav-links {
@@ -56,8 +80,7 @@
   gap: 1.5rem;
   padding: 0;
   margin: 0;
-  justify-content: flex-start;
-  padding-left: 1rem;
+  justify-content: center;
   position: relative;
 }
 
@@ -97,27 +120,6 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-}
-
-.language-btn {
-  background: white;
-  border: 1px solid #d0d0d0;
-  border-radius: 50%;
-  padding: 0.7rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color 0.3s, transform 0.2s, box-shadow 0.2s;
-  width: 46px;
-  height: 46px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.language-btn:hover {
-  border-color: #777;
-  transform: scale(1.05);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .contact-btn {
@@ -236,28 +238,190 @@
   .eu-logo-full {
     width: 150px;
   }
+  
+  .main-logo-img {
+    height: 80px;
+  }
 }
 
 @media (max-width: 992px) {
-  .header-container {
+  .hamburger-menu {
+    display: block;
+  }
+
+  .nav-container {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 80%;
+    max-width: 400px;
+    height: 100vh;
+    background-color: white;
     flex-direction: column;
+    padding: 120px 2rem 2rem;
+    transition: right 0.3s ease-in-out;
+    box-shadow: -3px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+  }
+
+  .nav-container.nav-open {
+    right: 0;
+  }
+
+  /* Overlay for when menu is open */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+  }
+
+  body.menu-open::after {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .main-nav {
+    width: 100%;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    align-items: flex-start;
     gap: 1rem;
   }
-  
+
+  .nav-indicator {
+    display: none;
+  }
+
   .right-section {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
+    margin-top: 2rem;
+  }
+
+  .auth-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 1rem;
+  }
+
+  .auth-buttons a, 
+  .auth-buttons button {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .contact-btn,
+  .login-btn {
+    padding: 0.8rem;
+  }
+
+  .profile-btn,
+  .logout-btn {
+    width: auto !important;
+    padding: 0.8rem;
+    margin: 0;
+  }
+
+  .auth-buttons {
+    flex-direction: row;
+    justify-content: center;
+    gap: 1.5rem;
   }
 }
 
 @media (max-width: 768px) {
-  .main-nav {
-    width: 100%;
-    margin-left: 0;
-    overflow-x: auto;
+  .header {
+    padding: 0.6rem 1rem;
+    position: relative;
   }
-  
-  .nav-links {
-    width: max-content;
+
+  .header-container {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .logo-section {
+    order: 2;
+    width: 100%;
+    justify-content: center;
+    padding: 0.5rem 0;
+    transform: translateX(22px);
+  }
+
+  .hamburger-menu {
+    order: 1;
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+  }
+
+  .hamburger-menu:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  .hamburger-menu:active {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .main-logo-img {
+    height: 70px;
+  }
+
+  .eu-logo {
+    padding-left: 1.5rem;
+  }
+
+  .eu-logo-full {
+    width: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-section {
+    gap: 1rem;
+    transform: translateX(18px);
+  }
+
+  .main-logo-img {
+    height: 60px;
+  }
+
+  .eu-logo {
+    padding-left: 1rem;
+  }
+
+  .eu-logo-full {
+    width: 120px;
+  }
+
+  .auth-buttons {
+    gap: 1rem;
+  }
+
+  .profile-btn,
+  .logout-btn {
+    padding: 0.6rem;
   }
 } 

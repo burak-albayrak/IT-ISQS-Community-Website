@@ -47,12 +47,11 @@ public class UserController {
     @Autowired
     com.devEra.ws.config.security.JwtTokenService jwtTokenService;
 
-    @PostMapping("/api/v1/users")
+    @PostMapping("/users/register")
     GenericMessage createUser(@Valid @RequestBody User user) {
-
         userService.save(user);
         return new GenericMessage("User is created!");
-    };
+    }
 
     @PutMapping("/api/v1/users/{id}")
     public ResponseEntity<?> updateUserProfile(@PathVariable int id, @RequestBody UpdateProfileRequest request) {
