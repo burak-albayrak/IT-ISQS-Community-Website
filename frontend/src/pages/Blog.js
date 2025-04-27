@@ -70,8 +70,7 @@ const Blog = () => {
       setError(null);
       
       try {
-        // Fix duplicate /api/ path issue 
-        const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/blogs`);
         
         if (response && response.data) {
           // If backend data is returned
@@ -156,7 +155,7 @@ const Blog = () => {
     const fetchAndFilterCategories = async () => {
       try {
         // Assuming blog categories are fetched from the same endpoint as forum
-        const response = await axios.get('http://localhost:8080/api/v1/forum-categories'); 
+        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories'); 
         let fetchedCategories = [];
         if (response && response.data) {
           fetchedCategories = response.data;
@@ -225,7 +224,7 @@ const Blog = () => {
 
     try {
       // Get all blogs from the database and filter them on the client side
-      const response = await axios.get(`http://localhost:8080/api/v1/blogs`);
+      const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/blogs`);
       
       if (response && response.data) {
         const blogs = response.data;
@@ -305,7 +304,7 @@ const Blog = () => {
         return blog.imageUrl;
       }
       // Eğer statik bir referans ise API_URL'ye eklenebilir
-      return `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}${blog.imageUrl}`;
+      return `https://closed-merola-deveracankaya-2f4e22df.koyeb.app${blog.imageUrl}`;
     }
     
     // Base64 kodlu bir görsel ise

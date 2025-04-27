@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft } from 'react-icons/fi';
@@ -120,7 +120,7 @@ const SelectedForumPage = () => {
   const [showLoginWarning, setShowLoginWarning] = useState(false);
 
   // New function to fetch comments
-  const fetchComments = async (currentPostId) => {
+  const fetchComments = useCallback(async (postId) => {
     setCommentsLoading(true);
     setCommentError(null);
     try {
@@ -185,12 +185,12 @@ const SelectedForumPage = () => {
     } finally {
       setCommentsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/v1/forum-categories');
+        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories');
         if (response && response.data) {
           const colorMap = response.data.reduce((acc, category) => {
             if (category.name && category.color) {
@@ -214,7 +214,7 @@ const SelectedForumPage = () => {
       
       try {
         console.log('Fetching post with ID:', postId);
-        const response = await axios.get(`http://localhost:8080/api/v1/forum-posts/${postId}`);
+        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/${postId}`);
         console.log('Forum post response:', response);
         
         if (response && response.data) {
@@ -243,7 +243,7 @@ const SelectedForumPage = () => {
           
           // Fetch popular posts for sidebar
           try {
-            const allPostsResponse = await axios.get(`http://localhost:8080/api/v1/forum-posts`);
+            const allPostsResponse = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts`);
             if (allPostsResponse && allPostsResponse.data) {
               const formattedPosts = allPostsResponse.data.map(post => ({
                 id: post.forumPostID,
@@ -293,11 +293,10 @@ const SelectedForumPage = () => {
         setLoading(false);
       }
     };
-    
     fetchCategories();
     fetchPostData();
   }, [postId, navigate]);
-
+  
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -312,7 +311,7 @@ const SelectedForumPage = () => {
     try {
       // Make the API call to the backend comment endpoint
       const response = await axios.post(
-        `http://localhost:8080/api/v1/forum-comments`,
+        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments`,
         {
           forumPostID: parseInt(postId), // Ensure postId is passed correctly
           description: newComment,
