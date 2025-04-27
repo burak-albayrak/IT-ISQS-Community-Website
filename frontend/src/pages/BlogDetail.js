@@ -80,8 +80,8 @@ const BlogDetail = () => {
         setRecentBlogs(formattedRecentBlogs);
         setLoading(false);
       } catch (err) {
-        console.error("Blog detaylarını getirirken hata oluştu:", err);
-        setError("Blog detayları yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+        console.error("Error while fetching blog details:", err);
+        setError("An error occurred while loading blog details. Please try again later.");
         setLoading(false);
 
         // Mock veri ile devam et (backend hazır olmadığında)
@@ -304,6 +304,10 @@ const MainContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
+
+  @media (max-width: 768px) {
+    padding: 20px 15px;
+  }
 `;
 
 const BackLink = styled(Link)`
@@ -317,6 +321,11 @@ const BackLink = styled(Link)`
   
   &:hover {
     color: #1E40AF;
+  }
+
+  @media (max-width: 768px) {
+    margin-bottom: 20px;
+    font-size: 14px;
   }
 `;
 
@@ -349,10 +358,7 @@ const LeftColumn = styled.div`
   padding-right: 20px;
   
   @media (max-width: 768px) {
-    padding-right: 0;
-    padding-bottom: 30px;
-    border-bottom: 1px solid #E4E7EC;
-    margin-bottom: 30px;
+    display: none;
   }
 `;
 
@@ -361,6 +367,7 @@ const RightColumn = styled.div`
   
   @media (max-width: 768px) {
     padding-left: 0;
+    width: 100%;
   }
 `;
 
@@ -454,6 +461,11 @@ const BlogTitle = styled.h1`
   color: #101828;
   margin-bottom: 16px;
   line-height: 1.2;
+
+  @media (max-width: 768px) {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
 `;
 
 const BlogMeta = styled.div`
@@ -464,6 +476,12 @@ const BlogMeta = styled.div`
   margin-bottom: 20px;
   color: #667085;
   font-size: 14px;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
 `;
 
 const BlogMetaItem = styled.span`
@@ -483,6 +501,11 @@ const CategoryTags = styled.div`
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
+
+  @media (max-width: 768px) {
+    gap: 6px;
+    margin-top: 6px;
+  }
 `;
 
 const CategoryTag = styled.span`
@@ -510,6 +533,11 @@ const CategoryTag = styled.span`
     };
     transform: translateY(-1px);
   }
+
+  @media (max-width: 768px) {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
 `;
 
 const BlogMainImage = styled.img`
@@ -520,6 +548,12 @@ const BlogMainImage = styled.img`
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   object-fit: cover;
   max-height: 300px;
+
+  @media (max-width: 768px) {
+    border-radius: 8px;
+    margin-bottom: 16px;
+    max-height: 200px;
+  }
 `;
 
 const BlogContent = styled.div`
@@ -613,6 +647,48 @@ const BlogContent = styled.div`
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   }
+
+  @media (max-width: 768px) {
+    font-size: 15px;
+    
+    .blog-description {
+      font-size: 16px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+    }
+    
+    h2 {
+      font-size: 20px;
+      margin: 24px 0 12px;
+    }
+    
+    h3 {
+      font-size: 18px;
+      margin: 20px 0 10px;
+    }
+    
+    p {
+      margin-bottom: 16px;
+    }
+    
+    img {
+      margin: 16px 0;
+    }
+    
+    blockquote {
+      margin: 16px 0;
+      padding-left: 12px;
+    }
+    
+    pre {
+      padding: 12px;
+      margin: 16px 0;
+    }
+    
+    .blog-image-container {
+      margin: 24px 0;
+    }
+  }
 `;
 
 const Loading = styled.div`
@@ -651,6 +727,11 @@ const NotFound = styled.div`
   background-color: #F9FAFB;
   border-radius: 8px;
   border: 1px dashed #D1D5DB;
+
+  @media (max-width: 768px) {
+    padding: 24px;
+    font-size: 16px;
+  }
 `;
 
 const ErrorMessage = styled.div`
@@ -660,6 +741,12 @@ const ErrorMessage = styled.div`
   border-radius: 8px;
   border-left: 4px solid #B91C1C;
   margin-bottom: 32px;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
 `;
 
 export default BlogDetail;

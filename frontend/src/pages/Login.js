@@ -15,6 +15,11 @@ const FormRow = styled.div`
     display: flex;
     gap: 10px;
     width: 100%;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 15px;
+    }
 `;
 
 // Login form input'ları için özel stil
@@ -22,6 +27,13 @@ const LoginInput = styled(S.Input)`
     width: 80%;
     margin-left: auto;
     margin-right: auto;
+
+    @media (max-width: 768px) {
+        width: 100%;
+        margin: 0;
+        font-size: 15px;
+        padding: 12px 15px;
+    }
 `;
 
 // Google butonları için özel stil
@@ -29,6 +41,132 @@ const LoginGoogleButton = styled(S.GoogleButton)`
     width: 80%;
     margin-left: auto;
     margin-right: auto;
+
+    @media (max-width: 768px) {
+        width: 100%;
+        margin: 0;
+        font-size: 14px;
+        padding: 10px;
+    }
+`;
+
+const MobileContainer = styled.div`
+    display: none;
+    
+    @media (max-width: 768px) {
+        display: block;
+        width: 100%;
+        min-height: 100vh;
+        padding: 20px;
+        background-color: #fff;
+    }
+`;
+
+const MobileForm = styled.form`
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+`;
+
+const MobileTitle = styled.h2`
+    font-size: 24px;
+    color: #223A70;
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: bold;
+`;
+
+const MobileInput = styled.input`
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    
+    &:focus {
+        outline: none;
+        border-color: #223A70;
+    }
+`;
+
+const MobileSelect = styled.select`
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    background-color: white;
+    
+    &:focus {
+        outline: none;
+        border-color: #223A70;
+    }
+`;
+
+const MobileButton = styled.button`
+    width: 100%;
+    padding: 14px;
+    background-color: #223A70;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
+    
+    &:disabled {
+        background-color: #cccccc;
+    }
+`;
+
+const MobileToggleButton = styled.button`
+    width: 100%;
+    padding: 12px;
+    background-color: transparent;
+    color: #223A70;
+    border: 1px solid #223A70;
+    border-radius: 8px;
+    font-size: 15px;
+    margin-top: 10px;
+`;
+
+const MobileError = styled.div`
+    color: #e74c3c;
+    font-size: 14px;
+    margin-top: 5px;
+`;
+
+const MobileForgotPassword = styled(Link)`
+    color: #223A70;
+    text-align: center;
+    font-size: 14px;
+    text-decoration: none;
+    margin-top: 10px;
+    
+    &:hover {
+        text-decoration: underline;
+    }
+`;
+
+const DesktopContainer = styled(S.Container)`
+    @media (max-width: 768px) {
+        display: none;
+    }
+`;
+
+const MobileImageContainer = styled.div`
+    display: none;
+    
+    @media (max-width: 768px) {
+        display: none;
+    }
+`;
+
+const DesktopImages = styled.div`
+    @media (max-width: 768px) {
+        display: none;
+    }
 `;
 
 const Login = () => {
@@ -318,13 +456,189 @@ const Login = () => {
 
     return (
         <div className="page login-page" style={{ position: 'relative' }}>
+            {/* Desktop Images */}
+            <DesktopImages>
             <S.TopLeftImage src={mailIcon} />
             <S.BottomRightImage src={tikIcon} />
             <S.BottomLeftImage src={personIcon} />
             <S.TopRightImage src={lockIcon} />
-            <S.Container>
+            </DesktopImages>
+
+            {/* Mobile Version */}
+            <MobileContainer>
+                <MobileTitle>{isLogin ? 'Sign In' : 'Create Account'}</MobileTitle>
+                
+                {isLogin ? (
+                    <MobileForm onSubmit={handleLoginSubmit}>
+                        <div>
+                            <MobileInput
+                                type="email"
+                                name="email"
+                                placeholder="Email Address"
+                                value={loginData.email}
+                                onChange={handleLoginChange}
+                                required
+                                style={hasError('loginEmail') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.loginEmail && <MobileError>{fieldErrors.loginEmail}</MobileError>}
+                        </div>
+
+                        <div>
+                            <MobileInput
+                                type="password"
+                                name="password"
+                                placeholder="Password"
+                                value={loginData.password}
+                                onChange={handleLoginChange}
+                                required
+                                style={hasError('loginPassword') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.loginPassword && <MobileError>{fieldErrors.loginPassword}</MobileError>}
+                        </div>
+
+                        <MobileForgotPassword to="/forgot-password">
+                            Forgot your password?
+                        </MobileForgotPassword>
+
+                        <MobileButton type="submit" disabled={loading}>
+                            {loading ? 'Processing...' : 'Sign In'}
+                        </MobileButton>
+
+                        <MobileToggleButton type="button" onClick={() => navigate('/login?signup=true')}>
+                            Don't have an account? Sign Up
+                        </MobileToggleButton>
+                    </MobileForm>
+                ) : (
+                    <MobileForm onSubmit={handleRegisterSubmit}>
+                        <div>
+                            <MobileInput
+                                type="text"
+                                name="firstName"
+                                placeholder="First Name"
+                                value={registerData.firstName}
+                                onChange={handleRegisterChange}
+                                required
+                                style={hasError('firstName') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.firstName && <MobileError>{fieldErrors.firstName}</MobileError>}
+                        </div>
+
+                        <div>
+                            <MobileInput
+                                type="text"
+                                name="lastName"
+                                placeholder="Last Name"
+                                value={registerData.lastName}
+                                onChange={handleRegisterChange}
+                                required
+                                style={hasError('lastName') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.lastName && <MobileError>{fieldErrors.lastName}</MobileError>}
+                        </div>
+
+                        <div>
+                            <MobileInput
+                                type="email"
+                                name="email"
+                                placeholder="Email Address"
+                                value={registerData.email}
+                                onChange={handleRegisterChange}
+                                required
+                                style={hasError('email') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.email && <MobileError>{fieldErrors.email}</MobileError>}
+                        </div>
+
+                        <div>
+                            <MobileInput
+                                type="password"
+                                name="password"
+                                placeholder="Password"
+                                value={registerData.password}
+                                onChange={handleRegisterChange}
+                                required
+                                style={hasError('password') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.password && <MobileError>{fieldErrors.password}</MobileError>}
+                        </div>
+
+                        <div>
+                            <MobileInput
+                                type="password"
+                                name="confirmPassword"
+                                placeholder="Confirm Password"
+                                value={registerData.confirmPassword}
+                                onChange={handleRegisterChange}
+                                required
+                                style={hasError('confirmPassword') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.confirmPassword && <MobileError>{fieldErrors.confirmPassword}</MobileError>}
+                        </div>
+
+                        <div>
+                            <MobileSelect
+                                name="country"
+                                value={registerData.country}
+                                onChange={handleRegisterChange}
+                                required
+                                style={hasError('country') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            >
+                                <option value="">Select Country</option>
+                                {countries.map((country, index) => (
+                                    <option key={index} value={country.toLowerCase()}>
+                                        {country}
+                                    </option>
+                                ))}
+                            </MobileSelect>
+                            {fieldErrors.country && <MobileError>{fieldErrors.country}</MobileError>}
+                        </div>
+
+                        <div>
+                            <MobileInput
+                                type="text"
+                                name="institution"
+                                placeholder="Institution"
+                                value={registerData.institution}
+                                onChange={handleRegisterChange}
+                                style={hasError('institution') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            />
+                            {fieldErrors.institution && <MobileError>{fieldErrors.institution}</MobileError>}
+                        </div>
+
+                        <div>
+                            <MobileSelect
+                                name="role"
+                                value={registerData.role}
+                                onChange={handleRegisterChange}
+                                required
+                                style={hasError('role') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                            >
+                                <option value="">Select Role</option>
+                                <option value="STUDENT">Student</option>
+                                <option value="ACADEMIC">Academic</option>
+                                <option value="INDUSTRY_PROFESSIONAL">Industry Professional</option>
+                                <option value="OTHER">Other</option>
+                            </MobileSelect>
+                            {fieldErrors.role && <MobileError>{fieldErrors.role}</MobileError>}
+                        </div>
+
+                        <MobileButton type="submit" disabled={loading}>
+                            {loading ? 'Processing...' : 'Sign Up'}
+                        </MobileButton>
+
+                        <MobileToggleButton type="button" onClick={() => navigate('/login')}>
+                            Already have an account? Sign In
+                        </MobileToggleButton>
+                    </MobileForm>
+                )}
+
+                {error && <MobileError style={{ textAlign: 'center', marginTop: '20px' }}>{error}</MobileError>}
+            </MobileContainer>
+
+            {/* Desktop Version */}
+            <DesktopContainer>
                 <S.SignUpContainer $isLogin={isLogin}>
-                    <S.Form onSubmit={handleRegisterSubmit}>
+                    <S.Form onSubmit={handleRegisterSubmit} style={{ position: 'relative' }}>
                         <S.Title2>Sign Up</S.Title2>
                         
                         <FormRow>
@@ -336,7 +650,13 @@ const Login = () => {
                                     value={registerData.firstName}
                                     onChange={handleRegisterChange}
                                     required
-                                    style={hasError('firstName') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                    style={{
+                                        ...hasError('firstName') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {},
+                                        '@media (max-width: 768px)': {
+                                            fontSize: '15px',
+                                            padding: '12px 15px'
+                                        }
+                                    }}
                                 />
                                 {fieldErrors.firstName && <S.InputError>{fieldErrors.firstName}</S.InputError>}
                             </div>
@@ -349,7 +669,13 @@ const Login = () => {
                                     value={registerData.lastName}
                                     onChange={handleRegisterChange}
                                     required
-                                    style={hasError('lastName') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                    style={{
+                                        ...hasError('lastName') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {},
+                                        '@media (max-width: 768px)': {
+                                            fontSize: '15px',
+                                            padding: '12px 15px'
+                                        }
+                                    }}
                                 />
                                 {fieldErrors.lastName && <S.InputError>{fieldErrors.lastName}</S.InputError>}
                             </div>
@@ -363,7 +689,13 @@ const Login = () => {
                                 value={registerData.email}
                                 onChange={handleRegisterChange}
                                 required
-                                style={hasError('email') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                style={{
+                                    ...hasError('email') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {},
+                                    '@media (max-width: 768px)': {
+                                        fontSize: '15px',
+                                        padding: '12px 15px'
+                                    }
+                                }}
                             />
                             {fieldErrors.email && <S.InputError>{fieldErrors.email}</S.InputError>}
                         </div>
@@ -377,7 +709,13 @@ const Login = () => {
                                     value={registerData.password}
                                     onChange={handleRegisterChange}
                                     required
-                                    style={hasError('password') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                    style={{
+                                        ...hasError('password') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {},
+                                        '@media (max-width: 768px)': {
+                                            fontSize: '15px',
+                                            padding: '12px 15px'
+                                        }
+                                    }}
                                 />
                                 {fieldErrors.password && <S.InputError>{fieldErrors.password}</S.InputError>}
                             </div>
@@ -390,7 +728,13 @@ const Login = () => {
                                     value={registerData.confirmPassword}
                                     onChange={handleRegisterChange}
                                     required
-                                    style={hasError('confirmPassword') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                    style={{
+                                        ...hasError('confirmPassword') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {},
+                                        '@media (max-width: 768px)': {
+                                            fontSize: '15px',
+                                            padding: '12px 15px'
+                                        }
+                                    }}
                                 />
                                 {fieldErrors.confirmPassword && <S.InputError>{fieldErrors.confirmPassword}</S.InputError>}
                             </div>
@@ -403,7 +747,13 @@ const Login = () => {
                                     value={registerData.country}
                                     onChange={handleRegisterChange}
                                     required
-                                    style={hasError('country') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                    style={{
+                                        ...hasError('country') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {},
+                                        '@media (max-width: 768px)': {
+                                            fontSize: '15px',
+                                            padding: '12px 15px'
+                                        }
+                                    }}
                                 >
                                     <option value="">Country</option>
                                     {countries.map((country, index) => (
@@ -423,7 +773,13 @@ const Login = () => {
                                 placeholder="Institution"
                                 value={registerData.institution}
                                 onChange={handleRegisterChange}
-                                style={hasError('institution') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                style={{
+                                    ...hasError('institution') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {},
+                                    '@media (max-width: 768px)': {
+                                        fontSize: '15px',
+                                        padding: '12px 15px'
+                                    }
+                                }}
                             />
                             {fieldErrors.institution && <S.InputError>{fieldErrors.institution}</S.InputError>}
                         </div>
@@ -434,7 +790,13 @@ const Login = () => {
                                 value={registerData.role}
                                 onChange={handleRegisterChange}
                                 required
-                                style={hasError('role') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
+                                style={{
+                                    ...hasError('role') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {},
+                                    '@media (max-width: 768px)': {
+                                        fontSize: '15px',
+                                        padding: '12px 15px'
+                                    }
+                                }}
                             >
                                 <option value="">Role</option>
                                 <option value="STUDENT">Student</option>
@@ -444,7 +806,14 @@ const Login = () => {
                             </S.Select>
                             {fieldErrors.role && <S.InputError>{fieldErrors.role}</S.InputError>}
                         </div>
-                        <S.Button type="submit" disabled={loading}>
+                        <S.Button type="submit" disabled={loading} style={{
+                            '@media (max-width: 768px)': {
+                                width: '100%',
+                                fontSize: '15px',
+                                padding: '12px 20px',
+                                marginTop: '20px'
+                            }
+                        }}>
                             {loading ? 'Processing...' : 'Sign Up'}
                         </S.Button>
                     </S.Form>
@@ -454,7 +823,7 @@ const Login = () => {
                     <S.Form onSubmit={handleLoginSubmit}>
                         <S.Title2>Sign In</S.Title2>
                         
-                        <div style={{ width: '80%' }}>
+                        <div style={{ width: '80%', '@media (max-width: 768px)': { width: '100%' } }}>
                             <LoginInput
                                 type="email"
                                 name="email"
@@ -464,10 +833,10 @@ const Login = () => {
                                 required
                                 style={hasError('loginEmail') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
                             />
-                            {fieldErrors.loginEmail && <S.InputError style={{ marginLeft: '10%' }}>{fieldErrors.loginEmail}</S.InputError>}
+                            {fieldErrors.loginEmail && <S.InputError style={{ marginLeft: '10%', '@media (max-width: 768px)': { marginLeft: 0 } }}>{fieldErrors.loginEmail}</S.InputError>}
                         </div>
                         
-                        <div style={{ width: '80%' }}>
+                        <div style={{ width: '80%', '@media (max-width: 768px)': { width: '100%' } }}>
                             <LoginInput
                                 type="password"
                                 name="password"
@@ -477,17 +846,28 @@ const Login = () => {
                                 required
                                 style={hasError('loginPassword') ? { borderColor: '#e74c3c', borderWidth: '2px' } : {}}
                             />
-                            {fieldErrors.loginPassword && <S.InputError style={{ marginLeft: '10%' }}>{fieldErrors.loginPassword}</S.InputError>}
+                            {fieldErrors.loginPassword && <S.InputError style={{ marginLeft: '10%', '@media (max-width: 768px)': { marginLeft: 0 } }}>{fieldErrors.loginPassword}</S.InputError>}
                         </div>
                         
-                        <S.LinkText as={Link} to="/forgot-password">
+                        <S.LinkText as={Link} to="/forgot-password" style={{
+                            '@media (max-width: 768px)': {
+                                fontSize: '14px',
+                                marginTop: '10px',
+                                marginBottom: '20px'
+                            }
+                        }}>
                             Forgot your password?
                         </S.LinkText>
                         
-                        <S.Button type="submit" disabled={loading}>
+                        <S.Button type="submit" disabled={loading} style={{
+                            '@media (max-width: 768px)': {
+                                width: '100%',
+                                fontSize: '15px',
+                                padding: '12px 20px'
+                            }
+                        }}>
                             {loading ? 'Processing...' : 'Sign In'}
                         </S.Button>
-
                     </S.Form>
                 </S.SignInContainer>
                 
@@ -495,12 +875,22 @@ const Login = () => {
                     <S.Overlay $isLogin={isLogin}>
                         <S.LeftOverlayPanel $isLogin={isLogin}>
                             <S.Title>Hello!</S.Title>
-                            <S.Text>
+                            <S.Text style={{
+                                '@media (max-width: 768px)': {
+                                    fontSize: '14px',
+                                    lineHeight: '1.4'
+                                }
+                            }}>
                                 Don't you have an account?<br />
                                 Join us to use all of site features.
                             </S.Text>
                             <S.GhostButton onClick={() => {
                                 navigate('/login?signup=true');
+                            }} style={{
+                                '@media (max-width: 768px)': {
+                                    fontSize: '14px',
+                                    padding: '10px 20px'
+                                }
                             }}>
                                 SIGN UP
                             </S.GhostButton>
@@ -508,12 +898,22 @@ const Login = () => {
 
                         <S.RightOverlayPanel $isLogin={isLogin}>
                             <S.Title>Welcome!</S.Title>
-                            <S.Text>
+                            <S.Text style={{
+                                '@media (max-width: 768px)': {
+                                    fontSize: '14px',
+                                    lineHeight: '1.4'
+                                }
+                            }}>
                                 You already have an account?<br />
                                 Sign In!
                             </S.Text>
                             <S.GhostButton onClick={() => {
                                 navigate('/login');
+                            }} style={{
+                                '@media (max-width: 768px)': {
+                                    fontSize: '14px',
+                                    padding: '10px 20px'
+                                }
                             }}>
                                 SIGN IN
                             </S.GhostButton>
@@ -522,7 +922,7 @@ const Login = () => {
                 </S.OverlayContainer>
 
                 {error && <S.ErrorText>{error}</S.ErrorText>}
-            </S.Container>
+            </DesktopContainer>
         </div>
     );
 };

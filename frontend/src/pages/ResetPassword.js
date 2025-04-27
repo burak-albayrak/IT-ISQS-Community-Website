@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import newpasswordImg from '../assets/newpassword.png';
 import { resetPassword, verifyResetCode, resendResetCode } from '../services/authService';
+import Popup from '../components/Popup';
 
 // Styled components
 const Container = styled.div`
@@ -257,6 +258,7 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState('');
   const [email, setEmail] = useState('');
   const [verifiedCode, setVerifiedCode] = useState('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
   const location = useLocation();
@@ -409,10 +411,12 @@ const ResetPassword = () => {
       const response = await resetPassword(verifiedCode, password);
       console.log('Password reset successful:', response);
       
-      setSuccess('Password has been reset successfully');
+      // Show success popup
+      setShowSuccessPopup(true);
       
       // Redirect to login page after a short delay
       setTimeout(() => {
+        setShowSuccessPopup(false);
         navigate('/login', { state: { passwordReset: true } });
       }, 2000);
     } catch (err) {
@@ -435,91 +439,100 @@ const ResetPassword = () => {
   };
 
   return (
-    <Container>
-      <IllustrationContainer>
-        <Illustration src={newpasswordImg} alt="Create new password illustration" />
-      </IllustrationContainer>
+    <>
+      <Container>
+        <IllustrationContainer>
+          <Illustration src={newpasswordImg} alt="Create new password illustration" />
+        </IllustrationContainer>
 
-      <FormContainer>
-        {step === 1 ? (
-          <>
-            <Title>Verify Your Code</Title>
-            <Subtitle>Enter the verification code sent to {email}</Subtitle>
+        <FormContainer>
+          {step === 1 ? (
+            <>
+              <Title>Verify Your Code</Title>
+              <Subtitle>Enter the verification code sent to {email}</Subtitle>
 
-            <CodeInputContainer>
-              {[0, 1, 2, 3, 4, 5].map((index) => (
-                <CodeInput
-                  key={index}
-                  type="text"
-                  maxLength="1"
-                  value={verificationCode[index]}
-                  onChange={(e) => handleCodeChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                />
-              ))}
-            </CodeInputContainer>
+              <CodeInputContainer>
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <CodeInput
+                    key={index}
+                    type="text"
+                    maxLength="1"
+                    value={verificationCode[index]}
+                    onChange={(e) => handleCodeChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    ref={(el) => (inputRefs.current[index] = el)}
+                  />
+                ))}
+              </CodeInputContainer>
 
-            <VerifyButton 
-              onClick={handleVerifyCode} 
-              disabled={!isCodeComplete() || isLoading || isResending}
-            >
-              {isLoading ? 'Verifying...' : 'Done'}
-            </VerifyButton>
-            
-            {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
-            {success && <SuccessMessage>{success}</SuccessMessage>}
-            
-            <ResendText>
-              Didn't receive a code?
-              <ResendLink onClick={handleResendCode} disabled={isResending || isLoading}>
-                <RefreshIcon viewBox="0 0 24 24">
-                  <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 9h7V2l-2.35 4.35z"/>
-                </RefreshIcon>
-                {isResending ? 'Sending...' : 'Resend code'}
-              </ResendLink>
-            </ResendText>
-          </>
-        ) : (
-          <>
-            <Title>Create a new password</Title>
-            <Subtitle>Enter your new password</Subtitle>
-
-            <form onSubmit={handleResetPassword} style={{ width: '100%' }}>
-              <PasswordInputContainer>
-                <PasswordInput
-                  type="password"
-                  placeholder="New password"
-                  value={password}
-                  onChange={handlePasswordChange}
-                  required
-                />
-              </PasswordInputContainer>
-
-              <PasswordInputContainer>
-                <PasswordInput
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={handleConfirmPasswordChange}
-                  required
-                />
-              </PasswordInputContainer>
-
-              <SubmitButton 
-                type="submit" 
-                disabled={isLoading || !hasMinLength || !hasUpperCase || !hasLowerCase || !hasDigit || !passwordsMatch}
+              <VerifyButton 
+                onClick={handleVerifyCode} 
+                disabled={!isCodeComplete() || isLoading || isResending}
               >
-                {isLoading ? 'Processing...' : 'Reset Password'}
-              </SubmitButton>
-            </form>
-            
-            {error && <ErrorMessage>{error}</ErrorMessage>}
-            {success && <SuccessMessage>{success}</SuccessMessage>}
-          </>
-        )}
-      </FormContainer>
-    </Container>
+                {isLoading ? 'Verifying...' : 'Done'}
+              </VerifyButton>
+              
+              {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
+              {success && <SuccessMessage>{success}</SuccessMessage>}
+              
+              <ResendText>
+                Didn't receive a code?
+                <ResendLink onClick={handleResendCode} disabled={isResending || isLoading}>
+                  <RefreshIcon viewBox="0 0 24 24">
+                    <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 9h7V2l-2.35 4.35z"/>
+                  </RefreshIcon>
+                  {isResending ? 'Sending...' : 'Resend code'}
+                </ResendLink>
+              </ResendText>
+            </>
+          ) : (
+            <>
+              <Title>Create a new password</Title>
+              <Subtitle>Enter your new password</Subtitle>
+
+              <form onSubmit={handleResetPassword} style={{ width: '100%' }}>
+                <PasswordInputContainer>
+                  <PasswordInput
+                    type="password"
+                    placeholder="New password"
+                    value={password}
+                    onChange={handlePasswordChange}
+                    required
+                  />
+                </PasswordInputContainer>
+
+                <PasswordInputContainer>
+                  <PasswordInput
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={handleConfirmPasswordChange}
+                    required
+                  />
+                </PasswordInputContainer>
+                <SubmitButton 
+                  type="submit" 
+                  disabled={isLoading || !hasMinLength || !hasUpperCase || !hasLowerCase || !hasDigit || !passwordsMatch}
+                >
+                  {isLoading ? 'Processing...' : 'Reset Password'}
+                </SubmitButton>
+              </form>
+              
+              {error && <ErrorMessage>{error}</ErrorMessage>}
+              {success && <SuccessMessage>{success}</SuccessMessage>}
+            </>
+          )}
+        </FormContainer>
+      </Container>
+
+      {showSuccessPopup && (
+        <Popup
+          title="Success!"
+          message="Your password has been reset successfully. Redirecting to login..."
+          onClose={() => setShowSuccessPopup(false)}
+        />
+      )}
+    </>
   );
 };
 

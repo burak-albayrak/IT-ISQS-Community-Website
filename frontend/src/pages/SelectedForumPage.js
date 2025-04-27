@@ -109,15 +109,15 @@ const SelectedForumPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [comments, setComments] = useState([]);
-  const [commentsLoading, setCommentsLoading] = useState(false); // Add loading state for comments
-  const [commentError, setCommentError] = useState(null); // Add error state for comments
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentError, setCommentError] = useState(null);
   const [newComment, setNewComment] = useState('');
-  const [forumPosts, setForumPosts] = useState([]); // For popular posts sidebar
-  const [userSavedPosts, setUserSavedPosts] = useState([]); // <-- Yeni state
+  const [forumPosts, setForumPosts] = useState([]);
   const [categoryColorMap, setCategoryColorMap] = useState({});
   const [zoomedImageUrl, setZoomedImageUrl] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyTexts, setReplyTexts] = useState({});
+  const [showLoginWarning, setShowLoginWarning] = useState(false);
 
   // New function to fetch comments
   const fetchComments = async (currentPostId) => {
@@ -204,7 +204,7 @@ const SelectedForumPage = () => {
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
-        setCategoryColorMap({}); // Reset map on error
+        setCategoryColorMap({});
       }
     };
 
@@ -226,7 +226,6 @@ const SelectedForumPage = () => {
             title: postData.title,
             description: postData.description,
             media: postData.mediaList || [],
-            likesCount: postData.likesCount || 0,
             commentCount: postData.commentCount || 0,
             createdBy: postData.createdBy,
             createdByType: postData.createdByType,
@@ -235,10 +234,8 @@ const SelectedForumPage = () => {
             timeAgo: getTimeAgo(postData.createdAt),
             updatedAt: postData.updatedAt,
             tags: postData.category ? [postData.category.name] : [],
-            userName: postData.creatorName || 'Anonymous', // Use creatorName
-            userProfilePic: postData.creatorProfilePic || defaultProfilePic,
-            isLiked: postData.isLikedByUser || false,
-            isSaved: postData.isSavedByUser || false
+            userName: postData.creatorName || 'Anonymous',
+            userProfilePic: postData.creatorProfilePic || defaultProfilePic
           });
           
           // Fetch comments separately using the function
@@ -252,26 +249,22 @@ const SelectedForumPage = () => {
                 id: post.forumPostID,
                 title: post.title,
                 description: post.description,
-                likesCount: post.likesCount || 0,
                 commentCount: post.commentCount || 0,
                 createdAt: post.createdAt,
                 timeAgo: getTimeAgo(post.createdAt),
-                userName: post.creatorName || 'Anonymous' // Use creatorName
+                userName: post.creatorName || 'Anonymous'
               }));
               
-              // Get popular posts
+              // Get popular posts - Sort by comment count (highest to lowest)
               const popularPosts = [...formattedPosts]
-                .sort((a, b) => b.likesCount - a.likesCount)
-                .slice(0, 4)
+                .sort((a, b) => b.commentCount - a.commentCount)
+                .slice(0, 10) // Show up to 10 most commented posts
                 .filter(post => post.id !== parseInt(postId)); // Remove current post from popular list
-              setForumPosts(popularPosts);
               
-              // Get saved posts (in a real app, this would be user-specific)
-              setUserSavedPosts(formattedPosts.slice(0, 3).filter(post => post.id !== parseInt(postId)));
+              setForumPosts(popularPosts);
             }
           } catch (postsErr) {
             console.error('Error fetching all posts:', postsErr);
-            // We don't want to fail the whole page if just sidebar posts fail to load
           }
         } else {
           setError('No post data returned from server');
@@ -279,8 +272,6 @@ const SelectedForumPage = () => {
       } catch (err) {
         console.error('Error fetching forum post:', err);
         if (err.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
           console.error('Error response data:', err.response.data);
           console.error('Error response status:', err.response.status);
           
@@ -292,11 +283,9 @@ const SelectedForumPage = () => {
             setError(`Error loading post: ${err.response.data?.message || err.response.statusText}`);
           }
         } else if (err.request) {
-          // The request was made but no response was received
           console.error('Error request:', err.request);
           setError('Could not connect to the server. Please check your internet connection.');
         } else {
-          // Something happened in setting up the request that triggered an Error
           console.error('Error message:', err.message);
           setError('Failed to load the forum post. Please try again later.');
         }
@@ -305,49 +294,9 @@ const SelectedForumPage = () => {
       }
     };
     
-    fetchCategories(); // Fetch categories when component mounts
-    fetchPostData();   // Fetch post data when component mounts or postId changes
+    fetchCategories();
+    fetchPostData();
   }, [postId, navigate]);
-
-  // Fetch saved posts for logged-in user
-  useEffect(() => {
-    const fetchSavedPosts = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-          setUserSavedPosts([]); // Clear saved posts if not logged in
-          return; 
-      }
-
-      try {
-        const response = await axios.get('http://localhost:8080/api/v1/users/me/saved-posts', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response && response.data) {
-          // Filter out the currently viewed post from the saved list
-          const filteredSavedPosts = response.data.filter(p => p.forumPostID !== parseInt(postId));
-          
-          // Format the saved posts
-          const formattedSavedPosts = filteredSavedPosts.map(post => ({
-            id: post.forumPostID,
-            title: post.title,
-            userName: post.creatorName || 'Anonymous', // Use creatorName
-            commentCount: post.commentCount || 0,
-            likesCount: post.likesCount || 0,
-          }));
-          setUserSavedPosts(formattedSavedPosts);
-        } else {
-           setUserSavedPosts([]);
-        }
-      } catch (err) {
-        console.error("Error fetching saved posts:", err);
-        setUserSavedPosts([]); // Set empty on error
-      }
-    };
-
-    // Fetch saved posts when postId changes (to filter correctly) or user potentially saves/unsaves
-    fetchSavedPosts(); 
-    // Dependency array could include a refresh trigger if available, or just postId
-  }, [postId]); 
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
@@ -355,10 +304,10 @@ const SelectedForumPage = () => {
 
     const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to comment' } });
+      setShowLoginWarning(true);
       return;
     }
-    setCommentError(null); // Clear previous errors
+    setCommentError(null);
 
     try {
       // Make the API call to the backend comment endpoint
@@ -420,7 +369,7 @@ const SelectedForumPage = () => {
 
     const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to reply' } });
+      setShowLoginWarning(true);
       return;
     }
     setCommentError(null);
@@ -559,31 +508,6 @@ const SelectedForumPage = () => {
                 <EmptyStateMessage style={{ padding: '20px 0' }}>No popular posts yet</EmptyStateMessage>
               )}
             </SidebarPostsList>
-            
-            <SavedPostsTitle>Saved Forum Posts</SavedPostsTitle>
-            <SidebarPostsList>
-              {userSavedPosts.length > 0 ? (
-                userSavedPosts.map((sidebarPost) => (
-                  <SidebarPostItem 
-                    key={`saved-${sidebarPost.id}`} 
-                    onClick={() => navigate(`/forum/post/${sidebarPost.id}`)}
-                  >
-                    <SidebarPostTitle>{sidebarPost.title}</SidebarPostTitle>
-                    <SidebarPostAuthor>
-                      {sidebarPost.userName}
-                    </SidebarPostAuthor>
-                    <SidebarPostStats>
-                      <span>{sidebarPost.commentCount} comments</span>
-                    </SidebarPostStats>
-                  </SidebarPostItem>
-                ))
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                  <EmptyStateMessage style={{ padding: '20px 0' }}>No saved posts yet</EmptyStateMessage>
-                </div>
-              )}
-              {userSavedPosts.length > 0 && <ViewAllLink onClick={() => navigate('/forum/saved')}>View All</ViewAllLink>}
-            </SidebarPostsList>
           </LeftSidebar>
 
           <RightContent>
@@ -696,6 +620,26 @@ const SelectedForumPage = () => {
         </ForumContent>
       </ForumContainer>
 
+      {/* Login Warning Modal */}
+      {showLoginWarning && (
+        <ModalOverlay onClick={() => setShowLoginWarning(false)}>
+          <WarningModal onClick={e => e.stopPropagation()}>
+            <WarningTitle>Sign in Required</WarningTitle>
+            <WarningMessage>
+              You need to be signed in to participate in discussions. Would you like to sign in or create an account?
+            </WarningMessage>
+            <WarningButtons>
+              <CancelButton onClick={() => setShowLoginWarning(false)}>
+                Cancel
+              </CancelButton>
+              <SignInButton onClick={() => navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to comment' } })}>
+                Sign in / Sign up
+              </SignInButton>
+            </WarningButtons>
+          </WarningModal>
+        </ModalOverlay>
+      )}
+
       {zoomedImageUrl && (
         <ZoomOverlay onClick={() => setZoomedImageUrl(null)}>
           <ZoomedImage src={zoomedImageUrl} alt="Zoomed post media" />
@@ -710,6 +654,10 @@ const ForumContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
+
+  @media (max-width: 768px) {
+    padding: 0 15px;
+  }
 `;
 
 const ForumContent = styled.div`
@@ -726,10 +674,19 @@ const LeftSidebar = styled.div`
   flex: 0 0 30%;
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const RightContent = styled.div`
   flex: 0 0 70%;
+
+  @media (max-width: 768px) {
+    flex: 1;
+    width: 100%;
+  }
 `;
 
 const PopularPostsTitle = styled.h2`
@@ -737,13 +694,6 @@ const PopularPostsTitle = styled.h2`
   font-weight: 600;
   color: #101828;
   margin: 0 0 15px 0;
-`;
-
-const SavedPostsTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 600;
-  color: #101828;
-  margin: 30px 0 15px 0;
 `;
 
 const SidebarPostsList = styled.div`
@@ -795,24 +745,6 @@ const SidebarPostStats = styled.div`
   color: #667085;
 `;
 
-const ViewAllLink = styled.button`
-  background: none;
-  border: none;
-  color: #1849A9;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 10px 15px;
-  text-align: center;
-  border-top: 1px solid #F2F4F7;
-  width: 100%;
-  transition: background-color 0.2s;
-  
-  &:hover {
-    background-color: #F9FAFB;
-  }
-`;
-
 const BackLink = styled.button`
   background: none;
   border: none;
@@ -836,6 +768,12 @@ const BackLink = styled.button`
   &:active {
       transform: translateY(1px);
   }
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+    padding: 5px 8px;
+    margin-bottom: 15px;
+  }
 `;
 
 const DetailedPost = styled.div`
@@ -843,6 +781,11 @@ const DetailedPost = styled.div`
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
 `;
 
 const DetailedPostHeader = styled.div`
@@ -850,6 +793,11 @@ const DetailedPostHeader = styled.div`
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
+  }
 `;
 
 const DetailedPostAuthorSection = styled.div`
@@ -904,11 +852,11 @@ const CategoryTag = styled.span`
   transition: all 0.2s ease;
   white-space: nowrap;
 
-  color: ${props => props.$categoryColor || '#475467'}; 
+  color: ${props => props.$categoryColor || '#475467'};
   background-color: ${props => 
     props.$categoryColor 
       ? props.$categoryColor + '33'
-      : '#e9ecef' 
+      : '#e9ecef'
   };
 
   &:hover {
@@ -918,6 +866,11 @@ const CategoryTag = styled.span`
         : '#d8dde1'
     };
     transform: translateY(-1px);
+  }
+
+  @media (max-width: 768px) {
+    font-size: 11px;
+    padding: 3px 8px;
   }
 `;
 
@@ -930,6 +883,11 @@ const DetailedPostTitle = styled.h1`
   font-weight: 600;
   color: #101828;
   margin: 0 0 15px 0;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+    margin: 0 0 12px 0;
+  }
 `;
 
 const DetailedPostText = styled.div`
@@ -938,6 +896,12 @@ const DetailedPostText = styled.div`
   line-height: 1.6;
   margin-bottom: 20px;
   white-space: pre-line;
+
+  @media (max-width: 768px) {
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 15px;
+  }
 `;
 
 const DetailedPostMedia = styled.img.attrs({
@@ -953,9 +917,9 @@ const DetailedPostMedia = styled.img.attrs({
   cursor: zoom-in;
   transition: transform 0.2s ease;
 
-  &:hover {
-      /* Optional: slight zoom on hover */
-      /* transform: scale(1.02); */
+  @media (max-width: 768px) {
+    max-width: 100%;
+    margin-top: 8px;
   }
 `;
 
@@ -997,6 +961,12 @@ const CommentsSection = styled.div`
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+
+  @media (max-width: 768px) {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 8px;
+  }
 `;
 
 const CommentForm = styled.form`
@@ -1004,6 +974,10 @@ const CommentForm = styled.form`
   align-items: flex-start;
   gap: 12px;
   width: 100%;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+  }
 `;
 
 const CommentInput = styled(TextareaAutosize)`
@@ -1025,6 +999,12 @@ const CommentInput = styled(TextareaAutosize)`
 
   &::placeholder {
     color: #98A2B3;
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 14px;
+    font-size: 14px;
+    min-height: 40px;
   }
 `;
 
@@ -1085,6 +1065,11 @@ const CommentItemContainer = styled.div`
   &:last-child {
     border-bottom: none;
   }
+
+  @media (max-width: 768px) {
+    gap: ${props => props.$isReply ? '16px' : '20px'};
+    padding: ${props => props.$isReply ? '0' : '24px 0'};
+  }
 `;
 
 const CommentMainContent = styled.div`
@@ -1140,6 +1125,11 @@ const CommentText = styled.p`
   white-space: pre-line;
   word-wrap: break-word;
   padding: 4px 0;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    line-height: 1.5;
+  }
 `;
 
 const CommentActionsContainer = styled.div`
@@ -1309,6 +1299,13 @@ const RepliesContainer = styled.div`
     width: 2px;
     background-color: #E4E7EC;
   }
+
+  @media (max-width: 768px) {
+    margin-left: 40px;
+    padding-left: 20px;
+    width: calc(100% - 40px);
+    gap: 16px;
+  }
 `;
 
 const EmptyCommentsMessage = styled.div`
@@ -1402,5 +1399,100 @@ const ZoomedImage = styled.img`
   cursor: default; // Prevent overlay cursor on the image itself
 `;
 // --- End of Image Zoom Modal styles ---
+
+// Add new styled components for the warning modal
+const WarningModal = styled.div`
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+  animation: modalAppear 0.3s ease-out;
+
+  @media (max-width: 768px) {
+    padding: 20px;
+    width: 85%;
+  }
+
+  @keyframes modalAppear {
+    from {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+`;
+
+const WarningTitle = styled.h3`
+  margin: 0 0 12px 0;
+  color: #101828;
+  font-size: 18px;
+  font-weight: 600;
+`;
+
+const WarningMessage = styled.p`
+  margin: 0 0 24px 0;
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.5;
+`;
+
+const WarningButtons = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+`;
+
+const CancelButton = styled.button`
+  padding: 8px 16px;
+  border: 1px solid #D0D5DD;
+  background: white;
+  color: #344054;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #F9FAFB;
+    border-color: #98A2B3;
+  }
+`;
+
+const SignInButton = styled.button`
+  padding: 8px 16px;
+  border: none;
+  background: #1849A9;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #1237A3;
+  }
+`;
+
+// Add new styled components for the warning modal
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
 
 export default SelectedForumPage;

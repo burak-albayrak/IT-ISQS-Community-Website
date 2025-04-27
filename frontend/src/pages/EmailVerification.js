@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import mailman from '../assets/mailman.png';
 import { verifyEmail, resendVerificationCode } from '../services/authService';
+import Popup from '../components/Popup';
 
 const Container = styled.div`
   display: flex;
@@ -173,6 +174,7 @@ const EmailVerification = () => {
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
   const location = useLocation();
@@ -235,9 +237,12 @@ const EmailVerification = () => {
       const response = await verifyEmail(code);
       console.log('Verification successful:', response);
       
-      // Başarılı doğrulama sonrası
-      setIsLoading(false);
-      navigate('/login', { state: { verificationSuccess: true } });
+      // Show success popup and redirect after delay
+      setShowSuccessPopup(true);
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+        navigate('/login', { state: { verificationSuccess: true } });
+      }, 2000);
     } catch (err) {
       console.error('Verification error:', err);
       if (err.message) {
@@ -247,6 +252,7 @@ const EmailVerification = () => {
       } else {
         setError('Invalid verification code. Please try again.');
       }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -280,49 +286,59 @@ const EmailVerification = () => {
   };
 
   return (
-    <Container>
-      <IllustrationContainer>
-        <Illustration src={mailman} alt="Email verification" />
-      </IllustrationContainer>
-      
-      <VerificationContainer>
-        <Title>We Send You an E-mail.</Title>
-        <Subtitle>Please check your e-mail.</Subtitle>
+    <>
+      <Container>
+        <IllustrationContainer>
+          <Illustration src={mailman} alt="Email verification" />
+        </IllustrationContainer>
         
-        <CodeInputContainer>
-          {[0, 1, 2, 3, 4, 5].map((index) => (
-            <CodeInput
-              key={index}
-              type="text"
-              maxLength="1"
-              value={verificationCode[index]}
-              onChange={(e) => handleChange(index, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(index, e)}
-              ref={(el) => (inputRefs.current[index] = el)}
-            />
-          ))}
-        </CodeInputContainer>
-        
-        <VerifyButton 
-          onClick={handleVerify} 
-          disabled={!isCodeComplete() || isLoading || isResending}
-        >
-          {isLoading ? 'Verifying...' : 'Done'}
-        </VerifyButton>
-        
-        {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
-        
-        <ResendText>
-          Didn't receive a code?
-          <ResendLink onClick={handleResendCode} disabled={isResending || isLoading}>
-            <RefreshIcon viewBox="0 0 24 24">
-              <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 9h7V2l-2.35 4.35z"/>
-            </RefreshIcon>
-            {isResending ? 'Sending...' : 'Resend code'}
-          </ResendLink>
-        </ResendText>
-      </VerificationContainer>
-    </Container>
+        <VerificationContainer>
+          <Title>We Send You an E-mail.</Title>
+          <Subtitle>Please check your e-mail.</Subtitle>
+          
+          <CodeInputContainer>
+            {[0, 1, 2, 3, 4, 5].map((index) => (
+              <CodeInput
+                key={index}
+                type="text"
+                maxLength="1"
+                value={verificationCode[index]}
+                onChange={(e) => handleChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                ref={(el) => (inputRefs.current[index] = el)}
+              />
+            ))}
+          </CodeInputContainer>
+          
+          <VerifyButton 
+            onClick={handleVerify} 
+            disabled={!isCodeComplete() || isLoading || isResending}
+          >
+            {isLoading ? 'Verifying...' : 'Done'}
+          </VerifyButton>
+          
+          {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
+          
+          <ResendText>
+            Didn't receive a code?
+            <ResendLink onClick={handleResendCode} disabled={isResending || isLoading}>
+              <RefreshIcon viewBox="0 0 24 24">
+                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 9h7V2l-2.35 4.35z"/>
+              </RefreshIcon>
+              {isResending ? 'Sending...' : 'Resend code'}
+            </ResendLink>
+          </ResendText>
+        </VerificationContainer>
+      </Container>
+
+      {showSuccessPopup && (
+        <Popup
+          title="Success!"
+          message="Your email has been verified successfully. Redirecting to login..."
+          onClose={() => setShowSuccessPopup(false)}
+        />
+      )}
+    </>
   );
 };
 
