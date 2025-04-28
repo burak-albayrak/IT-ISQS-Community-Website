@@ -52,7 +52,13 @@ public class AuthenticationController {
         } catch (IllegalStateException e) {
             ApiError error = new ApiError();
             error.setStatus(403);
-            error.setMessage("Please verify your email before logging in.");
+            
+            if (e.getMessage().contains("blocked")) {
+                error.setMessage("Your account has been blocked. Please contact the administrator.");
+            } else {
+                error.setMessage("Please verify your email before logging in.");
+            }
+            
             error.setPath("/api/v1/users/login");
             return ResponseEntity.status(403).body(error);
 

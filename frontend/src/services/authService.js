@@ -68,6 +68,22 @@ export const login = async (credentials) => {
     return response.data;
   } catch (error) {
     console.error('Login service error:', error);
+    
+    // İsBlocked kontrolü için özel hata mesajı
+    if (error.response && error.response.status === 403) {
+      if (error.response.data && error.response.data.message) {
+        if (error.response.data.message.includes('blocked')) {
+          // Kullanıcının engellendiği durumda özel hata
+          // eslint-disable-next-line no-throw-literal
+          throw {
+            message: error.response.data.message || 'Your account has been blocked. Please contact the administrator.',
+            status: 403,
+            isBlocked: true
+          };
+        }
+      }
+    }
+    
     throw error;
   }
 };
@@ -100,8 +116,8 @@ const extractUserIdFromToken = (token) => {
 export const register = async (userData) => {
   try {
     console.log('Registering user with data:', userData);
-    const response = await axios.post('https://it-isqs-cankaya.web.app/users/register', userData);
-    console.log('Register response:', response.data);
+    const response = await api.post('/users/register', userData);
+    console.log('Registration successful:', response.data);
     
     // Başarılı kayıt durumunda token ve kullanıcı bilgilerini sakla
     if (response.data && response.data.token) {
@@ -126,6 +142,7 @@ export const register = async (userData) => {
     if (error.response) {
       // API'den gelen hata
       console.error('API error response:', error.response.data);
+      // eslint-disable-next-line no-throw-literal
       throw {
         message: error.response.data.message || 'Registration failed. Please try again.',
         status: error.response.status
@@ -133,6 +150,7 @@ export const register = async (userData) => {
     } else if (error.request) {
       // İstek yapıldı ama yanıt alınamadı
       console.error('No response received:', error.request);
+      // eslint-disable-next-line no-throw-literal
       throw {
         message: 'No response from server. Please check your connection.',
         status: 0
@@ -140,6 +158,7 @@ export const register = async (userData) => {
     } else {
       // İstek oluşturulurken hata oluştu
       console.error('Request error:', error.message);
+      // eslint-disable-next-line no-throw-literal
       throw {
         message: 'Failed to create request. Please try again.',
         status: 0

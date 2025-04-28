@@ -311,7 +311,11 @@ const Login = () => {
             }
         } catch (err) {
             console.error('Login error:', err);
-            if (err.message) {
+            
+            // Özel hata mesajları
+            if (err.isBlocked) {
+                setError("Your account has been blocked. Please contact the administrator.");
+            } else if (err.message) {
                 setError(err.message);
             } else if (typeof err === 'string') {
                 setError(err);
