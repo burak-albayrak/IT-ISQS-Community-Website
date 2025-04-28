@@ -5,8 +5,16 @@ import styled from 'styled-components';
 import axiosInstance from '../services/axiosConfig';
 import Popup from '../components/Popup';
 import UserEditModal from '../components/UserEditModal';
+import BlogEditModal from '../components/BlogEditModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faEdit, faBan, faUnlock } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faSearch, 
+  faEdit, 
+  faBan, 
+  faUnlock, 
+  faTrash, 
+  faPlus 
+} from '@fortawesome/free-solid-svg-icons';
 
 const DashboardContainer = styled.div`
   max-width: 1200px;
@@ -147,10 +155,44 @@ const EmptyMessage = styled.div`
   font-style: italic;
 `;
 
+// Add new styles for blog management
+const AddButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #223A70;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-left: auto;
+  
+  &:hover {
+    background-color: #192C54;
+    transform: translateY(-2px);
+  }
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+`;
+
+const BlogDate = styled.span`
+  color: #666;
+  font-size: 0.9rem;
+`;
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
+  const [blogs, setBlogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState(null);
   const [messageType, setMessageType] = useState('success');
@@ -159,6 +201,10 @@ const AdminDashboard = () => {
   // Kullanıcı düzenleme için state
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Blog düzenleme için state
+  const [selectedBlog, setSelectedBlog] = useState(null);
+  const [showBlogModal, setShowBlogModal] = useState(false);
 
   useEffect(() => {
     // Check if admin is authenticated
@@ -167,8 +213,12 @@ const AdminDashboard = () => {
       return;
     }
     
-    fetchUsers();
-  }, [navigate]);
+    if (activeTab === 'users') {
+      fetchUsers();
+    } else if (activeTab === 'blogPosts') {
+      fetchBlogs();
+    }
+  }, [navigate, activeTab]);
 
   const handleLogout = () => {
     adminLogout();
@@ -183,6 +233,18 @@ const AdminDashboard = () => {
       setLoading(false);
     } catch (error) {
       showMessage('Failed to fetch users', 'error');
+      setLoading(false);
+    }
+  };
+  
+  const fetchBlogs = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get('/blogs');
+      setBlogs(response.data);
+      setLoading(false);
+    } catch (error) {
+      showMessage('Failed to fetch blogs', 'error');
       setLoading(false);
     }
   };
@@ -231,6 +293,52 @@ const AdminDashboard = () => {
     }
   };
   
+  // Blog oluşturma/düzenleme modalını aç
+  const handleCreateBlog = () => {
+    setSelectedBlog(null);
+    setShowBlogModal(true);
+  };
+  
+  // Blog düzenleme
+  const handleEditBlog = (blog) => {
+    setSelectedBlog(blog);
+    setShowBlogModal(true);
+  };
+  
+  // Blog silme
+  const handleDeleteBlog = async (blogId) => {
+    if (!window.confirm('Are you sure you want to delete this blog post?')) {
+      return;
+    }
+    
+    try {
+      await axiosInstance.delete(`/blogs/${blogId}`);
+      showMessage('Blog deleted successfully', 'success');
+      fetchBlogs();
+    } catch (error) {
+      showMessage('Failed to delete blog', 'error');
+    }
+  };
+  
+  // Blog kaydetme
+  const handleSaveBlog = async (blogId, blogData) => {
+    try {
+      if (blogId) {
+        // Blog güncelleme
+        await axiosInstance.put(`/blogs/${blogId}`, blogData);
+        showMessage('Blog updated successfully', 'success');
+      } else {
+        // Yeni blog oluşturma
+        await axiosInstance.post('/blogs/create', blogData);
+        showMessage('Blog created successfully', 'success');
+      }
+      fetchBlogs();
+    } catch (error) {
+      showMessage('Failed to save blog', 'error');
+      throw error; // Hata modal içinde işlensin diye hatayı yeniden fırlat
+    }
+  };
+  
   const showMessage = (msg, type) => {
     setMessage(msg);
     setMessageType(type);
@@ -242,9 +350,26 @@ const AdminDashboard = () => {
     user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  const filteredBlogs = blogs.filter(blog => 
+    blog.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    blog.owner?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    blog.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Format date to DD.MM.YYYY
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '50px' }}>Loading users...</div>;
+    return <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>;
   }
 
   return (
@@ -341,10 +466,74 @@ const AdminDashboard = () => {
       )}
       
       {activeTab === 'blogPosts' && (
-        <div>
-          <h2>Blog Posts</h2>
-          {/* Blog posts content will be implemented here */}
-        </div>
+        <>
+          <HeaderRow>
+            <SearchContainer style={{ flex: 1, marginBottom: 0 }}>
+              <SearchInput
+                type="text"
+                placeholder="Search in Blogs"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <SearchIcon>
+                <FontAwesomeIcon icon={faSearch} />
+              </SearchIcon>
+            </SearchContainer>
+            <AddButton onClick={handleCreateBlog}>
+              <FontAwesomeIcon icon={faPlus} /> Create New Blog
+            </AddButton>
+          </HeaderRow>
+
+          <Table>
+            <thead>
+              <tr>
+                <Th>Owner</Th>
+                <Th>Title</Th>
+                <Th>Date</Th>
+                <Th>Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBlogs.length > 0 ? (
+                filteredBlogs.map(blog => (
+                  <tr key={blog.blogID}>
+                    <Td>{blog.owner || '-'}</Td>
+                    <Td>{blog.title}</Td>
+                    <Td>
+                      <BlogDate>
+                        {formatDate(blog.createdAt)}
+                      </BlogDate>
+                    </Td>
+                    <Td>
+                      <ActionButtonsContainer>
+                        <ActionButton 
+                          color="#3498db"
+                          onClick={() => handleEditBlog(blog)}
+                          title="Edit Blog"
+                        >
+                          <FontAwesomeIcon icon={faEdit} />
+                        </ActionButton>
+                        <ActionButton
+                          color="#e74c3c"
+                          onClick={() => handleDeleteBlog(blog.blogID)}
+                          title="Delete Blog"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </ActionButton>
+                      </ActionButtonsContainer>
+                    </Td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <Td colSpan="4">
+                    <EmptyMessage>No blogs found</EmptyMessage>
+                  </Td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+        </>
       )}
       
       {activeTab === 'reportedUsers' && (
@@ -359,6 +548,14 @@ const AdminDashboard = () => {
           user={selectedUser}
           onClose={() => setShowEditModal(false)}
           onSave={handleSaveUser}
+        />
+      )}
+      
+      {showBlogModal && (
+        <BlogEditModal
+          blog={selectedBlog}
+          onClose={() => setShowBlogModal(false)}
+          onSave={handleSaveBlog}
         />
       )}
     </DashboardContainer>

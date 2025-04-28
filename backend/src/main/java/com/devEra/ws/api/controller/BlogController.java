@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -73,6 +74,34 @@ public class BlogController {
 
         blogService.deleteBlog(id, adminId);
         return ResponseEntity.ok(new GenericMessage("Blog deleted successfully."));
+    }
+    
+    // 6. Blog kategorilerini getir
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getCategories() {
+        // Blog kategorileri
+        List<String> categories = Arrays.asList(
+            "ARVR",
+            "Blockchain",
+            "CloudComputing",
+            "Cybersecurity",
+            "DataScience",
+            "DatabaseManagement",
+            "DevOps",
+            "EmbeddedSystems",
+            "GameDevelopment",
+            "MachineLearning",
+            "MobileDevelopment",
+            "OpenSource",
+            "ProjectManagement",
+            "QAStandards",
+            "SoftwareArchitecture",
+            "SoftwareTesting",
+            "TestPlanning",
+            "WebDevelopment"
+        );
+        
+        return ResponseEntity.ok(categories);
     }
 
     // 🔴 NOT FOUND HATASI

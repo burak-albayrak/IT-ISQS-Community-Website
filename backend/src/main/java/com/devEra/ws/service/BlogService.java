@@ -19,6 +19,7 @@ public class BlogService {
 
     private final BlogRepository blogRepository;
     private final AdminRepository adminRepository;
+    private final S3Service s3Service;
 
     public Blog createBlog(CreateBlogRequest request, int adminId) {
         Admin admin = adminRepository.findById(adminId)
@@ -63,6 +64,21 @@ public class BlogService {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Blog not found"));
 
+        // Eğer medya değiştiyse ve eski bir medya varsa, eski medyayı sil
+        if (blog.getMedia() != null && !blog.getMedia().isEmpty() 
+            && request.getMedia() != null && !request.getMedia().equals(blog.getMedia())) {
+            try {
+                // S3'ten eski medyayı sil
+                String key = extractS3KeyFromUrl(blog.getMedia());
+                if (!key.isEmpty()) {
+                    s3Service.deleteFile(key);
+                }
+            } catch (Exception e) {
+                // Silme hatalarını log'la ama işleme devam et
+                System.err.println("Error deleting old media: " + e.getMessage());
+            }
+        }
+
         blog.setTitle(request.getTitle());
         blog.setDescription(request.getDescription());
         blog.setMedia(request.getMedia());
@@ -79,7 +95,37 @@ public class BlogService {
     
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Blog not found"));
+        
+        // Eğer medya varsa, S3'ten sil
+        if (blog.getMedia() != null && !blog.getMedia().isEmpty()) {
+            try {
+                String key = extractS3KeyFromUrl(blog.getMedia());
+                if (!key.isEmpty()) {
+                    s3Service.deleteFile(key);
+                }
+            } catch (Exception e) {
+                // Silme hatalarını log'la ama işleme devam et
+                System.err.println("Error deleting media: " + e.getMessage());
+            }
+        }
     
         blogRepository.delete(blog);
+    }
+    
+    /**
+     * S3 URL'sinden dosya anahtarını (key) çıkarır
+     */
+    private String extractS3KeyFromUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return "";
+        }
+        
+        // S3 URL formatı: https://bucket-name.s3.region.amazonaws.com/file-key
+        String[] parts = url.split(".amazonaws.com/");
+        if (parts.length > 1) {
+            return parts[1];
+        }
+        
+        return "";
     }
 }
