@@ -47,7 +47,7 @@ public class UserController {
     @Autowired
     com.devEra.ws.config.security.JwtTokenService jwtTokenService;
 
-    @PostMapping("/users/register")
+    @PostMapping("/api/v1/users/register")
     GenericMessage createUser(@Valid @RequestBody User user) {
         userService.save(user);
         return new GenericMessage("User is created!");
