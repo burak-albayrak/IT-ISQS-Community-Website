@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const instance = axios.create({
-    baseURL: 'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1', // Live API URL
+    baseURL: 'http://localhost:8080/api/v1', 
     timeout: 10000,
 });
 

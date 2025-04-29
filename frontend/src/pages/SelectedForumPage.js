@@ -3,6 +3,7 @@ import styled, { createGlobalStyle } from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft } from 'react-icons/fi';
 import axios from 'axios';
+import api from '../services/api';
 import defaultProfilePic from '../assets/defaultpp.jpg';
 import TextareaAutosize from 'react-textarea-autosize';
 
@@ -133,20 +134,7 @@ const SelectedForumPage = () => {
     setCommentError(null);
     try {
       console.log('Fetching comments for post:', postId);
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      console.log('Making request with headers:', headers);
-      const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments/post/${postId}/all`, {
-        headers: headers
-      });
+      const response = await api.get(`/forum-comments/post/${postId}/all`);
       
       console.log('Raw response:', response);
       console.log('Response status:', response.status);
@@ -233,7 +221,7 @@ const SelectedForumPage = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories');
+        const response = await api.get('/forum-categories');
         if (response && response.data) {
           const colorMap = response.data.reduce((acc, category) => {
             if (category.name && category.color) {
@@ -257,7 +245,7 @@ const SelectedForumPage = () => {
       
       try {
         console.log('Fetching post with ID:', postId);
-        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/${postId}`);
+        const response = await api.get(`/forum-posts/${postId}`);
         console.log('Forum post response:', response);
         
         if (response && response.data) {
@@ -286,7 +274,7 @@ const SelectedForumPage = () => {
           
           // Fetch popular posts for sidebar
           try {
-            const allPostsResponse = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts`);
+            const allPostsResponse = await api.get('/forum-posts');
             if (allPostsResponse && allPostsResponse.data) {
               const formattedPosts = allPostsResponse.data.map(post => ({
                 id: post.forumPostID,
@@ -349,9 +337,7 @@ const SelectedForumPage = () => {
     }
 
     try {
-      const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/recommendations/forum-posts', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await api.get('/recommendations/forum-posts');
       
       if (response && response.data) {
         // Filter out the currently viewed post from the recommendations
@@ -387,12 +373,7 @@ const SelectedForumPage = () => {
           return;
         }
 
-        const response = await axios.get(
-          'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/user/interaction-count',
-          {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }
-        );
+        const response = await api.get('/user/interaction-count');
 
         // Assuming the cold start limit is 5 interactions
         setIsBelowColdStart(response.data.interactionCount < 5);
@@ -423,17 +404,11 @@ const SelectedForumPage = () => {
     setReviewModalMessage("Checking comment...");
 
     try {
-      const response = await axios.post(
-        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments`,
+      const response = await api.post(
+        `/forum-comments`,
         {
           forumPostID: parseInt(postId),
           description: newComment,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
         }
       );
 
@@ -491,18 +466,12 @@ const SelectedForumPage = () => {
     setReviewModalMessage("Checking reply...");
 
     try {
-      const response = await axios.post(
-        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments`,
+      const response = await api.post(
+        `/forum-comments`,
         {
           forumPostID: parseInt(postId),
           description: replyInputValue,
           parentCommentID: replyingToCommentId
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
         }
       );
 
@@ -558,18 +527,12 @@ const SelectedForumPage = () => {
     setCommentError(null);
 
     try {
-      await axios.post(
-        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments`,
+      await api.post(
+        `/forum-comments`,
         {
           forumPostID: parseInt(postId),
           description: replyText,
           parentCommentID: commentId
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
         }
       );
 

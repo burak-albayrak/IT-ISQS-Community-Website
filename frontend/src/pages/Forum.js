@@ -3,6 +3,7 @@ import styled, { createGlobalStyle } from 'styled-components';
 import { FiSearch, FiArrowRight, FiFilter, FiChevronDown, FiMoreHorizontal, FiX, FiImage, FiSend, FiTag, FiEye } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import api from '../services/api';
 import '../styles/Forum.css';
 import forumLogo from '../assets/forum.png';
 import defaultProfilePic from '../assets/defaultpp.jpg';
@@ -86,12 +87,7 @@ const Forum = () => {
           return;
         }
 
-        const response = await axios.get(
-          'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/user/interaction-count',
-          {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }
-        );
+        const response = await api.get('/user/interaction-count');
 
         // Assuming the cold start limit is 5 interactions
         setIsBelowColdStart(response.data.interactionCount < 5);
@@ -114,12 +110,7 @@ const Forum = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get(
-        'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/recommendations/forum-posts',
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      const response = await api.get('/recommendations/forum-posts');
 
       if (response && response.data) {
         const formattedRecommendations = response.data.map(post => ({
@@ -145,8 +136,7 @@ const Forum = () => {
       setError(null);
       
       try {
-        // Get forum posts from backend
-        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts`);
+        const response = await api.get('/forum-posts');
         
         if (response && response.data) {
           const posts = response.data;
@@ -236,7 +226,7 @@ const Forum = () => {
   useEffect(() => {
     const fetchAndFilterCategories = async () => {
       try {
-        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories');
+        const response = await api.get('/forum-categories');
         let fetchedCategories = [];
         if (response && response.data) {
           fetchedCategories = response.data; // Assuming response.data is an array of { categoryId, name, color, ... }
@@ -502,118 +492,66 @@ const Forum = () => {
 
   // Submit new post
   const submitNewPost = async () => {
-    // Validate post data
-    if (!newPostTitle.trim()) {
-      setSubmitError('Please enter a title for your post');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login', { state: { from: '/forum', message: 'Please log in to create a post' } });
       return;
     }
-    if (!newPostContent.trim()) {
-      setSubmitError('Please enter content for your post');
-      return;
-    }
-    if (!newPostCategoryId) {
-      setSubmitError('Please select a category for your post');
+
+    if (!newPostTitle.trim() || !newPostContent.trim() || !newPostCategoryId) {
+      setSubmitError('Please fill in title, content, and select a category.');
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitError('');
-    setReviewModalOpen(true);
-    setReviewModalType("loading");
-    setReviewModalMessage("Checking post...");
+    setSubmitError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login', { state: { from: '/forum', message: 'Please log in to create a post' } });
-        setIsSubmitting(false); // Ensure submitting state is reset
-        setReviewModalOpen(false);
-        return;
-      }
-
-      let response;
-      // Check if files are selected
+      // Create FormData object
+      const formData = new FormData();
+      
+      // Append text fields as form parameters
+      formData.append('title', newPostTitle);
+      formData.append('description', newPostContent);
+      formData.append('categoryId', newPostCategoryId);
+      
+      // Append media files if any
       if (selectedFiles.length > 0) {
-        // Use FormData for multipart request
-        const formData = new FormData();
-        formData.append('title', newPostTitle);
-        formData.append('description', newPostContent);
-        formData.append('categoryId', newPostCategoryId);
-
         selectedFiles.forEach(file => {
           formData.append('mediaFiles', file);
         });
-
-        // Send POST request to the /with-media endpoint
-        response = await axios.post(
-          'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/with-media',
-          formData,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              // Content-Type is automatically set by axios for FormData
-            }
-          }
-        );
-      } else {
-        // No media files - send regular POST request
-        response = await axios.post(
-          'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts',
-          {
-            title: newPostTitle,
-            description: newPostContent,
-            categoryId: newPostCategoryId
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
       }
 
-      if (response && (response.status === 200 || response.status === 201)) {
-        // Post created successfully
-        setShowCreateModal(false); // Close modal
-        setIsSubmitting(false);
-        setReviewModalOpen(false);
+      // Make the API call with FormData - content type is handled by the interceptor
+      const response = await api.post('/forum-posts/with-media', formData);
+      console.log('Post created successfully:', response.data);
 
-        // Set success message
-        setSubmitSuccess('Forum post published successfully!');
-        // Clear success message after 5 seconds
-        setTimeout(() => {
-          setSubmitSuccess('');
-        }, 5000);
+      // Reset form and close modal
+      setShowCreateModal(false);
+      setIsSubmitting(false);
+      setSubmitSuccess('Forum post published successfully!');
+      setTimeout(() => {
+        setSubmitSuccess('');
+      }, 5000);
 
-        // Refresh the posts list by incrementing the refreshKey
-        setRefreshKey(prev => prev + 1);
-
-      } else {
-        // Handle unexpected success response
-        setSubmitError(response.data?.message || 'Failed to create post. Unexpected response.');
-        setIsSubmitting(false);
-        setReviewModalType("error");
-        setReviewModalMessage("Failed to create post. Please try again.");
-        setTimeout(() => {
-          setReviewModalOpen(false);
-        }, 3000);
-      }
+      // Refresh the posts list by incrementing the refreshKey
+      setRefreshKey(prev => prev + 1);
     } catch (err) {
       console.error('Error creating forum post:', err);
       
       setIsSubmitting(false);
       setReviewModalType("error");
+      setReviewModalOpen(true);
       
-      if (err.response?.data?.message?.includes("toxic")) {
+      if (err.message?.includes("toxic")) {
         setReviewModalMessage("Your post contains inappropriate content. Please revise and try again.");
         setSubmitError('Please ensure your content follows community guidelines.');
-      } else if (err.response?.status === 401 || err.response?.status === 403) {
+      } else if (err.status === 401 || err.status === 403) {
         setReviewModalMessage("Authentication error. Please log in again.");
         setSubmitError('Authentication error. Please log in again.');
       } else {
         setReviewModalMessage("Failed to submit post. Please try again.");
-        setSubmitError('Failed to submit post. Please try again.');
+        setSubmitError(`Failed to submit post: ${err.message || 'Unknown error'}`);
       }
       
       setTimeout(() => {

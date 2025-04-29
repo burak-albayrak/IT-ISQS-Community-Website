@@ -7,6 +7,7 @@ import BlogService from '../services/BlogService';
 import axios from 'axios';
 import defaultBlogImage from '../assets/defaultblog.png';
 import blogBannerLogo from '../assets/blog-banner.png';
+import api from '../services/api';
 
 // Global stil ekleyerek, tüm sayfa için geçerli olacak stilleri tanımlayalım
 const GlobalStyle = createGlobalStyle`
@@ -70,7 +71,7 @@ const Blog = () => {
       setError(null);
       
       try {
-        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/blogs`);
+        const response = await BlogService.getAllBlogs();
         
         if (response && response.data) {
           // If backend data is returned
@@ -154,8 +155,7 @@ const Blog = () => {
   useEffect(() => {
     const fetchAndFilterCategories = async () => {
       try {
-        // Assuming blog categories are fetched from the same endpoint as forum
-        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories'); 
+        const response = await api.get('/forum-categories'); 
         let fetchedCategories = [];
         if (response && response.data) {
           fetchedCategories = response.data;
@@ -223,8 +223,7 @@ const Blog = () => {
     if (!searchQuery.trim()) return;
 
     try {
-      // Get all blogs from the database and filter them on the client side
-      const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/blogs`);
+      const response = await BlogService.getAllBlogs();
       
       if (response && response.data) {
         const blogs = response.data;
@@ -304,7 +303,7 @@ const Blog = () => {
         return blog.imageUrl;
       }
       // Eğer statik bir referans ise API_URL'ye eklenebilir
-      return `https://closed-merola-deveracankaya-2f4e22df.koyeb.app${blog.imageUrl}`;
+      return `${api.defaults.baseURL}${blog.imageUrl}`;
     }
     
     // Base64 kodlu bir görsel ise

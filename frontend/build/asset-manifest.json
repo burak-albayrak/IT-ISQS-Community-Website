@@ -1,0 +1,37 @@
+{
+  "files": {
+    "main.css": "/static/css/main.dacda1dc.css",
+    "main.js": "/static/js/main.e24a221e.js",
+    "static/js/453.d855a71b.chunk.js": "/static/js/453.d855a71b.chunk.js",
+    "static/media/home.png": "/static/media/home.43ecd9dad5ec596a8270.png",
+    "static/media/about-us.png": "/static/media/about-us.b47de3b1958349f0e7cc.png",
+    "static/media/blog-banner.png": "/static/media/blog-banner.3d555fc63a53d59e844e.png",
+    "static/media/home2.png": "/static/media/home2.12ed5b6df67b0c677b46.png",
+    "static/media/syllabus.png": "/static/media/syllabus.e2e5c862802e5a3a1151.png",
+    "static/media/project.png": "/static/media/project.1ff9b1138f0b7d96dc98.png",
+    "static/media/defaultblog.png": "/static/media/defaultblog.315ee2e873ba84badcd5.png",
+    "static/media/logo.png": "/static/media/logo.7b976746aab6e5246566.png",
+    "static/media/newpassword.png": "/static/media/newpassword.ea489dfb2a73256066fc.png",
+    "static/media/contactus.png": "/static/media/contactus.8e3a2054c0e8989a83d9.png",
+    "static/media/mail.png": "/static/media/mail.ee2cf15675e0d69a0509.png",
+    "static/media/mailman.png": "/static/media/mailman.39ef55003cf327a91bcb.png",
+    "static/media/ted-logo.png": "/static/media/ted-logo.e92bfe80e16cbea872ef.png",
+    "static/media/fufdv-logo.png": "/static/media/fufdv-logo.64f066b1db91304bfd0c.png",
+    "static/media/our.png": "/static/media/our.bccd72dbb609e681a525.png",
+    "static/media/useremail.png": "/static/media/useremail.440bbf627afe460575b9.png",
+    "static/media/defaultpp.jpg": "/static/media/defaultpp.7fe14f0accd9979e3303.jpg",
+    "static/media/cankaya-logo.png": "/static/media/cankaya-logo.ed407f926bfdbbba8ad7.png",
+    "static/media/tik.png": "/static/media/tik.c1e8618dd14672e8dedb.png",
+    "static/media/forum.png": "/static/media/forum.1fa792242d631a95dbe0.png",
+    "static/media/logo.svg": "/static/media/logo.6ce24c58023cc2f8fd88fe9d219db6c6.svg",
+    "static/media/european.svg": "/static/media/european.88fc18aa18ebda341d47d50b945d03eb.svg",
+    "index.html": "/index.html",
+    "main.dacda1dc.css.map": "/static/css/main.dacda1dc.css.map",
+    "main.e24a221e.js.map": "/static/js/main.e24a221e.js.map",
+    "453.d855a71b.chunk.js.map": "/static/js/453.d855a71b.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.dacda1dc.css",
+    "static/js/main.e24a221e.js"
+  ]
+}
