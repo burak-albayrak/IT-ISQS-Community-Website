@@ -19,6 +19,7 @@ import BlogDetail from './pages/BlogDetail';
 import Forum from './pages/Forum';
 import SelectedForumPage from './pages/SelectedForumPage';
 import Home from './pages/Home';
+import MeetUp from './pages/MeetUp';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
               <Route path="/forum/post/:postId" element={<SelectedForumPage />} />
               <Route path="/project-results" element={<ProjectResults />} />
               <Route path="/contact" element={<ContactUs />} />
+              <Route path="/meet-up" element={<MeetUp />} />
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<EmailVerification />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
