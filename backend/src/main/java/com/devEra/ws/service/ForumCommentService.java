@@ -3,6 +3,7 @@ package com.devEra.ws.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -25,16 +26,21 @@ import com.devEra.ws.repository.Forum.ForumPostRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 public class ForumCommentService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ForumCommentService.class);
+    
     private final ForumCommentRepository commentRepository;
     private final ForumCommentLikeRepository commentLikeRepository;
     private final ForumPostRepository postRepository;
     private final UserRepository userRepository;
     private final AdminRepository adminRepository;
+    private final ToxicityDetectionService toxicityDetectionService;
 
     /**
      * Yeni bir forum yorumu oluşturur
@@ -64,6 +70,17 @@ public class ForumCommentService {
             if (parentComment.getParentCommentID() != null) {
                 throw new IllegalArgumentException("Cannot reply to a reply. You can only reply to main comments.");
             }
+        }
+        
+        // Toksik içerik kontrolü yap
+        Map<String, Object> toxicityResult = toxicityDetectionService.checkToxicity(request.getDescription());
+        Boolean isToxic = (Boolean) toxicityResult.get("is_toxic");
+        Double toxicScore = (Double) toxicityResult.get("toxic_score");
+        
+        logger.info("Toxicity check result for comment: isToxic={}, score={}", isToxic, toxicScore);
+        
+        if (Boolean.TRUE.equals(isToxic)) {
+            throw new IllegalArgumentException("Your comment contains toxic content. Please comment respectfully.");
         }
         
         // Yeni yorumu oluştur
@@ -109,6 +126,17 @@ public class ForumCommentService {
         // Sadece yorum sahibi güncelleyebilir
         if (comment.getCreatedBy() != requesterId || comment.getCreatedByType() != requesterType) {
             throw new SecurityException("You are not authorized to update this comment");
+        }
+        
+        // Toksik içerik kontrolü yap
+        Map<String, Object> toxicityResult = toxicityDetectionService.checkToxicity(description);
+        Boolean isToxic = (Boolean) toxicityResult.get("is_toxic");
+        Double toxicScore = (Double) toxicityResult.get("toxic_score");
+        
+        logger.info("Toxicity check result for comment update: isToxic={}, score={}", isToxic, toxicScore);
+        
+        if (Boolean.TRUE.equals(isToxic)) {
+            throw new IllegalArgumentException("Your comment contains toxic content. Please comment respectfully.");
         }
         
         comment.setDescription(description);

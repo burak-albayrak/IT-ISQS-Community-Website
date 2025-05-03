@@ -2,7 +2,6 @@ package com.devEra.ws.entity;
 
 import com.devEra.ws.core.enums.Role;
 import com.devEra.ws.core.enums.Gender;
-import com.devEra.ws.core.validation.UniqueEmail;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -33,7 +32,6 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
-    //@UniqueEmail
     @Email(message = "Please provide a valid email address.")
     @NotBlank(message = "Email address cannot be blank.")
     @Column(name = "email")
@@ -44,6 +42,7 @@ public class User {
     @NotBlank(message = "Password cannot be blank.")
     private String password;
 
+    @Column(name = "is_blocked")
     private Boolean isBlocked = false;
 
     private Boolean isActive = false;
@@ -62,4 +61,5 @@ public class User {
     
     @Column(name = "picture")
     private String picture;
+
 }

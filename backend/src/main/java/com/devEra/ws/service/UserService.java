@@ -1,6 +1,7 @@
 package com.devEra.ws.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -10,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.devEra.ws.core.enums.CreatorType;
+import com.devEra.ws.core.enums.Role;
 import com.devEra.ws.dto.request.UpdatePasswordRequest;
 import com.devEra.ws.dto.request.UpdateProfileRequest;
 import com.devEra.ws.entity.User;
@@ -129,6 +131,40 @@ public class UserService {
     
     public void saveUser(User user) {
         userRepository.save(user);
+    }
+
+    /**
+     * Tüm kullanıcıları getirir
+     */
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    /**
+     * Kullanıcının engelini günceller
+     */
+    public void toggleUserBlock(int userId, boolean blocked) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        user.setIsBlocked(blocked);
+        userRepository.save(user);
+    }
+
+    /**
+     * Kullanıcının rolünü günceller
+     */
+    public void updateUserRole(int userId, String roleStr) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        
+        // Role validasyonu ve dönüşümü
+        try {
+            Role role = Role.valueOf(roleStr.toUpperCase());
+            user.setRole(role);
+            userRepository.save(user);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid role. Role must be one of: " + Arrays.toString(Role.values()));
+        }
     }
 
 }

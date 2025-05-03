@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1';
+const API_URL = 'http://localhost:8080/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -18,6 +18,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    // Remove Content-Type for FormData/multipart requests
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => {

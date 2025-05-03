@@ -3,6 +3,7 @@ import styled, { createGlobalStyle } from 'styled-components';
 import { FiSearch, FiArrowRight, FiFilter, FiChevronDown, FiMoreHorizontal, FiX, FiImage, FiSend, FiTag, FiEye } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import api from '../services/api';
 import '../styles/Forum.css';
 import forumLogo from '../assets/forum.png';
 import defaultProfilePic from '../assets/defaultpp.jpg';
@@ -48,6 +49,11 @@ const Forum = () => {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // State to trigger data refresh
   const [submitSuccess, setSubmitSuccess] = useState(''); // State for success message
+  const [recommendedPosts, setRecommendedPosts] = useState([]);
+  const [isBelowColdStart, setIsBelowColdStart] = useState(true);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewModalType, setReviewModalType] = useState("loading");
+  const [reviewModalMessage, setReviewModalMessage] = useState("Checking post...");
 
   // Define the allowed category names (alphabetically sorted)
   const allowedCategoryNames = [
@@ -71,6 +77,58 @@ const Forum = () => {
     'WebDevelopment'
   ];
 
+  // Check cold start status when component mounts
+  useEffect(() => {
+    const checkColdStart = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setIsBelowColdStart(true);
+          return;
+        }
+
+        const response = await api.get('/user/interaction-count');
+
+        // Assuming the cold start limit is 5 interactions
+        setIsBelowColdStart(response.data.interactionCount < 5);
+        
+        if (response.data.interactionCount >= 5) {
+          fetchRecommendedPosts();
+        }
+      } catch (err) {
+        console.error('Error checking cold start:', err);
+        setIsBelowColdStart(true);
+      }
+    };
+
+    checkColdStart();
+  }, []);
+
+  // Fetch recommended posts
+  const fetchRecommendedPosts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await api.get('/recommendations/forum-posts');
+
+      if (response && response.data) {
+        const formattedRecommendations = response.data.map(post => ({
+          id: post.forumPostId,
+          title: post.title,
+          categoryName: post.categoryName,
+          commentCount: post.commentCount || 0,
+          similarityScore: post.similarityScore
+        }));
+        
+        setRecommendedPosts(formattedRecommendations);
+      }
+    } catch (err) {
+      console.error('Error fetching recommendations:', err);
+      setRecommendedPosts([]);
+    }
+  };
+
   // Fetch forum data when page loads or refreshKey changes
   useEffect(() => {
     const fetchData = async () => {
@@ -78,8 +136,7 @@ const Forum = () => {
       setError(null);
       
       try {
-        // Get forum posts from backend
-        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts`);
+        const response = await api.get('/forum-posts');
         
         if (response && response.data) {
           const posts = response.data;
@@ -169,7 +226,7 @@ const Forum = () => {
   useEffect(() => {
     const fetchAndFilterCategories = async () => {
       try {
-        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories');
+        const response = await api.get('/forum-categories');
         let fetchedCategories = [];
         if (response && response.data) {
           fetchedCategories = response.data; // Assuming response.data is an array of { categoryId, name, color, ... }
@@ -435,105 +492,71 @@ const Forum = () => {
 
   // Submit new post
   const submitNewPost = async () => {
-    // Validate post data
-    if (!newPostTitle.trim()) {
-      setSubmitError('Please enter a title for your post');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login', { state: { from: '/forum', message: 'Please log in to create a post' } });
       return;
     }
-    if (!newPostContent.trim()) {
-      setSubmitError('Please enter content for your post');
-      return;
-    }
-    if (!newPostCategoryId) {
-      setSubmitError('Please select a category for your post');
+
+    if (!newPostTitle.trim() || !newPostContent.trim() || !newPostCategoryId) {
+      setSubmitError('Please fill in title, content, and select a category.');
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitError('');
+    setSubmitError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login', { state: { from: '/forum', message: 'Please log in to create a post' } });
-        setIsSubmitting(false); // Ensure submitting state is reset
-        return;
-      }
-
-      let response;
-      // Check if files are selected
+      // Create FormData object
+      const formData = new FormData();
+      
+      // Append text fields as form parameters
+      formData.append('title', newPostTitle);
+      formData.append('description', newPostContent);
+      formData.append('categoryId', newPostCategoryId);
+      
+      // Append media files if any
       if (selectedFiles.length > 0) {
-        // Use FormData for multipart request
-        const formData = new FormData();
-        formData.append('title', newPostTitle);
-        formData.append('description', newPostContent);
-        formData.append('categoryId', newPostCategoryId);
-
         selectedFiles.forEach(file => {
           formData.append('mediaFiles', file);
         });
-
-        // Send POST request to the /with-media endpoint
-        response = await axios.post(
-          'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/with-media',
-          formData,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              // Content-Type is automatically set by axios for FormData
-            }
-          }
-        );
-      } else {
-        // Use standard JSON request if no files
-        const postData = {
-          title: newPostTitle,
-          description: newPostContent,
-          categoryId: parseInt(newPostCategoryId) // Ensure categoryId is integer
-        };
-
-        // Send POST request to the standard endpoint
-        response = await axios.post(
-          'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts',
-          postData,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
       }
 
-      if (response && (response.status === 200 || response.status === 201)) {
-        // Post created successfully
-        setShowCreateModal(false); // Close modal
-        setIsSubmitting(false);
+      // Make the API call with FormData - content type is handled by the interceptor
+      const response = await api.post('/forum-posts/with-media', formData);
+      console.log('Post created successfully:', response.data);
 
-        // Set success message
-        setSubmitSuccess('Forum post published successfully!');
-        // Clear success message after 5 seconds
-        setTimeout(() => {
-          setSubmitSuccess('');
-        }, 5000);
-
-        // Refresh the posts list by incrementing the refreshKey
-        setRefreshKey(prev => prev + 1);
-
-      } else {
-        // Handle unexpected success response
-        setSubmitError(response.data?.message || 'Failed to create post. Unexpected response.');
-        setIsSubmitting(false);
-      }
-
-    } catch (error) {
-      console.error('Error creating post:', error);
+      // Reset form and close modal
+      setShowCreateModal(false);
       setIsSubmitting(false);
-      if (error.response) {
-        setSubmitError(error.response.data?.message || `Error: ${error.response.status}`);
+      setSubmitSuccess('Forum post published successfully!');
+      setTimeout(() => {
+        setSubmitSuccess('');
+      }, 5000);
+
+      // Refresh the posts list by incrementing the refreshKey
+      setRefreshKey(prev => prev + 1);
+    } catch (err) {
+      console.error('Error creating forum post:', err);
+      
+      setIsSubmitting(false);
+      setReviewModalType("error");
+      setReviewModalOpen(true);
+      
+      if (err.message?.includes("toxic")) {
+        setReviewModalMessage("Your post contains inappropriate content. Please revise and try again.");
+        setSubmitError('Please ensure your content follows community guidelines.');
+      } else if (err.status === 401 || err.status === 403) {
+        setReviewModalMessage("Authentication error. Please log in again.");
+        setSubmitError('Authentication error. Please log in again.');
       } else {
-        setSubmitError('Failed to create post. Check connection or try again.');
+        setReviewModalMessage("Failed to submit post. Please try again.");
+        setSubmitError(`Failed to submit post: ${err.message || 'Unknown error'}`);
       }
+      
+      setTimeout(() => {
+        setReviewModalOpen(false);
+      }, 3000);
     }
   };
   
@@ -569,6 +592,37 @@ const Forum = () => {
 
         <ForumContent>
           <LeftSidebar>
+            <RecommendationsTitle>Recommendations</RecommendationsTitle>
+            {isBelowColdStart ? (
+              <RecommendationsMessage>
+                You can see suggested posts by commenting and liking the posts.
+              </RecommendationsMessage>
+            ) : recommendedPosts.length > 0 ? (
+              <SidebarPostsList>
+                {recommendedPosts.map((post) => (
+                  <SidebarPostItem 
+                    key={post.id} 
+                    onClick={() => navigate(`/forum/post/${post.id}`)}
+                  >
+                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
+                    {post.categoryName && (
+                      <CategoryTag 
+                        $categoryColor={categoryColorMap[post.categoryName] || null}
+                      >
+                        {post.categoryName}
+                      </CategoryTag>
+                    )}
+                    <SidebarPostStats>
+                      <span>{post.commentCount} comments</span>
+                    </SidebarPostStats>
+                  </SidebarPostItem>
+                ))}
+              </SidebarPostsList>
+            ) : (
+              <RecommendationsMessage>
+                No recommendations available at the moment.
+              </RecommendationsMessage>
+            )}
             <PopularPostsTitle>Popular Forum Posts</PopularPostsTitle>
             <SidebarPostsList>
               {forumPosts.length > 0 ? (
@@ -851,6 +905,25 @@ const Forum = () => {
               </SubmitButton>
             </ModalFooter>
           </ModalContainer>
+        </ModalOverlay>
+      )}
+
+      {/* Review Modal */}
+      {reviewModalOpen && (
+        <ModalOverlay>
+          <ReviewModal>
+            {reviewModalType === "loading" ? (
+              <>
+                <ReviewSpinner />
+                <ReviewText>Under review</ReviewText>
+              </>
+            ) : (
+              <>
+                <ReviewErrorIcon>⚠️</ReviewErrorIcon>
+                <ReviewText type="error">{reviewModalMessage}</ReviewText>
+              </>
+            )}
+          </ReviewModal>
         </ModalOverlay>
       )}
     </>
@@ -1160,6 +1233,25 @@ const RightContent = styled.div`
     flex: 1;
     width: 100%;
   }
+`;
+
+const RecommendationsTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #101828;
+  margin: 0 0 15px 0;
+`;
+
+const RecommendationsMessage = styled.div`
+  color: #667085;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+  background: #F9FAFB;
+  border: 1px solid #F2F4F7;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  line-height: 1.5;
 `;
 
 const PopularPostsTitle = styled.h2`
@@ -1868,6 +1960,40 @@ const GeneralErrorMessage = styled(SuccessMessage)`
   background-color: #ffebee; // Light red background
   color: #c62828; // Dark red text
   border-left-color: #f44336;
+`;
+
+// Add new styled components for Review Modal
+const ReviewModal = styled.div`
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-width: 300px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+`;
+
+const ReviewSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #1849A9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+`;
+
+const ReviewText = styled.p`
+  margin: 0;
+  color: ${props => props.type === "error" ? "#B42318" : "#101828"};
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+`;
+
+const ReviewErrorIcon = styled.div`
+  font-size: 24px;
 `;
 
 export default Forum; 

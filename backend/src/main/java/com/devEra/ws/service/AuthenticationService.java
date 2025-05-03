@@ -30,6 +30,10 @@ public class AuthenticationService {
         if (!user.getIsActive()) {
             throw new IllegalStateException("Email is not verified");
         }
+        
+        if (user.getIsBlocked()) {
+            throw new IllegalStateException("Account is blocked");
+        }
 
         boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPassword());
 

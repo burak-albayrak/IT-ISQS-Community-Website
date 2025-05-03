@@ -14,6 +14,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FiArrowRight, FiMapPin, FiPhone, FiMail, FiGlobe } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import BlogService from '../services/BlogService';
+import api from '../services/api';
 
 // Helper function for date formatting
 const formatRelativeTime = (dateString) => {
@@ -103,7 +105,7 @@ const Home = () => {
       setError(null);
       
       try {
-        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/blogs`);
+        const response = await BlogService.getRecentBlogs();
         
         if (response && response.data) {
           const blogs = response.data;
@@ -142,7 +144,7 @@ const Home = () => {
       setForumError(null);
       
       try {
-        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/recent`);
+        const response = await api.get('/forum-posts/recent');
         
         if (response && response.data) {
           if (Array.isArray(response.data)) {
@@ -181,7 +183,7 @@ const Home = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories'); 
+        const response = await api.get('/forum-categories'); 
         if (response && response.data) {
           const colorMap = response.data.reduce((acc, category) => {
             if (category.name && category.color) {

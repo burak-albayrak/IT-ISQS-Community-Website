@@ -6,12 +6,17 @@ import com.devEra.ws.dto.request.UpdatePasswordRequest;
 import com.devEra.ws.dto.request.Admin.AdminLoginRequest;
 import com.devEra.ws.dto.response.LoginResponse;
 import com.devEra.ws.entity.Admin;
+import com.devEra.ws.entity.User;
 import com.devEra.ws.service.AdminService;
+import com.devEra.ws.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admins")
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
 
     private final AdminService adminService;
+    private final UserService userService;
 
     // Admin login
     @PostMapping("/login")
@@ -62,5 +68,50 @@ public class AdminController {
     public ResponseEntity<GenericMessage> createAdmin(@Valid @RequestBody Admin admin) {
         adminService.save(admin);
         return ResponseEntity.ok(new GenericMessage("Admin created successfully."));
+    }
+
+    // Tüm kullanıcıları getir
+    @GetMapping("/users")
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    // Kullanıcı engelleme/engel kaldırma
+    @PutMapping("/users/{userId}/block")
+    public ResponseEntity<?> toggleUserBlock(@PathVariable int userId, @RequestBody Map<String, Boolean> request) {
+        try {
+            boolean blocked = request.get("blocked");
+            userService.toggleUserBlock(userId, blocked);
+            String message = blocked ? "User blocked successfully." : "User unblocked successfully.";
+            return ResponseEntity.ok(new GenericMessage(message));
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage("User not found.");
+            error.setPath("/api/v1/admins/users/" + userId + "/block");
+            return ResponseEntity.status(404).body(error);
+        }
+    }
+
+    // Kullanıcı rolünü güncelle
+    @PutMapping("/users/{userId}/role")
+    public ResponseEntity<?> updateUserRole(@PathVariable int userId, @RequestBody Map<String, String> request) {
+        try {
+            String role = request.get("role");
+            userService.updateUserRole(userId, role);
+            return ResponseEntity.ok(new GenericMessage("User role updated successfully."));
+        } catch (EntityNotFoundException e) {
+            ApiError error = new ApiError();
+            error.setStatus(404);
+            error.setMessage("User not found.");
+            error.setPath("/api/v1/admins/users/" + userId + "/role");
+            return ResponseEntity.status(404).body(error);
+        } catch (IllegalArgumentException e) {
+            ApiError error = new ApiError();
+            error.setStatus(400);
+            error.setMessage(e.getMessage());
+            error.setPath("/api/v1/admins/users/" + userId + "/role");
+            return ResponseEntity.status(400).body(error);
+        }
     }
 }

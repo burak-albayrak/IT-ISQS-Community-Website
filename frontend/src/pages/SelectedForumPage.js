@@ -3,6 +3,7 @@ import styled, { createGlobalStyle } from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiHeart, FiBookmark, FiEye, FiMessageSquare, FiSend, FiArrowLeft } from 'react-icons/fi';
 import axios from 'axios';
+import api from '../services/api';
 import defaultProfilePic from '../assets/defaultpp.jpg';
 import TextareaAutosize from 'react-textarea-autosize';
 
@@ -118,6 +119,14 @@ const SelectedForumPage = () => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyTexts, setReplyTexts] = useState({});
   const [showLoginWarning, setShowLoginWarning] = useState(false);
+  const [recommendedPosts, setRecommendedPosts] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewModalType, setReviewModalType] = useState("loading");
+  const [reviewModalMessage, setReviewModalMessage] = useState("Checking comment...");
+  const [replyInputValue, setReplyInputValue] = useState('');
+  const [replyingToCommentId, setReplyingToCommentId] = useState(null);
+  const [isBelowColdStart, setIsBelowColdStart] = useState(true);
 
   // New function to fetch comments
   const fetchComments = useCallback(async (postId) => {
@@ -125,20 +134,7 @@ const SelectedForumPage = () => {
     setCommentError(null);
     try {
       console.log('Fetching comments for post:', postId);
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      console.log('Making request with headers:', headers);
-      const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments/post/${postId}/all`, {
-        headers: headers
-      });
+      const response = await api.get(`/forum-comments/post/${postId}/all`);
       
       console.log('Raw response:', response);
       console.log('Response status:', response.status);
@@ -225,7 +221,7 @@ const SelectedForumPage = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories');
+        const response = await api.get('/forum-categories');
         if (response && response.data) {
           const colorMap = response.data.reduce((acc, category) => {
             if (category.name && category.color) {
@@ -249,7 +245,7 @@ const SelectedForumPage = () => {
       
       try {
         console.log('Fetching post with ID:', postId);
-        const response = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts/${postId}`);
+        const response = await api.get(`/forum-posts/${postId}`);
         console.log('Forum post response:', response);
         
         if (response && response.data) {
@@ -278,7 +274,7 @@ const SelectedForumPage = () => {
           
           // Fetch popular posts for sidebar
           try {
-            const allPostsResponse = await axios.get(`https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-posts`);
+            const allPostsResponse = await api.get('/forum-posts');
             if (allPostsResponse && allPostsResponse.data) {
               const formattedPosts = allPostsResponse.data.map(post => ({
                 id: post.forumPostID,
@@ -332,44 +328,98 @@ const SelectedForumPage = () => {
     fetchPostData();
   }, [postId, navigate]);
   
+  // Fetch recommendation posts for logged-in user
+  const fetchRecommendedPosts = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setRecommendedPosts([]); // Clear recommended posts if not logged in
+      return;
+    }
+
+    try {
+      const response = await api.get('/recommendations/forum-posts');
+      
+      if (response && response.data) {
+        // Filter out the currently viewed post from the recommendations
+        const filteredRecommendations = response.data.filter(p => p.forumPostId !== parseInt(postId));
+        
+        // Format the recommendation posts - Note: removed likesCount as it's no longer used
+        const formattedRecommendations = filteredRecommendations.map(post => ({
+          id: post.forumPostId,
+          title: post.title,
+          categoryName: post.categoryName,
+          commentCount: post.commentCount || 0,
+          similarityScore: post.similarityScore
+        }));
+        
+        setRecommendedPosts(formattedRecommendations);
+        console.log('Recommendations loaded:', formattedRecommendations);
+      } else {
+        setRecommendedPosts([]);
+      }
+    } catch (err) {
+      console.error("Error fetching recommendations:", err);
+      setRecommendedPosts([]); // Set empty on error
+    }
+  };
+
+  // Add useEffect for cold start check
+  useEffect(() => {
+    const checkColdStart = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setIsBelowColdStart(true);
+          return;
+        }
+
+        const response = await api.get('/user/interaction-count');
+
+        // Assuming the cold start limit is 5 interactions
+        setIsBelowColdStart(response.data.interactionCount < 5);
+      } catch (err) {
+        console.error('Error checking cold start:', err);
+        setIsBelowColdStart(true);
+      }
+    };
+
+    checkColdStart();
+  }, []);
+
+  // --- Handler to submit a MAIN comment ---
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
     const token = localStorage.getItem('token');
     if (!token) {
-      setShowLoginWarning(true);
+      navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to comment' } });
       return;
     }
+    
     setCommentError(null);
+    setIsSubmitting(true);
+    setReviewModalOpen(true);
+    setReviewModalType("loading");
+    setReviewModalMessage("Checking comment...");
 
     try {
-      // Make the API call to the backend comment endpoint
-      const response = await axios.post(
-        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments`,
+      const response = await api.post(
+        `/forum-comments`,
         {
-          forumPostID: parseInt(postId), // Ensure postId is passed correctly
+          forumPostID: parseInt(postId),
           description: newComment,
-          // parentCommentID: null // Explicitly null for main comments, handle replies later if needed
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
         }
       );
 
       console.log('Comment submitted successfully:', response.data);
-
-      // Clear the input field
       setNewComment('');
+      setReviewModalOpen(false);
 
-      // Refresh the comments list to show the new comment
-      fetchComments(postId);
+      // Refresh comments and recommendations after successful comment
+      await fetchComments(postId);
+      await fetchRecommendedPosts();
 
-      // Update post comment count locally for immediate UI feedback
-      // Note: The backend might automatically update this, fetching comments might be enough
       setPost(prev => ({
         ...prev,
         commentCount: (prev.commentCount || 0) + 1
@@ -377,14 +427,82 @@ const SelectedForumPage = () => {
 
     } catch (err) {
       console.error('Error submitting comment:', err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-         setCommentError('Authentication error or insufficient permissions. Please log in again.');
-      } else if (err.response) {
-        setCommentError(`Error: ${err.response.data?.message || 'Failed to submit comment.'}`);
+      setReviewModalType("error");
+      
+      if (err.response?.data?.message?.includes("toxic")) {
+        setReviewModalMessage("Your comment contains inappropriate content. Please revise and try again.");
+        setCommentError('Please ensure your comment follows community guidelines.');
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        setReviewModalMessage("Authentication error. Please log in again.");
+        setCommentError('Authentication error. Please log in again.');
+      } else {
+        setReviewModalMessage("Failed to submit comment. Please try again.");
+        setCommentError('Failed to submit comment. Please try again.');
       }
-      else {
-         setCommentError('Failed to submit comment. Please check your connection and try again.');
+      
+      setTimeout(() => {
+        setReviewModalOpen(false);
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- Handler to submit a REPLY ---
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyInputValue.trim() || !replyingToCommentId) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login', { state: { from: `/forum/post/${postId}`, message: 'Please log in to reply' } });
+      return;
+    }
+    
+    setCommentError(null);
+    setIsSubmitting(true);
+    setReviewModalOpen(true);
+    setReviewModalType("loading");
+    setReviewModalMessage("Checking reply...");
+
+    try {
+      const response = await api.post(
+        `/forum-comments`,
+        {
+          forumPostID: parseInt(postId),
+          description: replyInputValue,
+          parentCommentID: replyingToCommentId
+        }
+      );
+
+      console.log('Reply submitted successfully:', response.data);
+      setReviewModalOpen(false);
+      handleCancelReply();
+      
+      // Refresh comments and recommendations after successful reply
+      await fetchComments(postId);
+      await fetchRecommendedPosts();
+
+    } catch (err) {
+      console.error('Error submitting reply:', err);
+      setReviewModalType("error");
+      
+      if (err.response?.data?.message?.includes("toxic")) {
+        setReviewModalMessage("Your reply contains inappropriate content. Please revise and try again.");
+        setCommentError('Please ensure your reply follows community guidelines.');
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        setReviewModalMessage("Authentication error. Please log in again.");
+        setCommentError('Authentication error. Please log in again.');
+      } else {
+        setReviewModalMessage("Failed to submit reply. Please try again.");
+        setCommentError('Failed to submit reply. Please try again.');
       }
+      
+      setTimeout(() => {
+        setReviewModalOpen(false);
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -409,18 +527,12 @@ const SelectedForumPage = () => {
     setCommentError(null);
 
     try {
-      await axios.post(
-        `https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-comments`,
+      await api.post(
+        `/forum-comments`,
         {
           forumPostID: parseInt(postId),
           description: replyText,
           parentCommentID: commentId
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
         }
       );
 
@@ -493,6 +605,12 @@ const SelectedForumPage = () => {
     return `${diffInYears} year${diffInYears !== 1 ? 's' : ''} ago`;
   };
 
+  // Helper function to handle canceling a reply
+  const handleCancelReply = () => {
+    setReplyInputValue('');
+    setReplyingToCommentId(null);
+  };
+
   if (loading) {
     return (
       <ForumContainer>
@@ -520,6 +638,39 @@ const SelectedForumPage = () => {
       <ForumContainer>
         <ForumContent>
           <LeftSidebar>
+            <RecommendationsTitle>Recommendations</RecommendationsTitle>
+            {isBelowColdStart ? (
+              <RecommendationsMessage>
+                You can see suggested posts by commenting and liking the posts.
+              </RecommendationsMessage>
+            ) : recommendedPosts.length > 0 ? (
+              <SidebarPostsList>
+                {recommendedPosts.map((post) => (
+                  <SidebarPostItem 
+                    key={post.id} 
+                    onClick={() => navigate(`/forum/post/${post.id}`)}
+                    $isActive={post.id === parseInt(postId)}
+                  >
+                    <SidebarPostTitle>{post.title}</SidebarPostTitle>
+                    {post.categoryName && (
+                      <CategoryTag 
+                        $categoryColor={categoryColorMap[post.categoryName] || null}
+                      >
+                        {post.categoryName}
+                      </CategoryTag>
+                    )}
+                    <SidebarPostStats>
+                      <span>{post.commentCount} comments</span>
+                    </SidebarPostStats>
+                  </SidebarPostItem>
+                ))}
+              </SidebarPostsList>
+            ) : (
+              <RecommendationsMessage>
+                No recommendations available at the moment.
+              </RecommendationsMessage>
+            )}
+
             <PopularPostsTitle>Popular Forum Posts</PopularPostsTitle>
             <SidebarPostsList>
               {forumPosts.length > 0 ? (
@@ -678,6 +829,25 @@ const SelectedForumPage = () => {
         <ZoomOverlay onClick={() => setZoomedImageUrl(null)}>
           <ZoomedImage src={zoomedImageUrl} alt="Zoomed post media" />
         </ZoomOverlay>
+      )}
+
+      {/* Review Modal */}
+      {reviewModalOpen && (
+        <ModalOverlay>
+          <ReviewModal>
+            {reviewModalType === "loading" ? (
+              <>
+                <ReviewSpinner />
+                <ReviewText>Under review</ReviewText>
+              </>
+            ) : (
+              <>
+                <ReviewErrorIcon>⚠️</ReviewErrorIcon>
+                <ReviewText type="error">{reviewModalMessage}</ReviewText>
+              </>
+            )}
+          </ReviewModal>
+        </ModalOverlay>
       )}
     </>
   );
@@ -1527,6 +1697,60 @@ const ModalOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
+`;
+
+// Add new styled components for Review Modal
+const ReviewModal = styled.div`
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-width: 300px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+`;
+
+const ReviewSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #1849A9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+`;
+
+const ReviewText = styled.p`
+  margin: 0;
+  color: ${props => props.type === "error" ? "#B42318" : "#101828"};
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+`;
+
+const ReviewErrorIcon = styled.div`
+  font-size: 24px;
+`;
+
+// Add new styled components for Recommendations
+const RecommendationsTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #101828;
+  margin: 0 0 15px 0;
+`;
+
+const RecommendationsMessage = styled.div`
+  color: #667085;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+  background: #F9FAFB;
+  border: 1px solid #F2F4F7;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  line-height: 1.5;
 `;
 
 export default SelectedForumPage;

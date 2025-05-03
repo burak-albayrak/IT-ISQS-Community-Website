@@ -6,6 +6,7 @@ import '../styles/Blog.css';
 import BlogService from '../services/BlogService';
 import defaultBlogImage from '../assets/defaultblog.png';
 import axios from 'axios';
+import api from '../services/api';
 
 const BlogDetail = () => {
   const { id } = useParams();
@@ -143,7 +144,7 @@ const BlogDetail = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('https://closed-merola-deveracankaya-2f4e22df.koyeb.app/api/v1/forum-categories');
+        const response = await api.get('/forum-categories');
         if (response && response.data) {
           const colorMap = response.data.reduce((acc, category) => {
             if (category.name && category.color) {
@@ -178,7 +179,7 @@ const BlogDetail = () => {
         return blogItem.imageUrl;
       }
       // Eğer statik bir referans ise API_URL'ye ekle
-      return `${process.env.REACT_APP_API_URL || 'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/'}${blogItem.imageUrl}`;
+      return `${api.defaults.baseURL}${blogItem.imageUrl}`;
     }
 
     // Media alanı varsa
@@ -189,7 +190,7 @@ const BlogDetail = () => {
       if (blogItem.media.startsWith('/images')) {
         return blogItem.media;
       }
-      return `${process.env.REACT_APP_API_URL || 'https://closed-merola-deveracankaya-2f4e22df.koyeb.app/'}${blogItem.media}`;
+      return `${api.defaults.baseURL}${blogItem.media}`;
     }
     
     // Base64 kodlu bir görsel ise

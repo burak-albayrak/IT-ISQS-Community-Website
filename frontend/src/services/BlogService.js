@@ -1,62 +1,73 @@
-import axios from 'axios';
+import api from './api'; // Import the configured axios instance
 
-const API_URL = 'https://closed-merola-deveracankaya-2f4e22df.koyeb.app';
-const API_PATH = '/api/v1/blogs';
+// Remove hardcoded API_URL and API_PATH
+// const API_URL = 'https://closed-merola-deveracankaya-2f4e22df.koyeb.app';
+// const API_PATH = '/api/v1/blogs';
 
 class BlogService {
   // Blog listesini getir
   getAllBlogs(page = 0, size = 10) {
-    return axios.get(`${API_URL}${API_PATH}`);
+    // Use 'api' instance and relative path
+    return api.get('/blogs'); 
   }
 
   // Son eklenen blogları getir
   getRecentBlogs(limit = 3) {
     // Backend doesn't currently support this so we'll just get all and filter
-    return axios.get(`${API_URL}${API_PATH}`);
+    // Use 'api' instance and relative path
+    return api.get('/blogs'); 
   }
 
   // Belirli bir blogu ID'ye göre getir
   getBlogById(id) {
-    return axios.get(`${API_URL}${API_PATH}/${id}`);
+    // Use 'api' instance and relative path
+    return api.get(`/blogs/${id}`); 
   }
 
   // Kategorilere göre blogları filtrele
   getBlogsByCategory(category, page = 0, size = 10) {
     // Backend doesn't currently support this, use getAllBlogs and filter
-    return axios.get(`${API_URL}${API_PATH}`);
+    // Use 'api' instance and relative path
+    return api.get('/blogs'); 
   }
 
   // Arama sorgusu ile blog ara
   searchBlogs(query, page = 0, size = 10) {
     // Backend doesn't currently support this, use getAllBlogs and filter
-    return axios.get(`${API_URL}${API_PATH}`);
+    // Use 'api' instance and relative path
+    return api.get('/blogs'); 
   }
 
   // İlgili blogları getir
   getRelatedBlogs(blogId, limit = 3) {
     // Backend doesn't currently support this, use getAllBlogs and filter
-    return axios.get(`${API_URL}${API_PATH}`);
+    // Use 'api' instance and relative path
+    return api.get('/blogs'); 
   }
 
   // Tüm kategorileri getir
   getAllCategories() {
     // Backend doesn't currently support this, use getAllBlogs and extract categories
-    return axios.get(`${API_URL}${API_PATH}`);
+    // Use 'api' instance and relative path
+    return api.get('/blogs'); 
   }
   
   // Admin - Yeni blog oluştur
   createBlog(blogData) {
-    return axios.post(`${API_URL}${API_PATH}/create`, blogData);
+    // Use 'api' instance and relative path
+    return api.post('/blogs/create', blogData); 
   }
   
   // Admin - Blog güncelle
   updateBlog(id, blogData) {
-    return axios.put(`${API_URL}${API_PATH}/${id}`, blogData);
+    // Use 'api' instance and relative path
+    return api.put(`/blogs/${id}`, blogData); 
   }
   
   // Admin - Blog sil
   deleteBlog(id) {
-    return axios.delete(`${API_URL}${API_PATH}/${id}`);
+    // Use 'api' instance and relative path
+    return api.delete(`/blogs/${id}`); 
   }
 }
 
