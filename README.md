@@ -10,12 +10,14 @@ IT-ISQS (Innovative Training for International Software Quality Standards) is an
 
 ## Project Overview
 
-The project focuses on developing a comprehensive platform for learning and implementing software quality standards. Our motivation stems from the observed challenges in the IT sector where:
+In today’s fast-paced IT landscape, software quality is more important than ever. Yet:
 
-- Only 31% of software projects achieve full success
-- Many projects face issues with customer satisfaction, budget overruns, and timeline delays
-- There's a significant gap in understanding and applying ISO/IEC standards for software quality
-- Current educational curricula lack comprehensive coverage of international software quality standards
+- Only **31%** of software projects are fully successful.
+- Many fail due to **budget overruns**, **delays**, and **low customer satisfaction**.
+- There is a **lack of awareness and understanding** of ISO/IEC software quality standards.
+- Most **university curricula** do not include comprehensive training on these standards.
+
+The IT-ISQS project directly addresses these gaps.
 
 ## Features
 
