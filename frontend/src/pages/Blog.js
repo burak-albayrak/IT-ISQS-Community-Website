@@ -498,7 +498,7 @@ const Blog = () => {
             {allBlogPosts
               .filter(post => !selectedCategory || (post.categories && post.categories.includes(selectedCategory)))
               // Add pagination logic here if needed for client-side filtering
-              .slice(currentPage * 10, (currentPage + 1) * 10) // Example pagination slice
+              .slice(currentPage * 9, (currentPage + 1) * 9) // Example pagination slice
               .map((post) => (
               <BlogCard 
                 key={post.id}
