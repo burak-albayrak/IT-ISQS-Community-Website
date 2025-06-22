@@ -123,7 +123,7 @@ const Blog = () => {
             }
             
             // Set pagination
-            setTotalPages(Math.ceil(blogs.length / 10));
+            setTotalPages(Math.ceil(blogs.length / 9));
           } else {
             // No blogs found
             setError("No blog posts available yet.");
